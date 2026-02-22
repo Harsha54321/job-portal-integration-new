@@ -1,0 +1,126 @@
+
+.header-box { 
+    background: #f0f7ff; 
+    text-align: center; 
+    padding: 10px; 
+    margin: 80px; 
+    /* width: 80%;  */
+    border-radius: 8px; 
+    justify-content: center;
+    align-items: center;
+}
+    
+
+.main-layout { 
+    display: flex; 
+    width: 80%; 
+    margin: 0 auto; 
+    gap: 80px; 
+}
+.sidebar { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    width: 200px; 
+}
+
+.sidebar button { 
+    padding: 10px; 
+    cursor: pointer; 
+    border: 1px solid #eee; 
+    background: white; 
+    text-align: left; 
+    border-radius: 5px;
+    font-size: 16px;
+    font-family: "inter";
+    
+}
+.sidebar button.active { 
+    background: #e6f0ff; 
+    border-color: #0066cc; 
+    color: #0066cc; 
+    font-weight: 600;
+}
+
+.content { 
+    flex: 1; 
+}
+
+.form input { 
+    width: 80%; 
+    padding: 12px; 
+    border: 1px solid #ccc; 
+    border-radius: 4px; 
+}
+.form ::placeholder{
+    color: black;
+    font-weight: 400;
+}
+ .box { 
+    border: 1px solid #eee; 
+    padding: 10px; 
+    margin-bottom: 10px; 
+    border-radius: 10px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    font-size: 16px;
+    font-family: "inter";
+    font-weight: 500;
+    max-width: 80%;
+}
+.row{
+    border: 1px solid #eee; 
+    padding: 10px; 
+    margin-bottom: 10px; 
+    border-radius: 10px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    font-size: 16px;
+    font-family: "inter";
+    font-weight: 500; 
+    max-width: 80%;
+}
+
+.privacy h2 {   
+    background: linear-gradient( to right,#bfd9f8,#fff);
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    font-size: 22px; 
+    margin-top: -8px ;
+    margin-left: 20px;
+    font-weight: 700;
+    padding: 10px 10px;
+    color: #111;    
+}
+.privacy p {
+    font-size: 16px;
+    font-family: "inter";
+    color: #000; 
+    margin-left: 20px;  
+    letter-spacing: 0.5px;
+    line-height: 2em;
+}
+
+.flat-btn, .active-btn {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+  border-radius: 4px;
+}
+
+.active-btn {
+  background-color: #e6f0ff;
+  color: #0066cc;
+  font-weight: bold;
+}
+
+.btn-group {
+  display: flex;
+  gap: 10px;
+}

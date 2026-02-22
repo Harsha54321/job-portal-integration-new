@@ -1,0 +1,40 @@
+.header-icons {
+  height: 28px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.jheader-icons,
+.jheader-icons-active {
+  height: 28px;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.jheader-icons-active {
+  background-color: #E9F3FC;
+}
+
+.jheader-nav-links {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  justify-content: center;
+}
+
+.jheader-nav-items {
+  text-decoration: none;
+  color: #032240;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.jheader-nav-active {
+  background-color: #E9F3FC;
+  color: #000;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+}
