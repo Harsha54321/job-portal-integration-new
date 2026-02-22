@@ -22,7 +22,7 @@ export const JobList = [
     Department: ["Engineering", "Development"],
     WorkType: "Hybrid",
     Shift: "General",
-    duration: "Full-time",
+    duration: "Permanent",
 
     ratings: 3.5,
     reviewNo: 533,

@@ -1,0 +1,76 @@
+
+
+.Jobseekerhelp-page {
+    margin-top: 102px;
+
+    padding-bottom: 50px;
+}
+
+.Jobseekerhelp-container {
+
+    background: #ffffff;
+    padding: 40px 100px 100px;
+
+}
+
+.Jobseekerhelp-title {
+    color: #0f172a;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.Jobseekerhelp-updated {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 20px;
+}
+
+.Jobseekerhelp-intro {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #334155;
+    margin-bottom: 30px;
+}
+
+.Jobseekerhelp-hero {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.Jobseekerhelp-hero-img {
+    max-width: 450px;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+.Jobseekerhelp-section h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 32px 0 12px;
+}
+
+.Jobseekerhelp-section p {
+    font-size: 15px;
+    color: #334155;
+    line-height: 1.7;
+    margin-bottom: 14px;
+}
+
+.Jobseekerhelp-section ul {
+    padding-left: 20px;
+    margin-bottom: 18px;
+}
+
+.Jobseekerhelp-section ul li {
+    font-size: 15px;
+    color: #334155;
+    margin-bottom: 10px;
+    line-height: 1.6;
+}

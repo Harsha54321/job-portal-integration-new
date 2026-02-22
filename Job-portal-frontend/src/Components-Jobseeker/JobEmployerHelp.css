@@ -1,0 +1,64 @@
+.jobemployerhelp-page {
+    margin-top: 102px;
+
+}
+
+.jobemployerhelp-container {
+
+    background: #ffffff;
+    padding: 40px 100px 100px;
+    
+}
+
+.jobemployerhelp-title {
+    color: #0f172a;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.jobemployerhelp-updated {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 20px;
+}
+
+.jobemployerhelp-intro {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #334155;
+    margin-bottom: 30px;
+}
+
+.jobemployerhelp-hero {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.jobemployerhelp-hero-img {
+    max-width: 500px;
+    height: auto;
+    border-radius: 8px;
+}
+
+.jobemployerhelp-content h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 32px 0 12px;
+}
+
+.jobemployerhelp-content ul {
+    padding-left: 20px;
+    list-style-type: decimal;
+}
+
+.jobemployerhelp-content ul li {
+    font-size: 15px;
+    color: #334155;
+    margin-bottom: 14px;
+    line-height: 1.6;
+}

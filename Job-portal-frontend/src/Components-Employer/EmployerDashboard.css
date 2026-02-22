@@ -1,0 +1,217 @@
+.container{
+    display: flex;
+    min-height: 100vh;
+    transition: all 0.3s ease;
+    grid-template-columns: 10% auto;
+    margin-top: 120px;
+    gap: 5px;
+}
+
+.container1{
+    display: grid;
+    grid-template-columns: 300px auto;
+    margin-top: 120px;
+    gap: 5px
+
+}
+
+.EAside{
+
+    background-color: #01325D;
+    border: 1px solid black;
+    border-radius: 7px;
+    height: fit-content;
+    position: sticky;
+    top: 120px;
+    color: white;
+    min-width: 300px;
+}
+
+.EAside2{
+    background-color: #01325D;
+    border: 1px solid black;
+    border-radius: 7px;
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    height: 100%;
+    position: sticky;
+    top: 100px;
+    color: white;    /* background-color: red; */
+}
+
+.EAside2 img{
+    padding: 5px;   
+}
+
+.Aside-Title{
+    color: white;
+    padding-left:15px ;
+}
+
+.ENavbar{
+    padding: 10px;
+    box-shadow: 0 0 0 1 black;
+    margin: 10px;
+}
+
+.ENavbar1{
+    padding: 25px 10px;
+    box-shadow: 0 0 0 1 black;
+    margin: -15px 10px;
+    /* background-color: aqua; */
+}
+
+.Emainsec{
+    /* margin-left: 20px; */
+    border-radius: 7px;
+    border: 0.5 solid rgba(0, 0, 0, 0.25);
+    flex: 1;
+    width: 90%;
+    margin: 0 10px;
+}
+
+.Emainsec2{
+
+    /* margin-left: 20px; */
+    border-radius: 7px;
+    border: 0.5 solid rgba(0, 0, 0, 0.25);
+    flex: 1;
+    margin: 0px 10px 10px -150px;   
+}
+
+.NavTitle{
+    margin: 25px 0;  
+}
+
+.Enav-item.active{
+   box-shadow: 0 12px 12px rgba(0, 0, 0, 0.25);
+   margin-top: 5px;
+   padding: 15px;
+}
+
+.Enav-item{
+    margin:  5px 10px;
+    padding: 10px;
+}
+
+.Navbox{
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.Navbox1{
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.Active {
+  display: flex;
+  align-items: center;
+  background-color: #0066cc;
+  padding: 3px 20px;
+  margin-left: -25px;
+  border-radius: 15px;
+  color: #FFD700;
+  font-weight: bold;
+  width: 100%;
+  cursor: pointer;
+}
+
+.Welcome-Note{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* margin: 25px; */
+    padding: 25px;
+    box-shadow: 1px 1px 1px 3px rgba(0.1, 0.1, 0.1, 0.1);
+    border-radius: 10px;
+    /* background-color: #FFD700; */
+}
+
+.post-job-btn{
+    background-color: #165082;
+    padding: 15px 30px;
+    border-radius: 10px;
+    color: whitesmoke;
+    outline: 1px solid white;  
+}
+
+.E-DashB-Over-View{
+    box-shadow: 1px 1px 1px 3px rgba(0.1, 0.1, 0.1, 0.1);
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-top: 25px;
+}
+
+.EDashB-Application-Counts{
+    padding: 20px;
+    display: flex;
+    flex-direction: row;
+    background-color: snow;
+    gap: 10px;
+    border-radius: 15px;
+}
+
+.E-DashB-No-Counts{
+    display: flex;
+    flex-direction: column;
+    /* background-color: azure; */
+    border: 1px solid rgba(0.1, 0.1, 0.1, 0.1) ;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    width: 300px;
+    height: 300px;  
+}
+
+.E-DashB-No-Counts div{
+    padding: 5px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.EE-Name{
+    border: 1px solid white;
+    margin: 10px 20px;
+    border-radius: 10px;
+    background-color: snow;
+    width: fit-content;
+    padding: 4px 10px;
+    color: #0066cc;
+}
+
+.E-job-status{
+    width: 200px;
+}
+
+.ERecent-Post-Jobs{
+    height: 400px;
+    border: 1px solid rgba(0.1, 0.1, 0.1, 0.1) ;
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-top: 25px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #1E88E5;
+    font-weight: 700;
+}
+
+.ERecent-Post-Cont{
+    box-shadow: 1px 1px 1px 3px rgba(0.1, 0.1, 0.1, 0.1);
+    border-radius: 10px;
+    /* font-family: "inter"; */
+    padding: 10px 15px;
+    margin-top: 25px;    /* background-color: #165082; */   
+}
+.Active1{
+    background-color: #0066cc;
+    padding: 7px 7px;
+    margin-top: 20px;
+    border-radius: 30px;
+}
