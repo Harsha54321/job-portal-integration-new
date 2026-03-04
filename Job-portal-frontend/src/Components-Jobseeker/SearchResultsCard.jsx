@@ -7,10 +7,14 @@ import "./SearchResultsCard.css";
 import { useNavigate } from 'react-router-dom';
 import starIcon from '../assets/Star_icon.png';
 import api from '../api/axios';
+import { useJobs } from '../JobContext';
 
 export function SearchResultsCard({ job }) {
     const navigate = useNavigate();
-    const [isSaving, setIsSaving] = useState(false);
+    const { isJobSaved, isJobApplied, saveJob } = useJobs();
+
+    const isSaved = isJobSaved(job.id);
+    const isApplied = isJobApplied(job.id);
 
     if (!job) return null;
 
@@ -21,12 +25,16 @@ export function SearchResultsCard({ job }) {
 
     const handleApply = (e) => {
         e.stopPropagation();
-        navigate(`/Job-portal/jobseeker/apply/${job.id}`);
+
+        if (isApplied) return;
+
+        navigate(`/Job-portal/jobseeker/jobapplication/${job.id}`);
     };
 
     const handleSave = async (e) => {
         e.stopPropagation();
-        if (isSaving) return;
+
+        if (isSaved) return;
 
         setIsSaving(true);
         try {
@@ -34,7 +42,7 @@ export function SearchResultsCard({ job }) {
             alert("Job saved successfully");
         } catch (err) {
             if (err.response?.status === 400) {
-                alert("Job already saved");
+            alert("Job already saved");
             } else {
                 alert("Failed to save job");
             }
@@ -59,50 +67,49 @@ export function SearchResultsCard({ job }) {
 
     return (
         <div className="SearchResults-job-card">
-            {/* ---------- HEADER ---------- */}
-            <div onClick={handleCardClick} className="SearchResults-job-card-header">
-                <div>
-                    <h3 className="SearchResults-job-card-title">
-                        {job.title}
-                    </h3>
+            <div onClick={handleCardClick}>
+                <div className="SearchResults-job-card-header">
+                    <div>
+                        <h3 className="SearchResults-job-card-title">
+                            {job.title}
+                        </h3>
 
-                    <p className="SearchResults-job-card-company">
-                        <span className="star">
-                            <img src={starIcon} alt="rating" />
-                        </span>
-                        {job.company?.rating || 0}
-                        <span className="SearchResults-job-card-divider">|</span>
-                        {job.company?.review_count || 0} reviews
-                    </p>
+                        <p className="SearchResults-job-card-company">
+                            <span className="star">
+                                <img src={starIcon} alt="rating" />
+                            </span>
+                            {job.company?.rating || 0}
+                            <span className="SearchResults-job-card-divider">|</span>
+                            {job.company?.review_count || 0} reviews
+                        </p>
+                    </div>
+
+                    {logoContent}
                 </div>
 
-                {logoContent}
-            </div>
+                <div className="SearchResults-job-card-details">
+                    <p className="SearchResults-job-card-detail-line">
+                        <img src={time} className="SearchResults-job-card-icons" alt="type" />
+                        <span className="SearchResults-job-card-divider">|</span>
+                        {job.salary || "Salary not disclosed"}
+                        <span className="SearchResults-job-card-divider">|</span>
+                        <img src={experience} className="SearchResults-job-card-icons" alt="experience" />
+                        {job.experience_required || "Experience not specified"}
+                        <span className="SearchResults-job-card-divider">|</span>
+                        <img src={place} className="SearchResults-job-card-icons" alt="location" />
+                        {job.location || "Location not specified"}
+                    </p>
 
-            {/* ---------- DETAILS ---------- */}
-            <div className="SearchResults-job-card-details">
-                <p className="SearchResults-job-card-detail-line">
-                    <img src={time} className="SearchResults-job-card-icons" alt="type" />
-                    <span className="SearchResults-job-card-divider">|</span>
-                    {job.salary || "Salary not disclosed"}
-                    <span className="SearchResults-job-card-divider">|</span>
-                    <img src={experience} className="SearchResults-job-card-icons" alt="experience" />
-                    {job.experience_required || "Experience not specified"}
-                    <span className="SearchResults-job-card-divider">|</span>
-                    <img src={place} className="SearchResults-job-card-icons" alt="location" />
-                    {job.location || "Location not specified"}
-                </p>
-
-                <p className="SearchResults-job-card-detail-line">
-                    Shift: {job.shift || "N/A"}
-                    <span className="SearchResults-job-card-divider">|</span>
-                    {job.work_type || "Not specified"}
-                </p>
+                    <p className="SearchResults-job-card-detail-line">
+                        Shift: {job.shift || "N/A"}
+                        <span className="SearchResults-job-card-divider">|</span>
+                        {job.work_type || "Not specified"}
+                    </p>
+                </div>
             </div>
 
             <hr className="SearchResults-job-card-separator" />
 
-            {/* ---------- FOOTER ---------- */}
             <div className="SearchResults-job-card-job-footer">
                 <p>
                     {formatPostedDate(job.posted_date)}
@@ -114,23 +121,27 @@ export function SearchResultsCard({ job }) {
 
                 <div className="SearchResults-job-card-actions">
                     <button
-                        className="SearchResults-job-card-save-btn"
+                        className={isSaved ? "Opportunities-apply-btn" : "Opportunities-save-btn"}
                         onClick={handleSave}
-                        disabled={isSaving}
+                        disabled={isSaved}
                     >
-
-                        {isSaving ? "Saving..." : "Save"}
+                        {isSaved ? "Saved" : "Save"}
                     </button>
 
                     <button
-                        className="SearchResults-job-card-apply-btn"
+                        className="Opportunities-apply-btn"
                         onClick={handleApply}
+                        disabled={isApplied}
+                        style={{
+                            opacity: isApplied ? 0.6 : 1,
+                            cursor: isApplied ? "not-allowed" : "pointer"
+                        }}
                     >
-
-                        Apply
+                        {isApplied ? "Applied" : "Apply"}
                     </button>
-                </div>
+
             </div>
         </div>
+        </div >
     );
 }

@@ -14,14 +14,14 @@ import bloggimgg from "../assets/Blog_Images/blog10.png";
 import blooggimgg from "../assets/Blog_Images/blog11.png";
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '../Components-LandingPage/Footer';
-import { Header } from '../Components-LandingPage/Header';
+import { FHeader } from '../Components-Jobseeker/FHeader'
 
   export const Blogpage = () => {
     // const [showMore, setShowMore] = useState(false);
     const navigate = useNavigate()
   return (
   <>
-  <Header/>
+  <FHeader/>
 
   <div style={{marginTop:"150px"}} className='blogpage'>
   <img src={blogheadimg} alt="blogpage" width="1450px" padding="25px"/>

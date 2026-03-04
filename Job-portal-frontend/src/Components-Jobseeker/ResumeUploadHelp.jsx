@@ -1,140 +1,111 @@
 import React from "react";
-import "./ResumeUploadHelp.css";
 import { Footer } from "../Components-LandingPage/Footer";
-import ResumeHelpImg from "../assets/resume-help.png";
 import { FHeader } from "./FHeader";
+import ResumeHelpImg from "../assets/resume_upload_image.png";
+import "./ResumeUploadHelp.css";
 
 export const ResumeUploadHelp = () => {
 
   const resumeHelpData = {
-    title: "How to Make a Resume",
-    sections: [
-      {
-        title: "Step 1: Gather Your Information",
-        content: [
-          "Before you start building your resume, gather all necessary details:"
-        ],
-        list: [
-          "Personal Information: Name, phone number, email, and address (optional)",
-          "Work Experience: Job titles, company names, employment dates, and responsibilities",
-          "Education: Degrees, institutions, graduation dates, and relevant coursework",
-          "Skills: Hard and soft skills related to the job you're targeting",
-          "Certifications & Awards: Additional qualifications that set you apart",
-          "Volunteer Experience: If applicable, include roles and contributions"
-        ]
-      },
-      {
-        title: "Step 2: Choose a Free Online Resume Builder",
-        content: [
-          "There are many free online resume builders that offer professional templates and easy-to-use interfaces."
-        ],
-        list: [
-          "MyCVCreator.com: Free resume building, cover letter creation, and AI assistant support",
-          "Canva: Customizable resume templates with drag-and-drop features",
-          "Zety: Resume creation with templates and formatting tools",
-          "Google Docs: Free resume templates under Template Gallery"
-        ]
-      },
-      {
-        title: "Step 3: Select a Resume Template",
-        content: [
-          "Choose a template that aligns with your industry and the job you are applying for:"
-        ],
-        list: [
-          "Professional Templates: Ideal for corporate roles",
-          "Creative Templates: Suitable for design, marketing, or media roles",
-          "Simple Templates: Best for conservative industries like finance or law"
-        ]
-      },
-      {
-        title: "Step 4: Input Your Information",
-        content: [
-          "Most online resume builders offer guided input fields. Here's what to include:"
-        ],
-        list: [
-          "Header: Your name, contact information, LinkedIn profile or personal website",
-          "Professional Summary: 2-3 sentences highlighting expertise and career goals",
-          "Work Experience: Listed in reverse chronological order focusing on achievements",
-          "Education: Include relevant coursework if applicable",
-          "Skills: Tailor skills to match the job description",
-          "Additional Sections: Certifications, languages, or volunteer work"
-        ]
-      },
-      {
-        title: "Step 5: Customize for the Job",
-        list: [
-          "Tailor your resume content to match job requirements",
-          "Use keywords from the job posting to improve ATS compatibility",
-          "Quantify achievements (e.g., Increased sales by 30%)"
-        ]
-      },
-      {
-        title: "Step 6: Review and Proofread",
-        list: [
-          "Check spelling, grammar, and punctuation",
-          "Ensure consistent font size and formatting",
-          "Get feedback from a friend or tools like Grammarly"
-        ]
-      },
-      {
-        title: "Step 7: Download or Share Your Resume",
-        list: [
-          "Download formats: PDF, Word, or shareable links",
-          "Test your resume on different devices"
-        ]
-      },
-      {
-        title: "Bonus Tips for a Free Online Resume",
-        list: [
-          "Keep it simple and ATS-friendly",
-          "One page is ideal for most professionals",
-          "Highlight key skills at the top"
-        ]
-      }
-    ]
+    updatedDate: "Updated 26 Feb 2026",
+    intro:
+      "A well-uploaded and professionally named resume is the bridge between your profile and a recruiter's shortlist. Follow this guide to ensure your document is processed correctly by the portal's applicant tracking system."
   };
 
+  const resumeUploadSteps = [
+    "Sign up or sign in to the portal using your credentials.",
+    "After successful login, you will be redirected to the Home page.",
+    "Click on the Profile menu available at the top-right corner.",
+    "From the dropdown options, select Profile.",
+    "In the Profile section, click on the Resume option from the left-side menu.",
+    "Click on Upload Resume.",
+    "Choose your resume file from your device (PDF, DOC, or DOCX).",
+    "Click on Save & Continue to complete the upload process.",
+    "Your resume will be successfully saved to your profile."
+  ];
+
   return (
-      <>
+    <>
       <FHeader />
-      <div className="resumehelp-page">
-      <div className="resumehelp-container">
-        <h1 className="resumehelp-title">
-          {resumeHelpData.title}
-        </h1>
+      <div className="profilehelp-page">
+        <div className="profilehelp-container">
+          <h1 className="profilehelp-title">
+             Resume Upload
+          </h1>
 
-        <div className="resumehelp-hero">
-          <img
-            src={ResumeHelpImg}
-            alt="Resume help"
-            className="resumehelp-hero-img"
-          />
-        </div>
+          <p className="profilehelp-updated">
+            {resumeHelpData.updatedDate}
+          </p>
+          <p className="profilehelp-intro">
+            {resumeHelpData.intro}
+          </p>
 
-        <div className="resumehelp-content">
-          {resumeHelpData.sections.map((section, index) => (
-            <div key={index} className="resumehelp-section">
-              <h2>{section.title}</h2>
+          <div className="profilehelp-layout">
+            <div className="profilehelp-left">
+               <img 
+                src={ResumeHelpImg} 
+                alt="Resume Upload Process" 
+                style={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
+              />
+            </div>
 
-              {section.content &&
-                section.content.map((text, i) => (
-                  <p key={i}>{text}</p>
-                ))}
-
-              {section.list && (
-                <ul>
-                  {section.list.map((item, i) => (
-                    <li key={i}>{item}</li>
+            <div className="profilehelp-right">
+              <div className="profilehelp-steps-container" style={{ marginTop: 0 }}>
+                <h2>Resume Upload Summary</h2>
+                <ul className="profilehelp-steps-list">
+                  {resumeUploadSteps.map((step, index) => (
+                    <li key={index}>{step}</li>
                   ))}
                 </ul>
-              )}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      <Footer />
-    </div>
+          <div className="profilehelp-detailed-steps">
+            <h2>Step-by-Step Resume Guidelines:</h2>
+            
+            <div className="detailed-step">
+              <h3>1. Accessing the Profile Area</h3>
+              <ul>
+                <li><strong>Navigating the Interface:</strong> Following the Top-Right Profile Icon → Profile → Left-Side Resume Menu path is the standard industry layout for user experience (UX).</li>
+              </ul>
+            </div>
+
+            <div className="detailed-step">
+              <h3>2. Preparing the File (The "Pre-Upload" Check)</h3>
+              <ul>
+                <li><strong>Naming Convention:</strong> Rename your file professionally before uploading. 
+                  <br/><em>Bad: resume_final_v2_updated.pdf</em>
+                  <br/><em>Good: Firstname_Lastname_Developer_Resume.pdf</em>
+                </li>
+                <li><strong>Format Selection:</strong> 
+                  <br/><strong>PDF:</strong> Best for preserving layout and fonts across all devices.
+                  <br/><strong>DOCX:</strong> Best if the portal uses older parsing systems to extract text.
+                </li>
+                <li><strong>Size Constraint:</strong> Ensure your file is under 5MB. Use a PDF compressor if you have many images or icons to avoid rejection.</li>
+              </ul>
+            </div>
+
+            <div className="detailed-step">
+              <h3>3. The Upload Action</h3>
+              <ul>
+                <li><strong>File Selection:</strong> Ensure you aren't selecting a "temporary" or "cached" version of your document from your file explorer.</li>
+                <li><strong>Portfolio/Website Link:</strong> Use the relevant section to provide direct links to your LinkedIn, or Personal Portfolio website.</li>
+              </ul>
+            </div>
+
+            <div className="detailed-step">
+              <h3>4. Saving and Validation</h3>
+              <ul>
+                <li><strong>Save & Continue:</strong> This is the most vital step. Clicking "Upload" often only puts the file in temporary storage; clicking Save & Continue commits it to your permanent record.</li>
+                <li><strong>Success Verification:</strong> Once the "Uploaded Successfully" message appears, click "View" or "Download" to see how the portal rendered your document. If it looks garbled, you may need to simplify your resume's design.</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+        <Footer />
+      </div>
     </>
   );
-}
+};

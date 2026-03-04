@@ -8,7 +8,7 @@ import returns from "../assets/returns.png"
 export const Choice = () => {
   return (
     <section className='choice-section'>
-        <h2 className='choice-heading'>Why to Choose Job Portal?</h2>
+        <h2 className='choice-heading'>Why to Choose Job portal?</h2>
         <p className='choice-description'>
           We are dedicated to providing a seamless and effective job search experience for professionals and a robust platform for employers.
         </p>

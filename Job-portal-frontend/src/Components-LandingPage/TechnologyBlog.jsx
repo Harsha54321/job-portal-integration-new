@@ -7,7 +7,7 @@ import bloggcimg from "../assets/Blog_Images/blog5.png";
 import blogccimg from "../assets/Blog_Images/blog6.png";
 import bloggccimg from "../assets/Blog_Images/blog7.png";
 import blggcimg from "../assets/Blog_Images/blog8.png";
-import { Header } from '../Components-LandingPage/Header';
+import { FHeader } from '../Components-Jobseeker/FHeader'
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '../Components-LandingPage/Footer';
 
@@ -16,7 +16,7 @@ export const TechnologyBlog = () => {
   const navigate = useNavigate()
   return (
     <>
-    <Header/>
+    <FHeader />
       
       <div style={{margin:"120px 45px", boxShadow: "0 2px 6px rgba(0, 0, 0, 0.05)", borderRadius:"15px"}} className='search-backbtn-container'>
           <button style={{marginLeft:"15px"}}  className="back-btn" onClick={() => navigate(-1)}>Back</button>

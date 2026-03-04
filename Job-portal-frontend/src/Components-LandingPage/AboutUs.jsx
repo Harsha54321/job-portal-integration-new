@@ -1,5 +1,4 @@
 import React from 'react'
-import { JHeader } from '../Components-Jobseeker/JHeader'
 import './AboutUs.css'
 import WorkLife from "../assets/WorkLifeBet.png"
 import forjobseekers from '../assets/jobseeker.png'
@@ -12,11 +11,12 @@ import Blogs from '../assets/Blog.png'
 import HiringJobs from '../assets/HiringatJobportal.png'
 import Success from '../assets/Success.png'
 import Research from '../assets/Research.png'
+import { FHeader } from '../Components-Jobseeker/FHeader'
 
 export const AboutUs = () => {
     return (
         <>
-            <JHeader />
+            <FHeader />
             <div className='AboutusHeaderContainer'>
                 <div>
                     <h1 className='AboutusHeader'>About us / <span className='AboutusHeaderSpan'>Who we are</span></h1>

@@ -51,30 +51,27 @@ export const MyJobs = () => {
     return (
         <>
             <Header />
-
             <main>
-                <div className="myjobs-main-info">
+                <div className='myjobs-main-info'>
                     <h1>My Jobs</h1>
-                    <p>
-                        View and manage the jobs you've saved and applied for—all in one place.
-                    </p>
+                    <p>View and manage the jobs you've saved, applied for, or shortlisted—all in one place.</p>
                 </div>
 
-                <div className="toggle-myjobs-main">
-                    <button
-                        className={`myjobs-select ${activeTab === "saved" ? "active" : ""}`}
-                        onClick={() => setActiveTab("saved")}
-                    >
-                        Saved ({savedJobs.length})
-                    </button>
-
-                    <button
-                        className={`myjobs-select ${activeTab === "applied" ? "active" : ""}`}
-                        onClick={() => setActiveTab("applied")}
-                    >
-                        Applied ({appliedJobs.length})
-                    </button>
-
+                <div>
+                    <div className="toggle-myjobs-main">
+                        <button
+                            className={`myjobs-select ${activeTab === "saved" ? "active" : ""}`}
+                            onClick={() => setActiveTab("saved")}
+                        >
+                            Saved ({savedJobs.length})
+                        </button>
+                        <button
+                            className={`myjobs-select ${activeTab === "applied" ? "active" : ""}`}
+                            onClick={() => setActiveTab("applied")}
+                        >
+                            Applied ({appliedJobs.length})
+                        </button>
+                    </div>
                 </div>
 
                 <div className="my-jobs-common-container">
@@ -93,9 +90,9 @@ export const MyJobs = () => {
                             ))
                         ) : (
                             <div className="toggle-no-my-jobs">
-                                <h2>No jobs saved yet</h2>
-                                <p>Jobs you save appear here</p>
-                            </div>
+                            <h2>No jobs saved yet</h2>
+                            <p>Jobs you save appear here</p>
+                        </div>
                         )
                     ) : appliedJobs.length ? (
                         appliedJobs.map((item) => (

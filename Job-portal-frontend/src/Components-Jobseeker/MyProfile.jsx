@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import './MyProfile.css'
 import { Link } from 'react-router-dom';
 import addPhoto from '../assets/AddPhoto.png'
@@ -77,7 +77,6 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto }) => {
         e.preventDefault();
         const newErrors = {};
 
-
         if (!data.fullName?.trim()) newErrors.fullName = "*Full Name is required";
         else if (!AlphaOnlyreg.test(data.fullName)) newErrors.fullName = "*Please use letters only; no spaces or numbers allowed";
         if (data.gender === "Select") newErrors.gender = "*Please select a gender";
@@ -94,7 +93,40 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto }) => {
             alert("Please fill all required fields.");
         }
     };
+    // const triggerInput = () => {
+    //     document.getElementById('profilephoto').click();
+    // };
 
+    // const handleFileEvent = (e) => {
+    //     const file = e.target.files[0];
+    //     if (file) {
+    //         // Validation: Check if file size is > 500KB (512000 bytes)
+    //         if (file.size > 512000) {
+    //             setErrors({ ...errors, profilePhoto: "*Image size must be below 500KB" });
+    //             return;
+    //         }
+
+    //         // Clear error if valid
+    //         setErrors({ ...errors, profilePhoto: '' });
+
+    //         handleChange({
+    //             target: {
+    //                 name: 'profilePhoto',
+    //                 value: file
+    //             }
+    //         });
+    //     }
+    // };
+
+    // const removePhoto = () => {
+    //     if (window.confirm("Are you sure you want to remove this photo?")) {
+    //         handleChange({
+    //             target: { name: 'profilePhoto', value: null }
+    //         });
+    //         document.getElementById('profilephoto').value = "";
+    //         setErrors({ ...errors, profilePhoto: '' });
+    //     }
+    // };
     return (
         <form className="content-card" onSubmit={handleSubmit}>
             <div className="profile-header">
@@ -412,6 +444,51 @@ const EducationDetails = ({ data, onHighestQualChange, onUpdateSSLC, onUpdateHSC
             newErrors.hscyear = "Year cannot be in the future";
         }
 
+        // data.graduations.forEach((grad, index) => {
+        //     if (!grad.degree || grad.degree.trim() === "") {
+        //         newErrors[`graddegree${index}`] = "Degree is required";
+        //     }
+        //     if (!grad.status || grad.status === "Select") {
+        //         newErrors[`gradstatus${index}`] = "Please select degree status";
+        //     }
+        //     if (!grad.college || grad.college.trim() === "") {
+        //         newErrors[`gradcollege${index}`] = "Institution name is required";
+        //     }
+        //     if (!grad.percentage || grad.percentage.trim() === "") {
+        //         newErrors[`gradpercentage${index}`] = "Percentage is required";
+        //     } else if (!percentageReg.test(grad.percentage)) newErrors[`gradpercentage${index}`] = "Invalid format"
+        //     if (!grad.startYear) {
+        //         newErrors[`gradstartYear${index}`] = "Starting year is required";
+        //     }
+        //     if (!grad.city) {
+        //         newErrors[`gradcity${index}`] = "City is required";
+        //     }
+        //     if (!grad.state) {
+        //         newErrors[`gradstate${index}`] = "State is required";
+        //     }
+        //     if (!grad.country) {
+        //         newErrors[`gradcountry${index}`] = "Country is required";
+        //     }
+        //     if (!grad.dept) {
+        //         newErrors[`graddepartment${index}`] = "department is required";
+        //     }
+        //     if (!grad.endYear) {
+        //         newErrors[`gradendYear${index}`] = "Ending year is required";
+        //     } else if (new Date(grad.endYear) < new Date(grad.startYear)) {
+        //         newErrors[`gradendYear${index}`] = "Ending year cannot be before starting year";
+        //     }
+        //     else if (grad.startYear) {
+        //         const start = new Date(grad.startYear);
+        //         const end = new Date(grad.endYear);
+
+        //         if (end < start) {
+        //             newErrors[`gradendYear${index}`] = "Ending year cannot be before starting year";
+        //         }
+        //         else if (end.getFullYear() - start.getFullYear() < 1) {
+        //             newErrors[`gradendYear${index}`] = "Course duration must be at least 1 year";
+        //         }
+        //     }
+        // });
 
         setErrors(newErrors);
         if (Object.keys(newErrors).length === 0) {
@@ -885,6 +962,12 @@ export const MyProfile = () => {
     const [saving, setSaving] = useState(false);
     const fetchProfile = async () => {
         try {
+            const token = localStorage.getItem("access");
+            if (!token) {
+                // Token లేకపోతే login page కి redirect
+                window.location.href = "/login";
+                return;
+            }
             const res = await api.get("profile/jobseeker/");
 
             setAllData(prev => ({
@@ -1021,6 +1104,11 @@ export const MyProfile = () => {
             }));
         } catch (err) {
             console.error("Failed to load profile", err);
+            if (err.response?.status === 401) {
+                alert("మీ సెషన్ గడువు ముగిసింది. దయచేసి మళ్లీ లాగిన్ అవ్వండి.");
+                localStorage.clear();
+                window.location.href = "/login";
+            }
         }
     };
 
@@ -1399,79 +1487,75 @@ export const MyProfile = () => {
         setSaving(true);
 
         try {
-            // 1️⃣ Send JSON (nested data)
+            const token = localStorage.getItem("access");
+            if (!token) {
+                window.location.href = "/login";
+                return;
+            }
+            // 1️⃣ Create main FormData for JSON + files
+            const formData = new FormData();
+
+            // 2️⃣ Add JSON payload as a field
             const payload = mapFrontendToBackendPayload();
-
-
-            // 2️⃣ Upload files separately
-            const fileData = new FormData();
-
-            if (profilePhoto instanceof File) {
-                fileData.append("profile_photo", profilePhoto);
-            }
-
-            if (resumeFile instanceof File) {
-                fileData.append("resume_file", resumeFile);
-            }
-
-
-
-
-            // ✅ 3️⃣ Upload certifications (SEPARATE FormData)
-            if (allData.certs.length > 0) {
-                const certData = new FormData();
-
-                allData.certs.forEach((cert, index) => {
-                    if (cert.id) {
-                        certData.append(`certifications[${index}][id]`, cert.id);
+            // ప్రతి field ని formData లో వేర్వేరుగా వేయండి
+            Object.keys(payload).forEach(key => {
+                if (payload[key] !== null && payload[key] !== undefined) {
+                    if (Array.isArray(payload[key])) {
+                        // Arrays కి JSON.stringify
+                        formData.append(key, JSON.stringify(payload[key]));
+                    } else if (typeof payload[key] === 'object') {
+                        formData.append(key, JSON.stringify(payload[key]));
+                    } else {
+                        formData.append(key, payload[key]);
                     }
-
-                    certData.append(`certifications[${index}][name]`, cert.name);
-
-                    if (cert.file instanceof File) {
-                        certData.append(
-                            `certifications[${index}][certificate_file]`,
-                            cert.file
-                        );
-                    }
-                });
-
-            }
-
-
-
-
-            alert("Profile saved successfully!");
-
-            await fetchProfile();
-
-            setActiveItem("Profile");
-            setOpenDropdown("Basic Details");
-
-            // ✅ SINGLE REQUEST
-            await api.patch("profile/jobseeker/", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
+                }
             });
 
-            alert("Profile saved successfully!");
+            // 3️⃣ Add profile photo if exists
+            if (profilePhoto instanceof File) {
+                formData.append("profile_photo", profilePhoto);
+            }
 
-            await fetchProfile();
+            // 4️⃣ Add resume file if exists
+            if (resumeFile instanceof File) {
+                formData.append("resume_file", resumeFile);
+            }
 
-            setActiveItem("Profile");
-            setOpenDropdown("Basic Details");
+            // 5️⃣ Add certifications
+            if (allData.certs.length > 0) {
+                allData.certs.forEach((cert, index) => {
+                    formData.append(`certifications[${index}][name]`, cert.name);
+                    if (cert.file instanceof File) {
+                        formData.append(`certifications[${index}][certificate_file]`, cert.file);
+                    }
+                });
+            }
+
+            // 6️⃣ Send single request
+            const response = await api.patch("profile/jobseeker/", formData, {
+                headers: { "Content-Type": "multipart/form-data" } // Token interceptor handle చేస్తుంది
+            });
+
+            if (response.status === 200 || response.status === 201) {
+                alert("Profile saved successfully!");
+                await fetchProfile();
+                setActiveItem("Profile");
+                setOpenDropdown("Basic Details");
+            }
 
         } catch (err) {
-            console.error("Profile save failed");
+            console.error("Profile save failed", err);
 
-            if (err.response) {
-                console.log("BACKEND ERROR DATA:", err.response.data);
+            if (err.response?.status === 401) {
+                // Token refresh failed - interceptor already handles this
+                alert("Session expired. Please login again.");
+            } else if (err.response) {
+                console.log("Backend error:", err.response.data);
                 alert(JSON.stringify(err.response.data, null, 2));
             } else {
-                console.log(err);
+                alert("Failed to save profile. Try again.");
             }
-        }
-
-        finally {
+        } finally {
             setSaving(false);
         }
     };

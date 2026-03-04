@@ -55,20 +55,20 @@
 }
 
 /* Form Groups */
-.form-group {
+.contact-form-group {
     margin-bottom: 20px;
     display: flex;
     flex-direction: column;
 }
 
-.form-group label {
+.contact-form-group label {
     font-weight: 600;
     margin-bottom: 8px;
     color: #333;
 }
 
-.form-group input, 
-.form-group textarea {
+.contact-form-group input, 
+.contact-form-group textarea {
     padding: 12px 15px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -76,13 +76,13 @@
     background-color: #fafafa;
 }
 
-.form-group textarea {
+.contact-form-group textarea {
     height: 120px;
     resize: none;
 }
 
 
-.submit-btn {
+.contact-submit-btn {
     background-color: #70bfff;
     color: white;
     border: none;
@@ -95,7 +95,7 @@
     justify-content: center;
 }
 
-.submit-btn:hover {
+.contact-submit-btn:hover {
     background-color: #55a8f0;
 }
 

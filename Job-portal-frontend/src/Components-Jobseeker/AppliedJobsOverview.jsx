@@ -65,8 +65,14 @@ export const AppliedJobsOverview = () => {
     if (!confirmed) return;
 
     try {
-      await api.post(`/jobs/applications/${appliedJob.id}/withdraw/`);
+      await api.patch(`/jobs/applications/${appliedJob.id}/withdraw/`);
+      // ✅ Update local page state
+      setAppliedJob(prev => ({
+        ...prev,
+        status: "withdrawn"
+      }));
 
+      // ✅ Remove from global context
       setAppliedJobs(prev =>
         prev.filter(a => a.id !== appliedJob.id)
       );
@@ -169,7 +175,7 @@ export const AppliedJobsOverview = () => {
           </div>
           <div style={{ marginTop: "20px", alignItems: "center", display: "flex", justifyContent: "space-between" }} className="Applied-job-tags">
             {viewJob.tags.map((tag, i) => (
-              <div ><span key={i} className={`Opportunities-job-tag ${tag.toLowerCase()}`}>
+              <div key={i}><span className={`Opportunities-job-tag ${tag.toLowerCase()}`}>
                 {tag}
               </span></div>))}
             <span className={`applied-application-status status-${viewJob.status.type}`}>
@@ -288,7 +294,7 @@ export const AppliedJobsOverview = () => {
               ))}
             </Stepper>
           </Box>
-          {appliedJob.status === "applied" && (
+          {appliedJob.status?.toLowerCase() === "applied" && (
             <button
               style={{
                 border: "none",
@@ -307,7 +313,7 @@ export const AppliedJobsOverview = () => {
           )}
 
         </div>
-        {appliedJob.status !== "applied" && (
+        {appliedJob.status?.toLowerCase() !== "applied" && (
           <p style={{ color: "gray", fontSize: "12px" }}>
             Withdrawal not allowed after screening
           </p>

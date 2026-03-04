@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react'
 import './CompaniesTab.css'
 import { useNavigate } from "react-router-dom";
 import { Footer } from '../Components-LandingPage/Footer';
+import search from '../assets/icon_search.png'
+import location from '../assets/icon_location.png'
+import tick from '../assets/icon_tick.png'
 import starIcon from '../assets/Star_icon.png'
-import { Header } from '../Components-LandingPage/Header';
+import { CompaniesList } from '../CompaniesList';
 import { SearchBar } from './SearchBar'
+import { Header } from '../Components-LandingPage/Header';
 import api from "../api/axios";
+
+/* Below Code is removed after backend integration*/
+// const companiesList = CompaniesList.slice(0, 8)
 
 export const CompaniesTab = () => {
   const navigate = useNavigate();
@@ -58,13 +65,13 @@ export const CompaniesTab = () => {
         {loading ? (
           <p style={{ textAlign: "center" }}>Loading companies...</p>
         ) : (
-          <div className="companies-tab-grid">
+        <div className="companies-tab-grid">
             {companies.map((company) => {
               const logoUrl = company.logo_url || null;
 
               return (
                 <div key={company.id} className="companies-tab-card">
-                  <div className="companies-tab-logo-container">
+              <div className="companies-tab-logo-container">
 
                     {logoUrl ? (
                       <img
@@ -75,21 +82,21 @@ export const CompaniesTab = () => {
                     ) : (
                       <div className="companies-tab-logo-placeholder">
                         {company.name?.charAt(0).toUpperCase()}
-                      </div>
+              </div>
                     )}
 
                   </div>
 
                   <h3 className="companies-tab-name">{company.name}</h3>
 
-                  <div className="companies-tab-rating-reviews">
+              <div className="companies-tab-rating-reviews">
                     <span className="star companies-tab-rating-star">
                       <img src={starIcon} alt="rating" />
                     </span>
                     <span className="companies-tab-rating">{company.rating ?? 0}</span>
-                    <span className="companies-tab-separator">|</span>
+                <span className="companies-tab-separator">|</span>
                     <span className="companies-tab-reviews">{company.review_count ?? 0} reviews</span>
-                  </div>
+              </div>
 
                   <p className="companies-tab-desc">
                     {company.slogan || "No description available"}
@@ -103,10 +110,10 @@ export const CompaniesTab = () => {
                   >
                     View Jobs
                   </button>
-                </div>
+            </div>
               );
             })}
-          </div>
+        </div>
         )}
       </div>
 

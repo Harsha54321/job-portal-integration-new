@@ -10,13 +10,14 @@ import api from '../api/axios'
 
 
 export const JobsTab = () => {
+    // const { jobs } = useJobs();
 
     const displayCount = 10;
     const [jobs, setJobs] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
 
     const [query, setQuery] = useState('');
-    const [jobLocation, setJobLocation] = useState(''); 
+    const [jobLocation, setJobLocation] = useState('');
     const [experience, setExperience] = useState('');
 
     const navigate = useNavigate();
@@ -88,8 +89,13 @@ export const JobsTab = () => {
         );
     };
 
+    // const navigate = useNavigate();
+    // const [query, setQuery] = useState('');
+    // const [location, setLocation] = useState('');
+    // const [experience, setExperience] = useState('');
 
     const handleInitialSearch = () => {
+
         navigate('/Job-portal/jobseeker/searchresults', {
             state: {
                 query,
@@ -115,19 +121,19 @@ export const JobsTab = () => {
             </div>
 
             <section className='Opportunities-section'>
-                <h2 className='Opportunities-title'>Jobs For You</h2>
-
-                <div className="Opportunities-job-list">
-                    {currentJobCards.length > 0 ? (
-                        currentJobCards.map((job) => (
-                            <OpportunitiesCard key={job.id} job={job} />
-                        ))
-                    ) : (
-                        <p>No jobs available at the moment.</p>
-                    )}
+                <div className='Opportunities-section'>
+                    <h2 className='Opportunities-title'>Jobs For You</h2>
+                    <div className="Opportunities-job-list">
+                        {currentJobCards.length > 0 ? (
+                            currentJobCards.map((job) => (
+                                <OpportunitiesCard key={job.id} job={job} />
+                            ))
+                        ) : (
+                            <p>No jobs available at the moment.</p>
+                        )}
+                    </div>
                 </div>
             </section>
-
 
             <div className="Navigation-job-Tab">
                 <button

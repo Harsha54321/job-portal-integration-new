@@ -8,7 +8,7 @@ import api from "../api/axios";
 
 export const ApplicationStatusScreen = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
   const [appliedJob, setAppliedJob] = useState(null);
 
@@ -39,10 +39,10 @@ export const ApplicationStatusScreen = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigate("/Job-portal/jobseeker");
-    }, 5000);
-
+    }, 3000);
     return () => clearTimeout(timer);
   }, [navigate]);
+  
   return (
     <div className="success-page">
       <Header />
@@ -65,10 +65,9 @@ export const ApplicationStatusScreen = () => {
         </p>
 
         <p className="redirect-text">
-          Redirecting to home in 3 seconds...
+          Redirecting to home in 5 seconds...
         </p>
       </div>
-
 
       <Footer />
     </div>

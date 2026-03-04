@@ -4,9 +4,9 @@ import { Footer } from "../Components-LandingPage/Footer";
 import SilverStar from "../assets/SilverStar.png"
 import GoldStar from "../assets/GoldStar.png"
 import SendIcon from "../assets/SendIcon.png"
-import { FHeader } from "./FHeader";
-
-
+import api from "../api/axios";
+import { FHeader } from "../Components-Jobseeker/FHeader";
+ 
 const TypingDots = () => {
   return (
     <div className="Livechat-chat-msg bot typing">
@@ -16,27 +16,27 @@ const TypingDots = () => {
     </div>
   );
 };
-
+ 
 export const LiveChat = () => {
   const chatBodyRef = useRef(null);
   const [step, setStep] = useState("INIT");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-
+ 
   const [isTyping, setIsTyping] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
-
-
+ 
+ 
   useEffect(() => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop =
         chatBodyRef.current.scrollHeight;
     }
   }, [messages, isTyping, step]);
-
-
+ 
+ 
   const startConversation = () => {
     setStep("CHAT");
     setMessages([
@@ -46,54 +46,97 @@ export const LiveChat = () => {
       }
     ]);
   };
-
+ 
   const handleSend = () => {
     if (!input.trim() || isTyping) return;
-
+ 
     const userMsg = {
       from: "user",
       text: input
     };
-
+ 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-
-    simulateBotReply(input);
+ 
+  //   simulateBotReply(input);
+  // };
+ 
+  // const simulateBotReply = (userText) => {
+  //   setIsTyping(true);
+ 
+  //   setTimeout(() => {
+  //     let reply =
+  //       "Please tell me more so I can assist you better.";
+ 
+  //     if (userText.toLowerCase().includes("login")) {
+  //       reply =
+  //         "You can login as a jobseeker by clicking Login → Jobseeker and using your registered email and password.";
+  //     }
+ 
+  //     setIsTyping(false);
+  //     setMessages((prev) => [
+  //       ...prev,
+  //       { from: "bot", text: reply }
+  //     ]);
+  //   }, 1500);
+  // };
+ 
+      sendToBackend(input);
   };
-
-  const simulateBotReply = (userText) => {
-    setIsTyping(true);
-
-    setTimeout(() => {
-      let reply =
-        "Please tell me more so I can assist you better.";
-
-      if (userText.toLowerCase().includes("login")) {
-        reply =
-          "You can login as a jobseeker by clicking Login → Jobseeker and using your registered email and password.";
-      }
-
+ 
+ 
+  // ✅ NEW FUNCTION → Backend Chat API
+  const sendToBackend = async (text) => {
+    try {
+      setIsTyping(true);
+ 
+      const res = await api.post(
+        "chat/",
+        {
+          message: text
+        }
+      );
+ 
       setIsTyping(false);
+ 
+      // Backend returns:
+      // { user:{}, bot:{} }
+ 
       setMessages((prev) => [
         ...prev,
-        { from: "bot", text: reply }
+        {
+          from: "bot",
+          text: res.data.bot.message
+        }
       ]);
-    }, 1500);
+ 
+    } catch (err) {
+      setIsTyping(false);
+ 
+      setMessages((prev) => [
+        ...prev,
+        {
+          from: "bot",
+          text: "Server error. Please try again."
+        }
+      ]);
+      console.error(err);
+    }
   };
-
+ 
   const endConversation = () => {
     setShowFeedback(true);
   };
-
+ 
   const handleFeedbackSubmit = () => {
     setShowFeedback(false);
     setStep("ENDED");
   };
-
+ 
   return (
     <>
       <FHeader />
-
+ 
       <div className="Livechat-chat-wrapper">
         <div className="Livechat-chat-box">
           {step === "INIT" && (
@@ -103,14 +146,14 @@ export const LiveChat = () => {
                 Start conversation <img className="Livechat-send-icon" src={SendIcon} alt="SendTo" />
               </button>
             </div>
-
+ 
           )}
-
+ 
           {step !== "INIT" && (
             <>
               <div className="Livechat-chat-body" ref={chatBodyRef}>
                 <div className="Livechat-chat-spacer" />
-
+ 
                 {messages.map((msg, i) => (
                   <div
                     key={i}
@@ -119,17 +162,17 @@ export const LiveChat = () => {
                     <span>{msg.text}</span>
                   </div>
                 ))}
-
+ 
                 {isTyping && <TypingDots />}
-
+ 
                 {step === "ENDED" && (
                   <div className="Livechat-chat-complete">
                     <p>Bot has ended your conversation</p>
                   </div>
                 )}
-                <div ref={chatBodyRef} />
+                {/* <div ref={chatBodyRef} /> */}
               </div>
-
+ 
               {step === "CHAT" && (
                 <div className="Livechat-chat-input">
                   <input
@@ -146,7 +189,7 @@ export const LiveChat = () => {
                   </button>
                 </div>
               )}
-
+ 
               {step === "ENDED" && (
                 <div className="Livechat-chat-end-bar">
                   <button onClick={startConversation}>
@@ -157,17 +200,17 @@ export const LiveChat = () => {
               )}
             </>
           )}
-
-
-
-
+ 
+ 
+ 
+ 
         </div>
-
+ 
         {showFeedback && (
           <div className="Livechat-modal-overlay">
             <div className="Livechat-modal">
               <h3>Share your feedback</h3>
-
+ 
               <div className="Livechat-stars">
                 {[1, 2, 3, 4, 5].map((num) => (
                   <span
@@ -182,14 +225,14 @@ export const LiveChat = () => {
                   </span>
                 ))}
               </div>
-
-
+ 
+ 
               <textarea
                 placeholder="Your feedback..."
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
               />
-
+ 
               <button onClick={handleFeedbackSubmit}>
                 Submit
               </button>
@@ -197,8 +240,9 @@ export const LiveChat = () => {
           </div>
         )}
       </div>
-
+ 
       <Footer />
     </>
   );
 };
+ 

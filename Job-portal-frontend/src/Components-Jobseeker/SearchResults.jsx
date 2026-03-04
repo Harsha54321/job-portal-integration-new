@@ -88,6 +88,7 @@ export const SearchResults = () => {
 
     const locationArray = Object.entries(locationCounts);
     const WorkTypeArray = Object.entries(workTypeCounts);
+    // const PostedbyArray = Object.entries(PostedbyCounts);
     const TopcompanyArray = Object.entries(CompanyCounts);
     const checkboxList = Object.entries(educationCounts);
     const PostedDateArray = Object.entries(PostedDtCounts);
@@ -95,6 +96,7 @@ export const SearchResults = () => {
 
     const [locationFilters, setLocationFilters] = useState(locationArray.slice(0, 5));
     const [workTypeFilters, setWorkTypeFilters] = useState(WorkTypeArray);
+    // const [PostedbyFilter, setPostedbyFilter] = useState(PostedbyArray);
     const [CompanyFilter, setCompanyFilter] = useState(TopcompanyArray.slice(0, 5));
     const [EducationFilter, setEducationFilter] = useState(checkboxList.slice(0, 5));
     const [PostedDateFilter, setPostedDateFilter] = useState(PostedDateArray);
@@ -271,7 +273,7 @@ export const SearchResults = () => {
             const jobWorkType = job.work_type ? job.work_type.toLowerCase() : 'unknown worktype';
             const matchesWorkType = sf.workType.length === 0 || sf.workType.includes(jobWorkType);
 
-            const JobPostedby = job.PostedBy ? job.PostedBy.toLowerCase() : 'unknown postedby';
+            // const JobPostedby = job.PostedBy ? job.PostedBy.toLowerCase() : 'unknown postedby';
             const matchesPostedby = sf.postedBy.length === 0 || sf.postedBy.includes(JobPostedby);
 
             const JobCompany = job.company?.name
@@ -328,6 +330,9 @@ export const SearchResults = () => {
 
         return jobsWithIndex.map(item => item.job);
     }, [filteredJobs, sortBy]);
+    console.log("Jobs:", jobs);
+    console.log("Filtered:", filteredJobs);
+    console.log("Sorted:", sortedJobs);
 
     return (
         <>
@@ -400,6 +405,28 @@ export const SearchResults = () => {
                             <button onClick={handleLocationViewMore} className='viewmore-btn'>{LocationExpanded ? 'View Less' : 'View More'}</button>
                         </div>
                     </div>
+
+                    {/* <div className='Search-Worktype-Container'>
+                        <h4>Posted by</h4>
+                        {PostedbyFilter.map(([post, count]) => {
+                            const Postedby = post.charAt(0).toUpperCase() + post.slice(1);
+                            return (
+                                <div key={post}>
+                                    <label htmlFor={`postedby-${post}`} className="location-checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            id={`postedby-${post}`}
+                                            name="postedby"
+                                            value={post}
+                                            onChange={HandlePostedby}
+                                            checked={SelectedPostedby.includes(post)}
+                                        />
+                                        <span className="location-text">{Postedby}</span>
+                                    </label>
+                                </div>
+                            );
+                        })}
+                    </div> */}
 
                     <div className='Search-Worktype-Container'>
                         <h4>Top Companies</h4>

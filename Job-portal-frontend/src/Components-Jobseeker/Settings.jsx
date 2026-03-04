@@ -49,12 +49,12 @@ export const Settings = () => {
 
         <div className="app">
             <Header />
-            <div style={{ marginTop: "120px" }} className="header-box">
+            <div style={{ marginTop: "120px" }} className="JSettings-header-box">
                 <h2>{tab === 'Privacy' ? 'Privacy Policy' : tab + ' Settings'}</h2>
             </div>
 
-            <div style={{ marginTop: "50px", padding: "45px" }} className="main-layout">
-                <aside className="sidebar">
+            <div style={{ marginTop: "50px", padding: "45px" }} className="JSettings-main-layout">
+                <aside className="JSettings-sidebar">
                     <button onClick={() => setTab('Account')} className={tab === 'Account' ? 'active' : ''}>Account Settings</button>
                     <button style={{ marginTop: "20px" }} onClick={() => setTab('Communication')} className={tab === 'Communication' ? 'active' : ''}>Communication Settings</button>
                     <button style={{ marginTop: "20px" }} onClick={() => setTab('Security')} className={tab === 'Security' ? 'active' : ''}>Security Settings</button>
@@ -62,9 +62,9 @@ export const Settings = () => {
                 </aside>
 
 
-                <div className="content">
+                <div className="JSettings-content">
                     {tab === 'Account' && (
-                        <div className="form">
+                        <div className="JSettings-form">
                             <input
                                 placeholder="Account Type"
                                 value={settings.account_type || ""}
@@ -93,12 +93,12 @@ export const Settings = () => {
                         </div>
                     )}
                     {tab === 'Communication' && (
-                        <div className="list">
-                            <div className="row">
+                        <div className="JSettings-list">
+                            <div className="JSettings-row">
                                 <span>Show Online Status</span>
-                                <div className="btn-group">
+                                <div className="JSettings-btn-group">
                                     <button
-                                        className={online === 'yes' ? 'active-btn' : 'flat-btn'}
+                                        className={online === 'yes' ? 'JSettings-active-btn' : 'JSettings-flat-btn'}
                                         onClick={() => {
                                             setOnline('yes');
                                             updateSettings({ show_online_status: true });
@@ -106,9 +106,8 @@ export const Settings = () => {
                                     >
                                         Yes
                                     </button>
-
                                     <button
-                                        className={online === 'no' ? 'active-btn' : 'flat-btn'}
+                                        className={online === 'no' ? 'JSettings-active-btn' : 'JSettings-flat-btn'}
                                         onClick={() => {
                                             setOnline('no');
                                             updateSettings({ show_online_status: false });
@@ -116,15 +115,14 @@ export const Settings = () => {
                                     >
                                         No
                                     </button>
-
                                 </div>
                             </div>
 
-                            <div className="row">
+                            <div className="JSettings-row">
                                 <span>Show Read Receipts</span>
-                                <div className="btn-group">
+                                <div className="JSettings-btn-group">
                                     <button
-                                        className={read === 'yes' ? 'active-btn' : 'flat-btn'}
+                                        className={read === 'yes' ? 'JSettings-active-btn' : 'JSettings-flat-btn'}
                                         onClick={() => {
                                             setRead('yes');
                                             updateSettings({ show_read_receipts: true });
@@ -132,9 +130,8 @@ export const Settings = () => {
                                     >
                                         Yes
                                     </button>
-
                                     <button
-                                        className={read === 'no' ? 'active-btn' : 'flat-btn'}
+                                        className={read === 'no' ? 'JSettings-active-btn' : 'JSettings-flat-btn'}
                                         onClick={() => {
                                             setRead('no');
                                             updateSettings({ show_read_receipts: false });
@@ -142,7 +139,6 @@ export const Settings = () => {
                                     >
                                         No
                                     </button>
-
                                 </div>
                             </div>
                         </div>

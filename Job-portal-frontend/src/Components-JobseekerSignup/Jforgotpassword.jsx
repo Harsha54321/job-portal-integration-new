@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import { useNavigate } from "react-router-dom";
 import './Jforgotpassword.css'
 import forgot from "../assets/Forgot.png"
+import api from '../api/axios'
 
 export const Jforgotpassword = () => {
-  const navigate = useNavigate();
 
   const [formValues, setFormValues] = useState({ email: "" })
 
@@ -32,11 +32,20 @@ export const Jforgotpassword = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  function handleSubmit(formData) {
+  async function handleSubmit(formData) {
     if (!validateForm()) {
       return false // stops form submit if errors
     }
-    navigate("/Job-portal/jobseeker/login/forgotpassword/createpassword") // This Code is removed after backend integration
+    try {
+      const res = await api.post('auth/forgot-password/',formValues)
+      alert(res.data.message)
+      
+    } catch (error) {
+     const message = error.response?.data?.email?.[0];
+     alert(message)
+
+    }
+   
   }
 
   return (

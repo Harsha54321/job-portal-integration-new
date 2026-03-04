@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
@@ -17,6 +18,9 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'user_type']
 
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return f"{self.username} ({self.user_type})"
 
@@ -26,21 +30,13 @@ class User(AbstractUser):
 
 
 class JobSeekerProfile(models.Model):
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name='jobseeker_profile'
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='jobseeker_profile')
 
     # Basic Profile
     full_name = models.CharField(max_length=200, blank=True)
     gender = models.CharField(
         max_length=20,
-        choices=(
-            ('Male', 'Male'),
-            ('Female', 'Female'),
-            ('Not Specified', 'Not Specified')
-        ),
+        choices=(('Male', 'Male'), ('Female', 'Female'), ('Not Specified', 'Not Specified')),
         blank=True
     )
     dob = models.DateField(null=True, blank=True)
@@ -50,15 +46,12 @@ class JobSeekerProfile(models.Model):
         blank=True
     )
     nationality = models.CharField(max_length=100, blank=True)
-    profile_photo = models.ImageField(
-        upload_to='profile_photos/',
-        null=True,
-        blank=True
-    )
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
 
-    # Current / Professional Details
+    # Current / Professional Details (general fields only)
     current_job_title = models.CharField(max_length=200, blank=True)
     current_company = models.CharField(max_length=200, blank=True)
+    total_experience_years = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     notice_period = models.CharField(
         max_length=50,
         choices=(
@@ -70,7 +63,7 @@ class JobSeekerProfile(models.Model):
         blank=True
     )
     current_location = models.CharField(max_length=200, blank=True)
-    preferred_locations = models.TextField(blank=True)
+    preferred_locations = models.TextField(blank=True)  # comma separated 
 
     # Contact Details
     alternate_phone = models.CharField(max_length=15, blank=True, null=True)
@@ -83,11 +76,7 @@ class JobSeekerProfile(models.Model):
     country = models.CharField(max_length=100, blank=True)
 
     # Resume & Portfolio
-    resume_file = models.FileField(
-        upload_to='resumes/',
-        null=True,
-        blank=True
-    )
+    resume_file = models.FileField(upload_to='resumes/', null=True, blank=True)
     portfolio_link = models.URLField(blank=True, null=True)
 
     # Career Preferences (FIXED DECIMALS)
@@ -342,6 +331,7 @@ class Company(models.Model):
     )
     name = models.CharField(max_length=200, unique=True)
     logo = models.ImageField(upload_to='company_logos/', null=True, blank=True)
+    is_top_company = models.BooleanField(default=False)
     slogan = models.CharField(max_length=200, blank=True)
     rating = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
     company_overview = models.TextField(blank=True)
@@ -407,6 +397,7 @@ class Job(models.Model):
         MARKETING = 'Marketing', 'Marketing'
         RETAIL = 'Retail', 'Retail'
         OTHER = 'Other', 'Other'
+
     class JobStatus(models.TextChoices):
         DRAFT = 'Draft', 'Draft'
         OPEN = 'Open', 'Open'
@@ -416,12 +407,20 @@ class Job(models.Model):
         CLOSED = 'Closed', 'Closed'
 
 
+    class ExperienceRequired(models.TextChoices):
+        FRESHER = 'Fresher', 'Fresher'
+        ZERO_TO_ONE = '0-1 Years', '0-1 Years'
+        ONE_TO_THREE = '1-3 Years', '1-3 Years'
+        THREE_TO_FIVE = '3-5 Years', '3-5 Years'
+        FIVE_PLUS = '5+ Years', '5+ Years'
+
     class WorkType(models.TextChoices):
         ON_SITE = 'On-site', 'On-site'
         REMOTE = 'Remote', 'Remote'
         HYBRID = 'Hybrid', 'Hybrid'
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='jobs')
+    logo = models.ImageField(upload_to='jobs_logos/', null=True, blank=True)
     title = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
     job_status = models.CharField(max_length=30,choices=JobStatus.choices,default=JobStatus.DRAFT)
@@ -513,8 +512,75 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.message[:40]}"
     
+# Chat 
+
 from django.conf import settings
+
+class Conversation(models.Model):
+    
+    participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='job_conversations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)    
+    initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL,related_name='initiated_conversations',on_delete=models.SET_NULL,null=True,blank=True)
+    jobseeker_can_reply = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"Conversation {self.id} ({self.participants.count()} participants)"
+    
+    def allow_jobseeker_to_reply(self):
+       
+        self.jobseeker_can_reply = True
+        self.save()
+
+class Message(models.Model):
+    
+    conversation = models.ForeignKey(Conversation, related_name='messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sent_job_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='received_job_messages', on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    is_first_message = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['timestamp']
+    
+    def save(self, *args, **kwargs):
+        
+        if not self.conversation.messages.exists():
+            self.is_first_message = True
+           
+            if self.sender.user_type == 'employer':
+                self.conversation.allow_jobseeker_to_reply()
+                self.conversation.initiated_by = self.sender
+                self.conversation.save()
+        super().save(*args, **kwargs)    
+
+
 from django.db import models
+ 
+ 
+class ChatMessage(models.Model):
+    USER = "user"
+    BOT = "bot"
+ 
+    SENDER_CHOICES = [
+        (USER, "User"),
+        (BOT, "Bot"),
+    ]
+ 
+    sender = models.CharField(max_length=10, choices=SENDER_CHOICES)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    def __str__(self):
+        return f"{self.sender}: {self.message[:30]}"
+    
+from django.db import models
+
 
 class UserSettings(models.Model):
     user = models.OneToOneField(
@@ -536,3 +602,70 @@ class UserSettings(models.Model):
     def __str__(self):
         return f"{self.user.email} settings"
 
+ 
+class HelpTopic(models.Model):
+    title = models.CharField(max_length=200)
+    path = models.CharField(max_length=200)
+ 
+    def __str__(self):
+        return self.title
+   
+ 
+ 
+ 
+ 
+class RaiseTicket(models.Model):
+ 
+    CATEGORY_CHOICES = (
+        ('Jobseeker', 'Jobseeker'),
+        ('Employer', 'Employer'),
+    )
+ 
+    SUBJECT_CHOICES = (
+        ("Broken 'Apply' Button/Application Failure", "Broken 'Apply' Button/Application Failure"),
+        ("File Upload/Resume Parsing Errors", "File Upload/Resume Parsing Errors"),
+        ("Outdated or Ghost Job Listings", "Outdated or Ghost Job Listings"),
+        ("Incorrect/Irrelevant Search Results & Filters", "Incorrect/Irrelevant Search Results & Filters"),
+        ("Profile Update/Saved Data Not Saving", "Profile Update/Saved Data Not Saving"),
+        ("Application Status Unchanged/Limbo", "Application Status Unchanged/Limbo"),
+        ("Broken Job Alerts & Notifications", "Broken Job Alerts & Notifications"),
+        ("Login/Registration Issues (Social Login Bugs)", "Login/Registration Issues (Social Login Bugs)"),
+        ("Site Incompatibility/Non-Responsive Mobile Layout", "Site Incompatibility/Non-Responsive Mobile Layout"),
+        ("Duplicate Job Listings (Spam)", "Duplicate Job Listings (Spam)"),
+        ("Others", "Others"),
+    )
+ 
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    subject = models.CharField(max_length=255, choices=SUBJECT_CHOICES)
+    name = models.CharField(max_length=150)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    message = models.TextField(blank=True, null=True)
+    attachment = models.FileField(upload_to='tickets/', blank=True, null=True)
+ 
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    def __str__(self):
+        return f"{self.name} - {self.subject}"
+ 
+
+# Password
+ 
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete = models.CASCADE, related_name='password_reset_tokens')
+    token = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+ 
+    def __str__(self):
+        return f"Reset token for {self.user.email}"
+ 
+    def is_valid(self):
+        return not self.is_used and timezone.now() <= self.expires_at
+ 
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(hours=24)
+        super().save(*args, **kwargs)
+ 

@@ -32,6 +32,7 @@ export const Afterloginlanding = () => {
         loadData();
     }, [navigate]);
 
+
     if (loading) {
         return <div className="page-loader">Loading...</div>;
     }
@@ -41,7 +42,6 @@ export const Afterloginlanding = () => {
             <Header profile={profile} />
 
             <JMainsection />
-
             <section className='Opportunities-section'>
                 <h2 className='Opportunities-title'>Opportunities Just For You</h2>
 

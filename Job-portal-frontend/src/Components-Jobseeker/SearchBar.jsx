@@ -22,10 +22,10 @@ export const SearchBar = ({
     >
       <div className="search-field">
         <img src={search} className="icon-size" alt="search" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+        <input 
+          type="text" 
+          value={searchQuery} 
+          onChange={(e) => setSearchQuery(e.target.value)} 
           placeholder="Search by skills, company or job title"
         />
       </div>
@@ -34,10 +34,10 @@ export const SearchBar = ({
 
       <div className="search-field">
         <img src={location} className="icon-size" alt="location" />
-        <input
-          type="text"
-          value={searchLocation}
-          onChange={(e) => setSearchLocation(e.target.value)}
+        <input 
+          type="text" 
+          value={searchLocation} 
+          onChange={(e) => setSearchLocation(e.target.value)} 
           placeholder="Enter location"
         />
       </div>
@@ -49,8 +49,8 @@ export const SearchBar = ({
         <select value={searchExp} onChange={(e) => setSearchExp(e.target.value)}>
           <option value="" disabled>Experience</option>
           <option value="fresher">Fresher</option>
-          <option value="1-3">1–3 Years</option>
-          <option value="3-5">3–5 Years</option>
+          <option value="1-3">1-3 Years</option>
+          <option value="3-5">3-5 Years</option>
           <option value="5+">5+ Years</option>
         </select>
       </div>

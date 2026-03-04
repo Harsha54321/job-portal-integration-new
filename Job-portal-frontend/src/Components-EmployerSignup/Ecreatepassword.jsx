@@ -1,13 +1,17 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import confirm_password from "../assets/ConfirmPassword.png"
 import eye from '../assets/show_password.png'
 import eyeHide from '../assets/eye-hide.png'
+import api from '../api/axios'
+
 
 export const Ecreatepassword = () => {
   const [passwordShow, setPasswordShow] = useState(true)
 
   const [confirmPasswordShow, setconfirmPasswordShow] = useState(true)
+  const navigate = useNavigate();
   
   const togglePasswordView = () => {
     setPasswordShow((prev) => !prev)
@@ -49,12 +53,30 @@ export const Ecreatepassword = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const queryParams        = new URLSearchParams(location.search);
+    const tokenFromURL       = queryParams.get('token');
     if (!validateForm()) {
       return false
     }
-    console.log("Password reset successfully")
-  }
+    try {
+      const res = await api.post('auth/reset-password-confirm/',
+      { token : tokenFromURL,
+        new_password : formValues.newPassword,
+        confirm_password : formValues.confirmPassword
+      }
+    )
+     alert(res.data.message);
+     navigate('/Job-portal/employer/login')
+     
+
+    } catch (error) {
+      alert('Invalid token or expired token')
+      }
+    }
 
   return (
     <div className="j-create-password-page">
@@ -72,7 +94,7 @@ export const Ecreatepassword = () => {
         <div className="create-password-illustration">
           <img src={confirm_password} alt="create password Illustration" />
         </div>
-        <form action={handleSubmit} className="create-password-form">
+        <form onSubmit={handleSubmit} className="create-password-form">
           <h2>Create a New Password</h2>
 
           <label>New Password</label>
@@ -105,4 +127,3 @@ export const Ecreatepassword = () => {
     </div>
   )
 }
-

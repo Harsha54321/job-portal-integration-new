@@ -7,3 +7,9 @@ class JobappConfig(AppConfig):
  
     def ready(self):
         import jobapp.signals
+
+from django.apps import AppConfig
+ 
+ 
+class HelpcenterConfig(AppConfig):
+    name = 'helpcenter'

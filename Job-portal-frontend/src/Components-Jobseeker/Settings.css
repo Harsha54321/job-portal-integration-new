@@ -1,126 +1,137 @@
 
-.header-box { 
-    background: #f0f7ff; 
-    text-align: center; 
-    padding: 10px; 
-    margin: 80px; 
-    /* width: 80%;  */
-    border-radius: 8px; 
-    justify-content: center;
-    align-items: center;
-}
-    
-
-.main-layout { 
-    display: flex; 
-    width: 80%; 
-    margin: 0 auto; 
-    gap: 80px; 
-}
-.sidebar { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 10px; 
-    width: 200px; 
+.app {
+    font-family: 'Arial', sans-serif;
+    background-color: #fcfcfc;
+    min-height: 100vh;
 }
 
-.sidebar button { 
-    padding: 10px; 
-    cursor: pointer; 
-    border: 1px solid #eee; 
-    background: white; 
-    text-align: left; 
+.JSettings-header-box {
+    text-align: center;
+    background-color: #f8fbff;
+    padding: 20px;
+    margin: 120px 45px 0 45px;
+    border-radius: 8px;
+}
+
+.JSettings-header-box h2 {
+    color: #2d4a6b;
+    margin: 0;
+    font-size: 24px;
+}
+
+.JSettings-main-layout {
+    display: flex;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+
+.JSettings-sidebar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.JSettings-sidebar button {
+    padding: 15px 20px;
+    text-align: left;
+    background: white;
+    border: 1px solid #e0e0e0;
     border-radius: 5px;
-    font-size: 16px;
-    font-family: "inter";
-    
-}
-.sidebar button.active { 
-    background: #e6f0ff; 
-    border-color: #0066cc; 
-    color: #0066cc; 
-    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    color: #555;
+    transition: all 0.3s ease;
 }
 
-.content { 
-    flex: 1; 
+.JSettings-sidebar button.active {
+    background-color: #e8f2ff;
+    border-color: #c2d9ff;
+    color: #0056b3;
+    font-weight: bold;
 }
 
-.form input { 
-    width: 80%; 
-    padding: 12px; 
-    border: 1px solid #ccc; 
-    border-radius: 4px; 
-}
-.form ::placeholder{
-    color: black;
-    font-weight: 400;
-}
- .box { 
-    border: 1px solid #eee; 
-    padding: 10px; 
-    margin-bottom: 10px; 
-    border-radius: 10px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-    font-size: 16px;
-    font-family: "inter";
-    font-weight: 500;
-    max-width: 80%;
-}
-.row{
-    border: 1px solid #eee; 
-    padding: 10px; 
-    margin-bottom: 10px; 
-    border-radius: 10px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-    font-size: 16px;
-    font-family: "inter";
-    font-weight: 500; 
-    max-width: 80%;
+
+.JSettings-content {
+    flex: 3;
 }
 
-.privacy h2 {   
-    background: linear-gradient( to right,#bfd9f8,#fff);
-    border-top-left-radius: 5px;
-    border-bottom-left-radius: 5px;
-    font-size: 22px; 
-    margin-top: -8px ;
-    margin-left: 20px;
-    font-weight: 700;
-    padding: 10px 10px;
-    color: #111;    
+
+.privacy {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
+
+.privacy h2 {
+    font-size: 18px;
+    color: #1a3a5a;
+    margin-bottom: 10px;
+}
+
 .privacy p {
-    font-size: 16px;
-    font-family: "inter";
-    color: #000; 
-    margin-left: 20px;  
-    letter-spacing: 0.5px;
-    line-height: 2em;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 15px;
 }
 
-.flat-btn, .active-btn {
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 8px 20px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: 0.3s;
-  border-radius: 4px;
+.privacy > div, 
+.privacy {
+    background: white;
+    padding: 30px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
-.active-btn {
-  background-color: #e6f0ff;
-  color: #0066cc;
-  font-weight: bold;
+.Opportunities-separator {
+    border: 0;
+    border-top: 1px solid #f0f0f0;
+    margin: 20px 0;
 }
 
-.btn-group {
-  display: flex;
-  gap: 10px;
+
+.JSettings-form input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.box {
+    background: white;
+    padding: 20px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+.JSettings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border: 1px solid #eee;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+.JSettings-btn-group button {
+    padding: 8px 20px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.JSettings-active-btn {
+    background-color: #0056b3;
+    color: white;
+    border-color: #0056b3;
+}
+
+.JSettings-flat-btn {
+    background: white;
+    color: #333;
 }

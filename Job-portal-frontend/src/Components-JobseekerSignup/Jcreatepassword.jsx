@@ -1,15 +1,20 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import './Jcreatepassword.css'
 import confirm_password from "../assets/ConfirmPassword.png"
 import eye from '../assets/show_password.png'
 import eyeHide from '../assets/eye-hide.png'
+import api from '../api/axios'
 
 export const Jcreatepassword = () => {
-  const [passwordShow, setPasswordShow] = useState(true)
 
+  const [passwordShow, setPasswordShow] = useState(true)
   const [confirmPasswordShow, setconfirmPasswordShow] = useState(true)
-    
+
+  const navigate = useNavigate();
+
   const togglePasswordView = () => {
     setPasswordShow((prev) => !prev)
   }
@@ -22,6 +27,7 @@ export const Jcreatepassword = () => {
 
   const [formValues, setFormValues] = useState(initialValues)
   const [errors, setErrors] = useState({})
+
 
   const handleForm = (e) => {
     const { name, value } = e.target
@@ -50,12 +56,54 @@ export const Jcreatepassword = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  
+  const location = useLocation(); //location
+
+  // for token validation
+  useEffect(()=>{
+    const queryParams        = new URLSearchParams(location.search);
+    const tokenFromURL       = queryParams.get('token');
+
+    if(tokenFromURL){
+      validateToken(tokenFromURL);
+    }
+  },[])
+
+  //validate's the token
+  const validateToken = async (tokenString) => {
+    try {
+       const data = await api.post('auth/validate-reset-token/',
+        {token : tokenString,} // object
+      )
+    } catch (error) {
+      alert('Invalid token or expired token')
+    }
+  }
+
+  // reset password integretion
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const queryParams        = new URLSearchParams(location.search);
+    const tokenFromURL       = queryParams.get('token');
     if (!validateForm()) {
       return false
     }
-    console.log("Password reset successfully")
-  }
+    try {
+      const res = await api.post('auth/reset-password-confirm/',
+      { token : tokenFromURL,
+        new_password : formValues.newPassword,
+        confirm_password : formValues.confirmPassword
+      }
+    )
+     alert(res.data.message);
+     navigate("/Job-portal/jobseeker/login")
+
+    } catch (error) {
+      alert('Invalid token or expired token')
+      }
+    }
 
   return (
     <div className="j-create-password-page">
@@ -72,7 +120,7 @@ export const Jcreatepassword = () => {
         <div className="create-password-illustration">
           <img src={confirm_password} alt="create password Illustration" />
         </div>
-        <form action={handleSubmit} className="create-password-form">
+        <form onSubmit={handleSubmit} className="create-password-form">
           <h2>Create a New Password</h2>
 
           <label>New Password</label>
@@ -95,7 +143,7 @@ export const Jcreatepassword = () => {
           </div>
           {errors.confirmPassword && <span className="error-msg">{errors.confirmPassword}</span>}
 
-          <button className="j-reset-link-btn">Reset Password</button>
+          <button type='submit' className="j-reset-link-btn">Reset Password</button>
 
           <div className='center-div-text'>
             <p>Remember your password? <Link to="/Job-portal/jobseeker/login" className='j-password-form-login-link'>Login</Link></p>

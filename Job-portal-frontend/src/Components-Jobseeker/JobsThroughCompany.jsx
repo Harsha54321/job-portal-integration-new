@@ -9,7 +9,15 @@ import { Header } from "../Components-LandingPage/Header";
 import api from "../api/axios";
 
 export const JobsThroughCompany = () => {
+    // const { jobs } = useJobs();
     const { companyId } = useParams();
+
+    // const filteredJobs = jobs.filter(comp => comp.companyId === companyId);
+
+    // console.log(filteredJobs)
+
+    // const findbyCompaniesNameList = CompaniesList.slice(0, 8);
+    // const CompanyTitle = findbyCompaniesNameList.find(comp => comp.companyId === companyId);
     const navigate = useNavigate();
 
     const [company, setCompany] = useState(null);
@@ -18,6 +26,10 @@ export const JobsThroughCompany = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // const indexofLastjob = currentPage * displayCount;
+    // const indexoffirstjob = indexofLastjob - displayCount;
+
+    // const currentJobCards = filteredJobs.slice(indexoffirstjob, indexofLastjob);
     const displayCount = 10;
     // ✅ SINGLE CORRECT API CALL
     const fetchCompanyAndJobs = async () => {
@@ -113,21 +125,75 @@ export const JobsThroughCompany = () => {
         );
     }
 
-    /* ---------- UI ---------- */
+    // const renderPageNumbers = () => {
+    //     const pageNumbers = [];
+    //     const siblingCount = 1;
+
+    //     if (totalpages <= 5) {
+    //         for (let i = 1; i <= totalpages; i++) {
+    //             pageNumbers.push(i);
+    //         }
+    //     } else {
+    //         pageNumbers.push(1);
+
+    //         let startPage = Math.max(2, currentPage - siblingCount);
+    //         let endPage = Math.min(totalpages - 1, currentPage + siblingCount);
+
+
+    //         if (currentPage <= 3) {
+    //             endPage = 4;
+    //         }
+
+    //         if (currentPage >= totalpages - 2) {
+    //             startPage = totalpages - 3;
+    //         }
+
+    //         if (startPage > 2) {
+    //             pageNumbers.push('...');
+    //         }
+
+    //         for (let i = startPage; i <= endPage; i++) {
+    //             pageNumbers.push(i);
+    //         }
+
+    //         if (endPage < totalpages - 1) {
+    //             pageNumbers.push('...');
+    //         }
+
+    //         pageNumbers.push(totalpages);
+    //     }
+
+    //     return pageNumbers.map((number, index) => {
+    //         if (number === '...') {
+    //             return <span key={`dots-${index}`} className="dots">...</span>;
+    //         }
+    //         return (
+    //             <button
+    //                 key={number}
+    //                 className={`page-btn ${currentPage === number ? "active" : ""}`}
+    //                 onClick={() => setCurrentPage(number)}>
+    //                 {number}
+    //             </button>
+    //         );
+    //     });
+    // };
 
     return (
+
         <>
             <Header />
-
-            <div className="job-search-companies">
-                <section className="Opportunities-section">
+            <div className='job-search-companies'>
+                <section className='Opportunities-section'>
                     <div className="company-header-container">
-                        <button
-                            className="back-btn"
-                            onClick={() => navigate(-1)}
-                        >
-                            Back
-                        </button>
+
+                        <div className="company-details-section">
+                            <button
+                                className="back-btn"
+                                onClick={() => navigate(-1)}
+                            >
+                                Back
+                            </button> 
+                        </div>                           
 
                         <div className="company-main-section">
                             <div className="company-logo-container">
@@ -145,11 +211,11 @@ export const JobsThroughCompany = () => {
 
 
 
-                            </div>
+                                </div>
 
-                            <div className="company-info-card">
+                                <div className="company-info-card">
                                 <h2>{company.name}</h2>
-                                <div className="company-title-container">
+                                    <div className="company-title-container">
                                     <span className="star">
                                         <img src={starIcon} alt="rating" />{" "}
                                         {company.rating || 0}
@@ -168,7 +234,6 @@ export const JobsThroughCompany = () => {
                         </div>
                     </div>
 
-                    {/* JOB LIST */}
                     <div className="Opportunities-job-list">
                         {currentJobCards.length === 0 ? (
                             <p>No jobs available</p>
@@ -186,10 +251,14 @@ export const JobsThroughCompany = () => {
                             <button
                                 onClick={HandlePrev}
                                 disabled={currentPage === 1}
+                                className='Navigation-btn'
                             >
                                 Previous
                             </button>
 
+                            {/* <div className="page-numbers">
+                                {renderPageNumbers()}
+                            </div> */}
                             <span>
                                 Page {currentPage} of {totalPages}
                             </span>
@@ -197,6 +266,7 @@ export const JobsThroughCompany = () => {
                             <button
                                 onClick={HandleNext}
                                 disabled={currentPage === totalPages}
+                                className='Navigation-btn'
                             >
                                 Next
                             </button>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useNavigate } from "react-router-dom";
 import forgot from "../assets/Forgot.png"
 import './Eforgotpassword.css'
+import api from '../api/axios'
 
 export const Eforgotpassword = () => {
   const navigate = useNavigate();
@@ -32,11 +33,18 @@ export const Eforgotpassword = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  function handleSubmit(formData) {
+  async function handleSubmit() {
     if (!validateForm()) {
       return false // stops form submit if errors
     }
-    navigate("/Job-portal/employer/login/forgotpassword/createpassword") // This Code is removed after backend integration
+    try {
+      const res = await api.post('auth/forgot-password/',formValues)
+      alert(res.data.message)
+      // navigate("/Job-portal/employer/login/forgotpassword/createpassword") it should not redirect to create new password page, user gets create new pass from mail
+    } catch (error) {
+     const message = error.response?.data?.email?.[0];
+     alert(message)
+    }
   }
 
   return (

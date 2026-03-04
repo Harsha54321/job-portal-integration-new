@@ -6,7 +6,7 @@ import eye from '../assets/show_password.png'
 import eyeHide from '../assets/eye-hide.png'
 import Google from '../assets/GOOG.png'
 import './Jlogin.css'
-import axios from 'axios';
+import api from '../api/axios';
 
 export const Jlogin = () => {
 
@@ -50,8 +50,8 @@ export const Jlogin = () => {
     if (!validateForm()) return;
 
     try {
-      const res = await axios.post(
-        "http://127.0.0.1:8000/api/login/",
+      const res = await api.post(
+        "/login/",
         {
           email: formValues.username,
           password: formValues.password,

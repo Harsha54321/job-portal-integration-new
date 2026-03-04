@@ -18,7 +18,7 @@ from .serializers import (
     EmployerProfileWriteSerializer,
     UserReadSerializer  ,
     JobApplicationDetailSerializer,
-    NotificationSerializer
+    NotificationSerializer ,CustomTokenObtainPairSerializer
 )
 
 
@@ -50,9 +50,12 @@ class EmployerRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
+
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
-
+    serializer_class = CustomTokenObtainPairSerializer
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -348,7 +351,7 @@ class ApplyJobView(generics.CreateAPIView):
 
         instance = serializer.save()
 
-        # ✅ Notify the employer
+        # Notify the employer 
         job = instance.job
         if job.posted_by and hasattr(job.posted_by, 'employer_profile'):
             Notification.objects.create(
@@ -356,15 +359,11 @@ class ApplyJobView(generics.CreateAPIView):
                 message=f"New application received for '{job.title}' from {request.user.email}"
             )
 
-        # ✅ Return full application details
+        # Use the FULL detail serializer for response
         detail_serializer = JobApplicationDetailSerializer(instance)
         headers = self.get_success_headers(serializer.data)
-
-        return Response(
-            detail_serializer.data,
-            status=status.HTTP_201_CREATED,
-            headers=headers
-        )
+        
+        return Response(detail_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class AppliedJobsListView(generics.ListAPIView):
@@ -602,3 +601,580 @@ class JobApplicationDetailView(RetrieveAPIView):
 
     def get_queryset(self):
         return JobApplication.objects.filter(user=self.request.user)
+
+
+
+from rest_framework.views import APIView
+from rest_framework import status, generics
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from .models import Conversation, Message
+from .serializers import (
+    ConversationSerializer, 
+    MessageSerializer, 
+    SendMessageSerializer,
+    ChatUserSerializer
+)
+
+User = get_user_model()
+
+# ============ CHAT CONVERSATIONS ============
+
+class ConversationListView(generics.ListAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ConversationSerializer
+    
+    def get_queryset(self):
+        return Conversation.objects.filter(participants=self.request.user)
+    
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+class ConversationDetailView(generics.RetrieveAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ConversationSerializer
+    
+    def get_queryset(self):
+        return Conversation.objects.filter(participants=self.request.user)
+    
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+class ConversationMessagesView(APIView):
+  
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, pk):
+        conversation = get_object_or_404(Conversation, pk=pk)
+        
+       
+        if request.user not in conversation.participants.all():
+            return Response(
+                {'error': 'You are not a participant in this conversation'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        messages = conversation.messages.all()[:50]
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+class MarkConversationReadView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, pk):
+        conversation = get_object_or_404(Conversation, pk=pk)
+        
+        
+        if request.user not in conversation.participants.all():
+            return Response(
+                {'error': 'You are not a participant in this conversation'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        conversation.messages.filter(
+            receiver=request.user, 
+            is_read=False
+        ).update(is_read=True)
+        
+        return Response({'status': 'conversation marked as read'})
+
+# ============ CHAT MESSAGES ============
+
+class SendMessageView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        serializer = SendMessageSerializer(
+            data=request.data, 
+            context={'request': request}
+        )
+        if serializer.is_valid():
+            message = serializer.save()
+            return Response(
+                MessageSerializer(message).data,
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UnreadCountView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        count = Message.objects.filter(
+            receiver=request.user, 
+            is_read=False
+        ).count()
+        return Response({'unread_count': count})
+
+class ConversationWithUserView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        other_user_id = request.query_params.get('user_id')
+        if not other_user_id:
+            return Response(
+                {'error': 'user_id parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            other_user = User.objects.get(id=other_user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+       
+        conversation = Conversation.objects.filter(
+            participants=request.user
+        ).filter(
+            participants=other_user
+        ).first()
+        
+        if not conversation:
+            conversation = Conversation.objects.create()
+            conversation.participants.add(request.user, other_user)
+        
+        messages = conversation.messages.all()[:50]
+        return Response({
+            'conversation_id': conversation.id,
+            'participants': ChatUserSerializer([request.user, other_user], many=True).data,
+            'messages': MessageSerializer(messages, many=True).data
+        })
+
+class MarkMessageReadView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, pk):
+        message = get_object_or_404(Message, pk=pk)
+        
+        if message.receiver != request.user:
+            return Response(
+                {'error': 'You can only mark messages sent to you as read'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        message.is_read = True
+        message.save()
+        return Response({'status': 'message marked as read'})
+
+# ============ CHAT USERS ============
+
+class ChatUsersView(generics.ListAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChatUserSerializer
+    
+    def get_queryset(self):
+        
+        return User.objects.exclude(id=self.request.user.id)
+    
+class EmployerInitiateChatView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+     
+        if request.user.user_type != 'employer':
+            return Response(
+                {'error': 'Only employers can initiate new conversations'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        jobseeker_id = request.data.get('jobseeker_id')
+        initial_message = request.data.get('message', '')
+        
+        if not jobseeker_id:
+            return Response(
+                {'error': 'jobseeker_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            jobseeker = User.objects.get(id=jobseeker_id, user_type='jobseeker')
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Jobseeker not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+
+        conversation = Conversation.objects.filter(
+            participants=request.user
+        ).filter(
+            participants=jobseeker
+        ).first()
+        
+        if not conversation:
+           
+            conversation = Conversation.objects.create(
+                initiated_by=request.user
+            )
+            conversation.participants.add(request.user, jobseeker)
+            
+           
+            if initial_message:
+                message = Message.objects.create(
+                    conversation=conversation,
+                    sender=request.user,
+                    receiver=jobseeker,
+                    content=initial_message
+                )
+                return Response({
+                    'status': 'Conversation started',
+                    'conversation_id': conversation.id,
+                    'message': MessageSerializer(message).data
+                }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'status': 'Conversation exists',
+            'conversation_id': conversation.id
+        })    
+    
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import ChatMessage
+from .serializers import ChatMessageSerializer
+import random
+
+def generate_bot_reply(user_text):
+    """
+    Enhanced rule-based bot with dynamic responses
+    """
+    text = user_text.lower()
+
+    login_responses = [
+        "You can log in as a jobseeker by clicking Login → Jobseeker and entering your registered email and password.",
+        "To access your account, go to the Login page and choose the Jobseeker option.",
+        "Simply click on Login, select your role, and enter your credentials to continue.",
+        "Use your registered email and password in the Login section to access your dashboard."
+    ]
+
+    job_responses = [
+        "You can browse available jobs from the Jobs section on your dashboard.",
+        "Head over to the Jobs tab to explore current openings.",
+        "All listed opportunities are available under the Jobs section.",
+        "Visit the dashboard and click on Jobs to see matching positions."
+    ]
+
+    register_responses = [
+        "Click on Register and fill in your details to create an account.",
+        "To get started, select Register and complete the signup form.",
+        "Choose Register, provide your information, and submit the form.",
+        "You can create a new account by clicking the Register button."
+    ]
+
+    default_responses = [
+        "Could you please provide more details so I can assist you better?",
+        "I'm here to help. Can you clarify your question?",
+        "Let me know a bit more information so I can guide you properly.",
+        "Can you explain your concern in more detail?"
+    ]
+
+    if "login" in text:
+        return random.choice(login_responses)
+
+    elif "job" in text:
+        return random.choice(job_responses)
+
+    elif "register" in text:
+        return random.choice(register_responses)
+
+    return random.choice(default_responses)
+ 
+ 
+@api_view(["POST"])
+def chat_api(request):
+    user_message = request.data.get("message")
+ 
+    if not user_message:
+        return Response({"error": "Message is required"}, status=400)
+ 
+    # Save user message
+    user_msg = ChatMessage.objects.create(
+        sender="user",
+        message=user_message
+    )
+ 
+    # Generate bot reply
+    bot_reply_text = generate_bot_reply(user_message)
+ 
+    # Save bot reply
+    bot_msg = ChatMessage.objects.create(
+        sender="bot",
+        message=bot_reply_text
+    )
+ 
+    return Response({
+        "user": ChatMessageSerializer(user_msg).data,
+        "bot": ChatMessageSerializer(bot_msg).data
+    })
+ 
+
+
+
+
+ 
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+ 
+from .models import HelpTopic, RaiseTicket 
+from .serializers import HelpTopicSerializer, RaiseTicketSerializer
+ 
+ 
+# Help Topics List API
+@api_view(['GET'])
+def help_topics(request):
+    topics = HelpTopic.objects.all().order_by('-id')
+    serializer = HelpTopicSerializer(topics, many=True)
+    return Response({
+        "status": True,
+        "message": "Help topics fetched successfully",
+        "data": serializer.data
+    })
+ 
+ 
+#  Raise Ticket Create API
+class RaiseTicketCreateView(APIView):
+ 
+ 
+    def get(self, request):
+        return Response({
+            "status": True,
+            "message": "Raise Ticket API Working"
+        })
+ 
+    # Ticket Create
+    def post(self, request):
+        serializer = RaiseTicketSerializer(data=request.data)
+ 
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "status": True,
+                "message": "Ticket submitted successfully",
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+ 
+        return Response({
+            "status": False,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Password
+ 
+from django.utils import timezone
+from datetime import timedelta
+from .models import PasswordResetToken
+from .utils import generate_token, send_password_reset_email
+from .serializers import (
+    ForgotPasswordSerializer, ResetPasswordConfirmSerializer,
+    CreatePasswordSerializer
+)
+ 
+class ForgotPasswordView(APIView):
+ 
+    permission_classes = [AllowAny]
+ 
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data, context={'request': request})
+       
+        if serializer.is_valid():
+            user = serializer.context['user']
+           
+            PasswordResetToken.objects.filter(user=user, is_used=False).delete()
+                     
+            token = generate_token()
+            reset_token = PasswordResetToken.objects.create(
+                user=user,
+                token=token,
+                expires_at=timezone.now() + timedelta(hours=24)
+            )
+           
+            try:
+                send_password_reset_email(user, token, request)
+                return Response({
+                    "message": "Password reset instructions have been sent to your email."
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                reset_token.delete()
+                return Response({
+                    "error": "Failed to send email. Please try again."
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+       
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class ResetPasswordConfirmView(APIView):
+ 
+    permission_classes = [AllowAny]
+ 
+    def post(self, request):
+        serializer = ResetPasswordConfirmSerializer(data=request.data)
+       
+        if serializer.is_valid():
+            token = serializer.validated_data['token']
+            new_password = serializer.validated_data['new_password']
+           
+            try:
+                reset_token = PasswordResetToken.objects.get(token=token, is_used=False)
+               
+                if not reset_token.is_valid():
+                    return Response({
+                        "error": "Token has expired."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+               
+                user = reset_token.user
+                user.set_password(new_password)
+                user.save()
+               
+                reset_token.is_used = True
+                reset_token.save()
+               
+                refresh = RefreshToken.for_user(user)
+               
+                return Response({
+                    "message": "Password has been reset successfully.",
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh)
+                }, status=status.HTTP_200_OK)
+               
+            except PasswordResetToken.DoesNotExist:
+                return Response({
+                    "error": "Invalid or expired token."
+                }, status=status.HTTP_400_BAD_REQUEST)
+       
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class CreatePasswordView(APIView):
+ 
+    permission_classes = [AllowAny]
+ 
+    def post(self, request):
+        serializer = CreatePasswordSerializer(data=request.data)
+       
+        if serializer.is_valid():
+            token = serializer.validated_data['token']
+            new_password = serializer.validated_data['new_password']
+           
+            try:
+                reset_token = PasswordResetToken.objects.get(token=token, is_used=False)
+               
+                if not reset_token.is_valid():
+                    return Response({
+                        "error": "Token has expired."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+               
+                user = reset_token.user
+               
+                if user.password and not user.password.startswith('!'):
+                    return Response({
+                        "error": "Password already set. Please use forgot password if you need to reset it."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+               
+                user.set_password(new_password)
+                user.save()
+               
+                reset_token.is_used = True
+                reset_token.save()
+               
+                refresh = RefreshToken.for_user(user)
+               
+                return Response({
+                    "message": "Password created successfully.",
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh)
+                }, status=status.HTTP_200_OK)
+               
+            except PasswordResetToken.DoesNotExist:
+                return Response({
+                    "error": "Invalid or expired token."
+                }, status=status.HTTP_400_BAD_REQUEST)
+       
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class ValidateResetTokenView(APIView):
+ 
+    permission_classes = [AllowAny]
+ 
+    def post(self, request):
+        token = request.data.get('token')
+       
+        if not token:
+            return Response({
+                "valid": False,
+                "error": "Token is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+       
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token, is_used=False)
+           
+            if reset_token.is_valid():
+                return Response({
+                    "valid": True,
+                    "message": "Token is valid."
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "valid": False,
+                    "message": "Token has expired."
+                }, status=status.HTTP_200_OK)
+               
+        except PasswordResetToken.DoesNotExist:
+            return Response({
+                "valid": False,
+                "message": "Invalid token."
+            }, status=status.HTTP_200_OK)
+ 
+ 
+class AdminCreatePasswordTokenView(APIView):
+ 
+    permission_classes = [IsAdminUser]
+ 
+    def post(self, request):
+        user_id = request.data.get('user_id')
+       
+        if not user_id:
+            return Response({
+                "error": "user_id is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+       
+        try:
+            user = User.objects.get(id=user_id)
+           
+            PasswordResetToken.objects.filter(user=user, is_used=False).delete()
+           
+            token = generate_token()
+            reset_token = PasswordResetToken.objects.create(
+                user=user,
+                token=token,
+                expires_at=timezone.now() + timedelta(days=7)  
+            )
+           
+            setup_link = f"{request.scheme}://{request.get_host()}/create-password?token={token}"
+           
+            return Response({
+                "message": "Password creation token generated successfully.",
+                "token": token,
+                "setup_link": setup_link
+            }, status=status.HTTP_200_OK)
+           
+        except User.DoesNotExist:
+            return Response({
+                "error": "User not found."
+            }, status=status.HTTP_404_NOT_FOUND)    

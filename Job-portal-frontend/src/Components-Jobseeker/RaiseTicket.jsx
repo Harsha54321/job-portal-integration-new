@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import Reportsubmitted from '../assets/Report_Submitted.png'
 import './RaiseTicket.css';
 import { Footer } from '../Components-LandingPage/Footer';
-import { FHeader } from './FHeader';
+import { FHeader } from '../Components-Jobseeker/FHeader';
+import axios from 'axios';
+import api from '../api/axios';
+
 
 
 export const RaiseTicket = () => {
@@ -40,15 +43,59 @@ export const RaiseTicket = () => {
         setStep('confirming');
     };
 
-    const handleConfirm = () => {
-        setStep('loading');
-        setTimeout(() => {
-            setStep('success');
+    // const handleConfirm = () => {
+    //     setStep('loading');
+    //     setTimeout(() => {
+    //         setStep('success');
+    //         setTimeout(() => {
+    //             navigate('/Job-portal/jobseeker/help-center');
+    //         }, 2000);
+    //     }, 1500);
+    // };
+
+    const handleConfirm = async () => {
+        try {
+            setStep('loading');
+            const data = new FormData();
+            data.append("category", formData.category);
+            data.append("subject", formData.subject);
+            data.append("name", formData.name);
+            data.append("email", formData.email);
+            data.append("phone", formData.phone);
+            data.append("message", formData.message || '');
+            if (formData.attachment) {
+                data.append("attachment", formData.attachment);
+            }
+            const response = await api.post(
+                "raise-ticket/", data
+                // "http://127.0.0.1:8000/api/raise-ticket/",data,{
+                //     headers:{
+                //         "Content-Type":"mulitipart/form-data",
+                //     },
+
+                // }
+            );
+            console.log("SUCCESS:", response.data);
             setTimeout(() => {
-                navigate('/Job-portal/jobseeker/help-center');
-            }, 2000);
-        }, 1500);
+                setStep('success');
+                setTimeout(() => {
+                    navigate('/Job-portal/jobseeker/help-center');
+                }, 2000);
+            }, 1500);
+        } catch (error) {
+            console.error("ERROR:", error.response?.data || error);
+            alert("Ticket submission failed");
+            setStep('form');
+        }
     };
+
+
+
+
+
+
+
+
 
     if (step === 'success') {
         return (

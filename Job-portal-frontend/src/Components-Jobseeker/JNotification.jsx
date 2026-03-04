@@ -148,9 +148,9 @@ export const JNotification = ({
                 </div>
 
                 {notifications.length > 0 && (
-                    <button className="clear-all-btn" onClick={handleClearAll}>
-                        Clear all
-                    </button>
+                <button className="clear-all-btn" onClick={handleClearAll}>
+                    Clear all
+                </button>
                 )}
 
             </div>
@@ -185,20 +185,20 @@ export const JNotification = ({
                                 <div className="overflow-menu">
                                     {notification.is_read
                                         ? (
-                                            <button
-                                                className="menu-item"
-                                                onClick={() => handleMarkAsUnread(notification.id)}
-                                            >
-                                                Mark as unread
-                                            </button>
-                                        ) : (
-                                            <button
-                                                className="menu-item"
-                                                onClick={() => handleMarkAsRead(notification.id)}
-                                            >
-                                                Mark as read
-                                            </button>
-                                        )}
+                                        <button
+                                            className="menu-item"
+                                            onClick={() => handleMarkAsUnread(notification.id)}
+                                        >
+                                            Mark as unread
+                                        </button>
+                                    ) : (
+                                        <button
+                                            className="menu-item"
+                                            onClick={() => handleMarkAsRead(notification.id)}
+                                        >
+                                            Mark as read
+                                        </button>
+                                    )}
 
                                     <button
                                         onClick={() => handleDelete(notification.id)}

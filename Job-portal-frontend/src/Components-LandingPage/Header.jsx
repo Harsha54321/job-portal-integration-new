@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './Header.css';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import breifcase from '../assets/header_case.png';
@@ -8,12 +8,17 @@ import bell_dot from '../assets/header_bell_dot.png';
 import home_icon from '../assets/home_icon.png';
 import { AvatarMenu } from '../Components-Jobseeker/AvatarMenu';
 import { JNotification } from '../Components-Jobseeker/JNotification';
-
+import { useJobs } from '../JobContext';
+import api from "../api/axios";
 
 
 export const Header = () => {
   const location = useLocation();
   const [showNotification, setShowNotification] = useState(false);
+  const [notificationsData, setNotificationsData] = useState([]);
+  const newNotificationsCount = Array.isArray(notificationsData)
+        ? notificationsData.filter(n => !n.is_read).length
+        : 0;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isLoggedIn =
@@ -29,9 +34,35 @@ export const Header = () => {
 
   const navIcons = [
     { image: breifcase, path: '/Job-portal/jobseeker/myjobs' },
-    { image: chat, path: '' },
+    { image: chat, path: '/Job-portal/jobseeker/chat' },
   ];
 
+  const refreshNotifications = async () => {
+        try {
+            const res = await api.get("notifications/");
+            setNotificationsData(
+                res.data.map(n => ({
+                    id: n.id,
+                    message: n.message,
+                    created_at: n.created_at,
+                    is_read: n.is_read,
+                }))
+            );
+        } catch (err) {
+            console.error("Failed to refresh notifications", err);
+        }
+    };
+
+    useEffect(() => {
+        refreshNotifications();
+    }, []);
+    ///const handleNavClick = (e) => {
+    ///    setActiveItem(e);
+    //}
+
+  // const newNotificationsCount = notificationsData
+  //   ? notificationsData.filter(n => n.isRead).length
+  //   : 0;
 
   const preventNav = (e) => {
     e.preventDefault();
@@ -100,7 +131,7 @@ export const Header = () => {
 
             <div onClick={() => setShowNotification(!showNotification)}>
               <img
-                src={bell}
+                src={newNotificationsCount > 0 ? bell_dot : bell}
                 alt="Notifications"
                 className="jheader-icons"
               />
@@ -109,10 +140,16 @@ export const Header = () => {
             <AvatarMenu />
 
             <JNotification
-              showNotification={showNotification}
-              setShowNotification={setShowNotification}
+              notificationsData={notificationsData.map(n => ({
+                    id: n.id,
+                    text: n.message,
+                    time: new Date(n.created_at).toLocaleString(),
+                    isRead: n.is_read,
+                }))}
+                showNotification={showNotification}
+                setShowNotification={setShowNotification}
+                refreshNotifications={refreshNotifications}
             />
-
           </>
         ) : (
           <>

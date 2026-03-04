@@ -5,8 +5,8 @@ import api from "../api/axios";
 import Slider from "react-slick";
 import left from "../assets/left_arrow.png";
 import right from "../assets/right_arrow.png";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+// import "slick-carousel/slick/slick.css";
+// import "slick-carousel/slick/slick-theme.css";
 import "./JobsByCompany.css";
 
 

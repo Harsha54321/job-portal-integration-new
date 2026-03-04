@@ -4,9 +4,6 @@ import { Footer } from '../Components-LandingPage/Footer';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import './OpportunityOverview.css'
-import search from '../assets/icon_search.png'
-import location from '../assets/icon_location.png'
-import tick from '../assets/icon_tick.png'
 import starIcon from '../assets/Star_icon.png'
 import time from '../assets/opportunity_time.png'
 import experience from '../assets/opportunity_bag.png'
@@ -15,12 +12,14 @@ import twitter from '../assets/socials-x.png'
 import linkedin from '../assets/socials-linkedin.png'
 import facebook from '../assets/socials-facebook.png'
 import { formatPostedDate } from './OpportunitiesCard';
+import { useJobs } from '../JobContext';
+import { SearchBar } from './SearchBar'
 import api from "../api/axios";
 
 export const OpportunityOverview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  // const { id } = useParams();
   const [job, setJob] = useState(null);
   const [limitedSimilarJob, setLimitedSimilarJob] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +29,19 @@ export const OpportunityOverview = () => {
   const [searchExperience, setSearchExperience] = useState("");
 
 
+  const { jobs, appliedJobs, toggleSaveJob, saveJob, isJobSaved } = useJobs();
+
+  // const job = jobs.find(singleJob => singleJob.id === id) || appliedJobs.find(singleJob => singleJob.id === id);
+
+  const saved = job ? isJobSaved(job.id) : false;
+  // const saved = isJobSaved(job.id);
+  const { isJobApplied } = useJobs();
+  const isApplied = job ? isJobApplied(job.id) : false;
 
   const handleSave = async () => {
+    // const result = await saveJob(job.id);
     try {
-      await api.post("/jobs/save/", { job_id: job.id });
+      await saveJob(job.id);
       alert("Job saved successfully");
     } catch (err) {
       if (err.response?.status === 400) {
@@ -47,12 +55,24 @@ export const OpportunityOverview = () => {
   };
 
   const handleApply = () => {
-    navigate(`/Job-portal/jobseeker/jobapplication/${job.id}`);
-  };
+  if (isApplied) return;
 
+  navigate(`/Job-portal/jobseeker/jobapplication/${job.id}`);
+};
+
+
+  // const similarJobs = jobs.filter((similarJob) => {
+  //   return similarJob.id !== job.id && similarJob.Department.some(item => job.Department.includes(item));
+  // });
+
+  // // const limitedSimilarJob = similarJobs.slice(0, 9);
+
+  // const [query, setQuery] = useState('');
+  // const [loc, setLoc] = useState('');
+  // const [exp, setExp] = useState('');
 
   const handleSearch = () => {
-    navigate("/Job-portal/jobseeker/search-results", {
+    navigate("/Job-portal/jobseeker/searchresults", {
       state: {
         query: searchQuery,
         location: searchLocation,
@@ -60,7 +80,6 @@ export const OpportunityOverview = () => {
       },
     });
   };
-
 
   useEffect(() => {
     const fetchJobDetails = async () => {
@@ -72,9 +91,14 @@ export const OpportunityOverview = () => {
         // 2️⃣ Fetch all jobs
         const allJobsRes = await api.get(`/jobs/`);
 
+        // ✅ Handle pagination safely
+        const jobsArray = Array.isArray(allJobsRes.data)
+          ? allJobsRes.data
+          : allJobsRes.data.results || [];
+
         // 3️⃣ Filter similar (exclude current job)
-        const similar = allJobsRes.data
-          .filter(j => j.id !== jobRes.data.id)
+        const similar = jobsArray
+          .filter(j => Number(j.id) !== Number(jobRes.data.id))
           .slice(0, 3);
 
         setLimitedSimilarJob(similar);
@@ -113,8 +137,21 @@ export const OpportunityOverview = () => {
     </>
   );
 
-  if (!job) return null;
+  if (!job) {
+    return (
+      <>
+        <Header />
+        <div style={{ padding: '100px', textAlign: 'center' }}>
+          <h2>Job not found</h2>
+          <p>This job may have been removed or you have already applied.</p>
+          <button className="back-btn" onClick={() => navigate('/Job-portal/jobseeker/jobs')}>Back to Jobs</button>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
+  // if (!job) return null;
 
   return (
     <>
@@ -124,54 +161,17 @@ export const OpportunityOverview = () => {
         <div className='search-backbtn-container'>
           <button className="back-btn" onClick={() => navigate(-1)}>Back</button>
 
-          <div className="search-bar">
-            <div className="search-field">
-              <span><img src={search} className="icon-size" alt="search_icon" /></span>
-              <input
-                type="text"
-                placeholder="Search by Skills, company or job title"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="separator"></div>
-
-            <div className="search-field">
-              <span><img src={location} className="icon-size" alt="location_icon" /></span>
-              <input
-                type="text"
-                placeholder="Enter Location"
-                value={searchLocation}
-                onChange={(e) => setSearchLocation(e.target.value)}
-              />
-
-            </div>
-            <div className="separator"></div>
-
-            <div className="search-field">
-              <span><img src={tick} className="icon-size" alt="search_tick" /></span>
-              <select
-                value={searchExperience}
-                onChange={(e) => setSearchExperience(e.target.value)}
-              >
-
-                <option value="" disabled hidden>Enter Experience</option>
-                <option value="fresher">Fresher</option>
-                <option value="1-3">1-3 Years</option>
-                <option value="3-5">3-5 Years</option>
-                <option value="5+">5+ Years</option>
-              </select>
-            </div>
-
-            <button className="search-button" onClick={handleSearch}>
-              Search
-            </button>
-          </div>
+          <SearchBar
+            searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+            searchLocation={searchLocation} setSearchLocation={setSearchLocation}
+            searchExp={searchExperience} setSearchExp={setSearchExperience}
+            onSearch={handleSearch}
+          />
         </div>
 
         <div className='opp-overview-main'>
           <div className="opp-job-main">
-            {/* Job Header */}
+            {/* Job Header  */}
             <div className="opp-overview-job-card">
               <div className="Opportunities-job-header">
                 <div>
@@ -186,7 +186,6 @@ export const OpportunityOverview = () => {
                       {job.company?.review_count || 0} Reviews
                     </span>
                   </h5>
-
                 </div>
                 {job.company?.logo_url ? (
                   <img
@@ -249,26 +248,29 @@ export const OpportunityOverview = () => {
 
                 <div className="Opportunities-job-actions">
                   <button
-                    className="Opportunities-save-btn"
+                    className={saved ? "Opportunities-apply-btn" : "Opportunities-save-btn"}
                     onClick={handleSave}
                   >
-                    Save
+                    {saved ? "Saved" : "Save"}
                   </button>
 
                   <button
                     className="Opportunities-apply-btn"
                     onClick={handleApply}
+                    disabled={isApplied}
+                    style={{
+                      opacity: isApplied ? 0.6 : 1,
+                      cursor: isApplied ? 'not-allowed' : 'pointer',
+                      backgroundColor: isApplied ? '#6c757d' : '' // Optional grey out
+                    }}
                   >
-                    Apply
+                    {isApplied ? "Applied" : "Apply"}
                   </button>
-
                 </div>
               </div>
             </div>
 
-            {/* Job Description */}
             <div className="opp-job-details-card">
-              {/* Job Highlights */}
               <div className="opp-job-highlights">
                 <h3>Job Highlights</h3>
                 <ul>
@@ -326,7 +328,6 @@ export const OpportunityOverview = () => {
             </div>
           </div>
 
-          {/* Similar Jobs Sidebar */}
           <div className="opp-job-sidebar">
             <h3>Similar Jobs</h3>
             {limitedSimilarJob.length > 0 ? (
@@ -392,5 +393,6 @@ export const OpportunityOverview = () => {
       </div>
       <Footer />
     </>
+
   )
 }

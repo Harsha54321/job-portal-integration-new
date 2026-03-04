@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Footer } from "../Components-LandingPage/Footer";
-import EditIcon from "../assets/EditIcon.png";
+import FormEditIcon from "../assets/form_edit.png";
 import deleteIcon from "../assets/DeleteIcon.png";
 import time from "../assets/opportunity_time.png";
 import experience from "../assets/opportunity_bag.png";
 import place from "../assets/opportunity_location.png";
+import SampleResume from "../assets/John_Christopher_Resume.pdf"
 import './JobApplication.css'
 import { Header } from "../Components-LandingPage/Header";
 import api from "../api/axios";
+import { useJobs } from "../JobContext";
 import application_success from "../assets/application_success.png";
 
 
@@ -17,9 +19,13 @@ export const JobApplication = () => {
   const { id: jobId } = useParams();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { setAppliedJobs } = useJobs();
 
   const navigate = useNavigate();
+  // const { id } = useParams();
   const fileInputRef = useRef(null);
+
+  // const job = jobs.find(singleJob => singleJob.id === id);
 
   const [editableField, setEditableField] = useState(null);
 
@@ -107,6 +113,7 @@ export const JobApplication = () => {
     setFormData({
       ...formData,
       resume: null,
+      resumeName: "",
     });
 
     if (fileInputRef.current) {
@@ -127,6 +134,7 @@ export const JobApplication = () => {
       "state",
       "zip",
       "country",
+      "resume"
     ];
 
     for (let field of requiredFields) {
@@ -152,8 +160,8 @@ export const JobApplication = () => {
   console.log("JOB ID FROM URL:", jobId);
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
+
     if (!window.confirm("Are you sure want to apply?")) return;
 
     try {
@@ -171,7 +179,16 @@ export const JobApplication = () => {
         payload.append("resume", formData.resume);
       }
 
-      await api.post("/jobs/apply/", payload);
+      const res = await api.post("/jobs/apply/", payload);
+
+      // 🔥 Remove old withdrawn entries of same job
+      setAppliedJobs(prev => {
+        const filtered = prev.filter(app =>
+          !(app.job?.id === job.id && app.status === "withdrawn")
+        );
+
+        return [...filtered, res.data];
+      });
 
       navigate(`/Job-portal/jobseeker/submitted/${job.id}`);
     } catch (error) {
@@ -255,7 +272,7 @@ export const JobApplication = () => {
                 />
               </div>
               <div className="apply-form-edit" onClick={() => setEditableField("name")}>
-                <img src={EditIcon} alt="edit" />
+                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -272,7 +289,7 @@ export const JobApplication = () => {
                 />
               </div>
               <div className="apply-form-edit" onClick={() => setEditableField("dob")}>
-                <img src={EditIcon} alt="edit" />
+                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -292,7 +309,7 @@ export const JobApplication = () => {
                 </select>
               </div>
               <div className="apply-form-edit" onClick={() => setEditableField("marital")}>
-                <img src={EditIcon} alt="edit" />
+                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -309,7 +326,7 @@ export const JobApplication = () => {
                 />
               </div>
               <div className="apply-form-edit" onClick={() => setEditableField("mobile")}>
-                <img src={EditIcon} alt="edit" />
+                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -326,7 +343,7 @@ export const JobApplication = () => {
                 />
               </div>
               <div className="apply-form-edit" onClick={() => setEditableField("email")}>
-                <img src={EditIcon} alt="edit" />
+                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -352,7 +369,7 @@ export const JobApplication = () => {
                 )}
               </div>
               <div className="apply-form-edit" onClick={() => setEditableField("address")}>
-                <img src={EditIcon} alt="edit" />
+                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -370,7 +387,7 @@ export const JobApplication = () => {
                 />
               </div>
               <div className="apply-form-edit" onClick={() => setEditableField("coverLetter")}>
-                <img src={EditIcon} alt="edit" />
+                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -379,7 +396,9 @@ export const JobApplication = () => {
               <div className="apply-form-input">
                 {formData.resume ? (
                   <div className="apply-form-resume-box">
-                    <span>{formData.resume?.name}</span>
+                    <span>
+                      {formData.resume?.name || formData.resumeName}
+                    </span>
 
                     <button
                       type="button"
@@ -389,12 +408,12 @@ export const JobApplication = () => {
                       <img src={deleteIcon} alt="delete" />
                     </button>
 
-                    <button
+                    {/* <button
                       type="button"
                       onClick={() => fileInputRef.current.click()}
                     >
                       Replace
-                    </button>
+                    </button> */}
 
                     <input
                       type="file"
@@ -405,7 +424,6 @@ export const JobApplication = () => {
                     />
                   </div>
                 ) : (
-
                   <input
                     type="file"
                     className="apply-form-file-input"

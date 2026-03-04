@@ -1,10 +1,10 @@
-import React from "react";
-import starIcon from "../assets/Star_icon.png";
-import time from "../assets/opportunity_time.png";
-import experience from "../assets/opportunity_bag.png";
-import place from "../assets/opportunity_location.png";
-import calender from "../assets/calender_card.png";
-import "./AppliedJobCard.css";
+import React from 'react'
+import starIcon from '../assets/Star_icon.png'
+import time from '../assets/opportunity_time.png'
+import experience from '../assets/opportunity_bag.png'
+import place from '../assets/opportunity_location.png'
+import calender from '../assets/calender_card.png'
+import './AppliedJobCard.css'
 import { useNavigate } from "react-router-dom";
 import { formatPostedDate } from "./OpportunitiesCard";
 
@@ -47,14 +47,11 @@ export const AppliedJobCard = ({ appliedJob }) => {
 
   return (
     <div className="myjobs-job-card">
-      {/* HEADER */}
       <div className="myjobs-card-header">
         <div>
           <h2 className="myjobs-job-title">{opp.title}</h2>
         </div>
       </div>
-
-      {/* COMPANY */}
       <div className="myjobs-company-sub">
         <p className="myjobs-company-name">
           {opp.company}
@@ -68,27 +65,23 @@ export const AppliedJobCard = ({ appliedJob }) => {
         </p>
       </div>
 
-      {/* DETAILS */}
       <div className="Opportunities-job-details">
-        <p className="Opportunities-detail-line">
-          <img src={time} className="card-icons" alt="" />
+        <p className='Opportunities-detail-line'>
+          <img src={time} className='card-icons' />
           {opp.WorkType}
           <span className="Opportunities-divider">|</span>
           {opp.salary} Lpa
         </p>
-
-        <p className="Opportunities-detail-line">
-          <img src={experience} className="card-icons" alt="" />
+        <p className='Opportunities-detail-line'>
+          <img src={experience} className='card-icons' />
           {opp.experience} years
         </p>
-
-        <p className="Opportunities-detail-line">
-          <img src={place} className="card-icons" alt="" />
+        <p className='Opportunities-detail-line'>
+          <img src={place} className='card-icons' />
           {opp.location}
         </p>
-
-        <p className="Opportunities-detail-line">
-          <img src={calender} className="card-icons" alt="" />
+        <p className='Opportunities-detail-line'>
+          <img src={calender} className='card-icons' />
           {opp.posted}
           <span className="Opportunities-divider">|</span>
           Openings: {opp.openings}
@@ -97,13 +90,9 @@ export const AppliedJobCard = ({ appliedJob }) => {
         </p>
       </div>
 
-      {/* TAGS */}
       <div className="Opportunities-job-tags">
         {opp.tags.map((tag, index) => (
-          <span
-            key={index}
-            className={`Opportunities-job-tag ${tag.toLowerCase()}`}
-          >
+          <span key={index} className={`Opportunities-job-tag ${tag.toLowerCase()}`}>
             {tag}
           </span>
         ))}
@@ -111,7 +100,6 @@ export const AppliedJobCard = ({ appliedJob }) => {
 
       <hr className="Opportunities-separator" />
 
-      {/* FOOTER */}
       <div className="Opportunities-job-footer">
         <div className="applied-app-status-container">
           <p className="myjobs-saved-date">{opp.appliedDate}</p>

@@ -19,17 +19,20 @@ export const AvatarMenu = () => {
   const handleLogout = async () => {
     try {
       const refresh = localStorage.getItem("refresh");
-      if (refresh) {
-        await api.post("/logout/", { refresh });
+
+      if (!refresh) {
+        throw new Error("No refresh token");
       }
+
+      await api.post("/logout/", {
+        refresh: refresh,
+      });
 
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {
-      // Clear tokens no matter what
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
-      setOpen(false);
       navigate("/Job-portal");
     }
   };
@@ -57,35 +60,23 @@ export const AvatarMenu = () => {
 
       {open && (
         <div className="avatar-menu">
-          <Link to="/Job-portal/jobseeker/myprofile" className="menu-item">
+          <Link to="/Job-portal/jobseeker/myprofile" className="menu-items">
             <img src={profileIcon} className="menu-icon" alt="profile" />
             Profile
           </Link>
 
-          <Link
-            to="/Job-portal/jobseeker/myreviews"
-            className="menu-item"
-            onClick={() => setOpen(false)}
-          >
+          <Link to="/Job-portal/jobseeker/myreviews"
+            onClick={() => setOpen(false)} className="menu-items">
             <img src={reviewIcon} className="menu-icon" alt="reviews" />
             My reviews
           </Link>
 
-
-          <Link
-            to="/Job-portal/jobseeker/settings"
-            className="menu-item"
-            onClick={() => setOpen(false)}
-          >
+          <Link to="/Job-portal/jobseeker/Settings" className="menu-items" onClick={() => setOpen(false)}>
             <img src={settingsIcon} className="menu-icon" alt="settings" />
             Settings
           </Link>
 
-          <Link
-            to="/Job-portal/jobseeker/help"
-            className="menu-item"
-            onClick={() => setOpen(false)}
-          >
+          <Link to="/Job-portal/jobseeker/help-center" className="menu-items" onClick={() => setOpen(false)}>
             <img src={helpIcon} className="menu-icon" alt="help" />
             Help Centre
           </Link>
@@ -93,9 +84,7 @@ export const AvatarMenu = () => {
 
           <div className="menu-divider"></div>
 
-          <button onClick={handleLogout} className="menu-item avatar-logout-btn">
-            Logout
-          </button>
+          <button onClick={handleLogout} className=" avatar-logout-btn">Logout</button>
         </div>
       )}
     </div>
