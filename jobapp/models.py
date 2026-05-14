@@ -10,16 +10,28 @@ class User(AbstractUser):
         ADMIN = 'admin', 'Admin'
         EMPLOYER = 'employer', 'Employer'
         JOBSEEKER = 'jobseeker', 'Jobseeker'
+    
+    class AccountStatus(models.TextChoices):  # newly added
+        ACTIVE = 'Active', 'Active'
+        HOLD = 'Hold', 'Hold'
+        DEACTIVATED = 'Deactivated', 'Deactivated'
+          
 
     user_type = models.CharField(max_length=10, choices=UserType.choices)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
-
+    status = models.CharField(                          # ← NEW
+        max_length=15,
+        choices=AccountStatus.choices,
+        default=AccountStatus.ACTIVE
+    )
+    
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'user_type']
 
     is_online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now=True)
+    login_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.username} ({self.user_type})"
@@ -346,7 +358,20 @@ class EmployerProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+
+class JobHistory(models.Model):
+    job_id = models.IntegerField()
+    employer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    job_title = models.CharField(max_length=255)
+ 
+    created_at = models.DateTimeField()
+    deleted_at = models.DateTimeField()
+ 
+    data = models.JSONField(default=dict)
+ 
+
 # Post a Job Model (Main Job Model)
+from django.core.exceptions import ValidationError
 class PostAJob(models.Model):
     class WorkType(models.TextChoices):
         HYBRID = "Hybrid", "Hybrid"
@@ -363,6 +388,12 @@ class PostAJob(models.Model):
         REVIEWING_APPLICATION = "Reviewing Application", "Reviewing Application"
         HIRING_DONE = "Hiring Done", "Hiring Done"
 
+    # NEW: Approval Status (CRITICAL)
+    class ApprovalStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+ 
     employer = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -385,17 +416,46 @@ class PostAJob(models.Model):
     job_highlights = models.JSONField(default=list, blank=True)
     job_description = models.TextField()
     responsibilities = models.JSONField(default=list, blank=True)
-   
+    # last_date_to_apply = models.DateField(null=True, blank=True)
+
     job_status = models.CharField(
         max_length=50,
         choices=JobStatus.choices,
         default=JobStatus.REVIEWING_APPLICATION,
-        blank=False
     )
-
-    is_published = models.BooleanField(default=False, db_index=True)  
+ 
+    # EXISTING FIELD
+    is_published = models.BooleanField(default=False, db_index=True)
+ 
+    # NEW FIELD (IMPORTANT)
+    approval_status = models.CharField(
+        max_length=10,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.PENDING,
+        db_index=True
+    )
+ 
+    # OPTIONAL: track admin actions
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_jobs"
+    )
+ 
+    approved_at = models.DateTimeField(null=True, blank=True)
+ 
+    # Metadata
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-
+    flagged = models.BooleanField(default=False, help_text="Admin flagged for review")
+    is_highlighted = models.BooleanField(default=False)
+    highlighted_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+ 
+    # ================= VALIDATIONS =================
     def clean(self):
         valid_statuses = [status[0] for status in self.JobStatus.choices]
        
@@ -408,14 +468,66 @@ class PostAJob(models.Model):
             raise ValidationError({
                 'job_status': f"Invalid job status: '{self.job_status}'. Must be one of: {', '.join(valid_statuses)}"
             })
-
+ 
+    # ================= SAVE LOGIC =================
     def save(self, *args, **kwargs):
         self.clean()
+ 
+        # AUTO CONTROL LOGIC (VERY IMPORTANT)
+        if self.approval_status != "approved":
+            self.is_published = False  # cannot be visible
+ 
+        if self.approval_status == "approved" and not self.approved_at:
+            self.approved_at = timezone.now()
+ 
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return self.job_title
+    def delete(self, *args, **kwargs):
+        from .models import JobHistory
+        from django.forms.models import model_to_dict
+        from django.core.serializers.json import DjangoJSONEncoder
+        import json
 
+        try:
+            job_data = model_to_dict(self)
+           
+            job_data = json.loads(
+                json.dumps(
+                    job_data,
+                    cls=DjangoJSONEncoder
+                )
+            )
+
+            job_data["id"] = self.id
+            job_data["created_at"] = (
+                self.created_at.isoformat()
+                if self.created_at
+                else None
+            )
+
+            JobHistory.objects.create(
+                job_id=self.id,
+                employer=self.employer,
+                job_title=self.job_title,
+                created_at=self.created_at,
+                deleted_at=timezone.now(),
+                data=job_data
+            )
+            print("JOB HISTORY CREATED")
+        except Exception as e:
+          pass
+        super().delete(*args, **kwargs)
+       
+    
+ 
+    # ================= HELPER METHODS =================
+    def is_visible_to_jobseekers(self):
+        return self.is_published and self.approval_status == "approved"
+ 
+    def __str__(self):
+        return f"{self.job_title} ({self.approval_status})"
+ 
+ 
 
 class JobApplication(models.Model):
     class Status(models.TextChoices):
@@ -475,16 +587,34 @@ class Notification(models.Model):
         ('job_alert', 'Job Alert'),
         ('application', 'Application Update'),
         ('system', 'System Notification'),
+ 
+        # NEW TYPES (ADDED — existing untouched)
+        ('job_approved', 'Job Approved'),
+        ('job_rejected', 'Job Rejected'),
     )
-    
+   
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
        
-    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES, default='system')
-    related_object_id = models.PositiveIntegerField(null=True, blank=True)  
-
+    notification_type = models.CharField(
+        max_length=50,
+        choices=NOTIFICATION_TYPES,
+        default='system'
+    )
+ 
+    related_object_id = models.PositiveIntegerField(null=True, blank=True)
+ 
+    # OPTIONAL (SAFE ADDITION - no impact on existing)
+    job = models.ForeignKey(
+        'PostAJob',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications'
+    )
+ 
     class Meta:
         ordering = ['-created_at']
 
@@ -653,11 +783,12 @@ class ContactMessage(models.Model):
 # Company Verify
 
 class CompanyVerification(models.Model):
-    STATUS_CHOICES = (
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-    )
+    STATUS_CHOICES = [
+    ("Pending", "Pending"),
+    ("Hold", "Hold"),
+    ("Reject", "Reject"),
+    ("Verified", "Verified"),
+]
  
     employer = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -678,7 +809,7 @@ class CompanyVerification(models.Model):
     status = models.CharField(
         max_length=10,
         choices=STATUS_CHOICES,
-        default="pending",
+        default="Pending",
         db_index=True
     )
  
@@ -874,6 +1005,7 @@ class Plan(models.Model):
     name = models.CharField(max_length=50)
     monthly_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Add default=0
     duration_days = models.IntegerField(default=30)
+    highlight_limit = models.PositiveIntegerField(default=0)
    
     def __str__(self):
         return self.name
@@ -1019,3 +1151,88 @@ class CompanyEmailOTP(models.Model):
     
     def __str__(self):
         return f"OTP for {self.email} - {self.purpose}"        
+    
+
+
+from django.db import models
+ 
+class ACompany(models.Model):
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    def __str__(self):
+        return self.name
+ 
+ 
+class AEmployer(models.Model):
+    name = models.CharField(max_length=255)
+    company = models.ForeignKey(ACompany, on_delete=models.CASCADE)
+ 
+    def __str__(self):
+        return self.name
+ 
+ 
+class AJobSeeker(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+ 
+    def __str__(self):
+        return self.name
+ 
+ 
+class AJob(models.Model):
+    title = models.CharField(max_length=255)
+    company = models.ForeignKey(ACompany, on_delete=models.CASCADE)
+    status = models.CharField(max_length=50, default='active')
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    def __str__(self):
+        return self.title
+
+
+# ============================================================
+# ADD THESE TO THE BOTTOM OF YOUR EXISTING models.py
+# Remove the old: Role, Module, Permission, Employer models
+# ============================================================
+
+# Role Management
+
+class Role(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+
+    # DO NOT store user_count as a field — compute it live from User table
+    # user_count = models.IntegerField(default=0)  ← REMOVED
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Module(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Permission(models.Model):
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='permissions')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='permissions')
+
+    read   = models.BooleanField(default=False)
+    create = models.BooleanField(default=False)
+    update = models.BooleanField(default=False)
+    delete = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ['role', 'module']  # one permission row per role+module combo
+
+    def __str__(self):
+        return f"{self.role.name} → {self.module.name}"
+
+
+# NOTE: Do NOT create a separate Employer model.
+# Use the existing User + EmployerProfile + CompanyProfile + Subscription models.
+# The employer list in RoleManagement reads from those real tables.

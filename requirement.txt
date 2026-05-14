@@ -62,3 +62,13 @@ urllib3==2.6.2
 wcwidth==0.2.14
 webencodings==0.5.1
 yarg==0.1.9
+setuptools==70.0.0
+channels==4.1.0
+daphne==4.1.2
+drf-yasg==1.21.7
+Flask==3.0.3
+drf-writable-nested==0.7.0
+reportlab
+razorpay
+google
+google_auth

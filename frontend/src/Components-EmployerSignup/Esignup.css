@@ -1,0 +1,250 @@
+/* .subtext{
+    color: #032240;
+    font-size: 14px;
+}
+
+@media screen and (max-width: 768px) {
+    .subtext{
+        color: #032240;
+        font-size: 8px;
+    }
+} */
+
+
+
+
+/* --- Employer Specific OTP Modal Styles --- */
+
+.e-otp-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.e-otp-modal-content {
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.e-back-arrow {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+    font-weight: 500;
+}
+
+.e-otp-icon-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.e-otp-status-icon {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    display: block;
+}
+
+.e-otp-modal-content h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: #333;
+    font-weight: 700;
+}
+
+.e-otp-modal-content p {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.e-otp-input-group input {
+    width: 100%;
+    max-width: 220px;
+    height: 50px;
+    font-size: 24px;
+    text-align: center;
+    letter-spacing: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.e-otp-input-group input:focus {
+    border-color: #0081FF;
+    box-shadow: 0 0 8px rgba(0, 129, 255, 0.2);
+}
+
+.e-resend-timer {
+    margin-top: 15px;
+    font-size: 13px;
+    color: #888;
+}
+
+.e-verify-final-btn {
+    width: 100%;
+    background-color: #0081FF;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 25px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+}
+
+.e-verify-final-btn:hover {
+    background-color: #0069d1;
+    transform: translateY(-1px);
+}
+
+.e-expired-state {
+    width: 100%;
+    padding: 10px 0;
+}
+
+.e-expired-state .error-msg {
+    color: #d93025;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
+.subtext {
+    color: #032240;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: none;
+    white-space: nowrap;
+    display: flex;
+    gap: 10px;
+}
+
+@media screen and (max-width: 768px) {
+    .subtext {
+        color: #032240;
+        font-size: 8px;
+    }
+}
+
+/* --- Employer Mobile Responsive Enhancements --- */
+
+@media screen and (max-width: 480px) {
+
+    /* 1. Adjust the Modal Container */
+    .e-otp-modal-content {
+        width: 92%;
+        /* Leave margin on sides */
+        padding: 30px 15px;
+        /* Reduce internal padding so content fits */
+        max-width: 350px;
+        /* Common mobile width */
+    }
+
+    /* 2. Resize the Icon */
+    .e-otp-status-icon {
+        width: 80px;
+        /* Slightly smaller icon for mobile */
+        height: 80px;
+    }
+
+    /* 3. Adjust Typography */
+    .e-otp-modal-content h3 {
+        font-size: 18px;
+        /* Prevent title from wrapping awkwardly */
+    }
+
+    .e-otp-modal-content p {
+        font-size: 13px;
+        /* Easier to read on small screens */
+        margin-bottom: 15px;
+    }
+
+    .subtext {
+        font-size: 12px !important;
+        /* Fixed: 8px was too small to read */
+        line-height: 1.4;
+    }
+
+    /* 4. Fix the OTP Input Width */
+    .e-otp-input-group {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .e-otp-input-group input {
+        width: 100%;
+        /* Let it fill the container */
+        max-width: 200px;
+        /* Keep it centered and tidy */
+        height: 45px;
+        font-size: 20px;
+        /* Large enough for fingers but not breaking container */
+        letter-spacing: 6px;
+        /* Slightly reduced spacing to avoid horizontal overflow */
+    }
+
+    /* 5. Adjust the Button */
+    .e-verify-final-btn {
+        padding: 12px;
+        font-size: 15px;
+        margin-top: 15px;
+    }
+
+    /* 6. Reposition Back Arrow */
+    .e-back-arrow {
+        top: 12px;
+        left: 12px;
+        font-size: 14px;
+    }
+}
+
+/* Extra small devices (iPhone SE / Fold) */
+@media screen and (max-width: 320px) {
+    .e-otp-input-group input {
+        max-width: 180px;
+        letter-spacing: 4px;
+    }
+
+    .e-otp-modal-content h3 {
+        font-size: 16px;
+    }
+}

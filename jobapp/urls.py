@@ -1,6 +1,14 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
+    AJobListView,
+    AdminCompanyListView,
+    AdminDashboardOverviewView,
+    AdminDashboardStats,
+    AdminLoginView,
+    AdminUpdateComplaintView,
+    CompanyProfileCreateView,
+    DashboardView,
     JobSeekerRegistrationView,
     EmployerRegistrationView,
     LoginView,
@@ -10,6 +18,10 @@ from .views import (
     MarkNotificationUnreadView,
     DeleteNotificationView,
     ClearAllNotificationsView,
+    NewsletterSubscribeAPIView,
+    SubmitComplaintView,
+    UpdateCompanyStatusView,
+    UserListView,
     UserSettingsView,
     SaveJobView,
     JobApplicationDetailView,
@@ -23,17 +35,66 @@ from .views import (
     MarkMessageReadView,
     ChatUsersView,
     EmployerInitiateChatView,
+    UserStatsView,
+    UserStatusUpdateView,
+    VerifyEmailOTPView,
     chat_api,
     ForgotPasswordView,
     ResetPasswordConfirmView,
     CreatePasswordView,
     ValidateResetTokenView,
     AdminCreatePasswordTokenView,
-    help_topics, 
-    RaiseTicketCreateView
+    RaiseTicketCreateView,
+    ContactMessageCreateAPIView,
+    SubmitCompanyVerification,
+    CompanyVerificationAction,
+    CreateJobPreviewView,
+    PreviewJobView,
+    PublishJobView,
+    UpdateJobView,
+    DeleteJobView,
+    JobListView,
+    CompanyProfileDetailView,
+    CompanyProfileUpdateView,
+    AdminComplaintListView,
+    SendEmailOTPView,
+    SendLoginOTPView,
+    VerifyLoginOTPView,
+    PostedJobListView,
+    EmployerJobListView,
+    JobSeekerJobListView,
+    JobSeekerJobDetailView,
+    PlanListView,
+    CreateOrderView,
+    CurrentSubscriptionView,
+    CancelSubscriptionView,
+    InvoiceListView,
+    InvoiceDownloadView,
+    PaymentMethodView,
+    DeletePaymentMethodView,
+    VerifyPaymentView,
+    CompanyProfileListView,
+    CompanyProfileByIdView,
+    LinkToExistingCompanyView,
+    VerifyCompanyEmailOTPView,
+    SendCompanyEmailOTPView,
+    CompanyVerificationStatusView,
+    EmployerOnboardingStatusView,
+    GoogleLoginView,
+    AdminJobStatsView,
+    AdminJobDeleteView,
+    AdminJobApproveView,
+    AdminJobRejectView,
+    AdminJobFlagView,
+    AdminJobListView,
+    JobHighlightLimitView
+    
+
+    # REMOVED: Company-related view imports (CompanyListView, CompanyDetailView, etc.)
 )
+from .webhooks import razorpay_webhook
 from . import views 
- 
+
 
 urlpatterns = [
     # Registration (open to everyone)
@@ -47,15 +108,17 @@ urlpatterns = [
 
     # Profile (only authenticated users)
     path('profile/jobseeker/', JobSeekerProfileView.as_view(), name='jobseeker-profile'),
+    path('jobseekers/', views.JobSeekerListView.as_view(), name='jobseeker-list'),
     path('profile/employer/', EmployerProfileView.as_view(), name='employer-profile'),
 
-    # Companies
-    path('companies/', views.CompanyListView.as_view(), name='company-list'),
-    path('companies/<int:pk>/', views.CompanyDetailView.as_view(), name='company-detail'),
-    path('companies/create/', views.CompanyCreateView.as_view(), name='company-create'),
-    path('companies/link/', views.CompanyLinkView.as_view(), name='company-link'),  # PATCH to link existing
-    path('companies/<int:pk>/edit/', views.CompanyEditView.as_view(), name='company-edit'),
-    path('admin/companies/<int:pk>/toggle-active/', views.AdminCompanyToggleActiveView.as_view(), name='admin-company-toggle'),
+    # REMOVED: Old Company URLs (using Company model)
+    # These have been replaced with CompanyProfile URLs below
+    # path('companies/', views.CompanyListView.as_view(), name='company-list'),
+    # path('companies/<int:pk>/', views.CompanyDetailView.as_view(), name='company-detail'),
+    # path('companies/create/', views.CompanyCreateView.as_view(), name='company-create'),
+    # path('companies/link/', views.CompanyLinkView.as_view(), name='company-link'),
+    # path('companies/<int:pk>/edit/', views.CompanyEditView.as_view(), name='company-edit'),
+    # path('admin/companies/<int:pk>/toggle-active/', views.AdminCompanyToggleActiveView.as_view(), name='admin-company-toggle'),
 
     # Jobs
     path('jobs/', views.JobListView.as_view(), name='job-list'),
@@ -71,7 +134,7 @@ urlpatterns = [
     path('jobs/save/', views.SaveJobView.as_view(), name='job-save'),
     path('jobs/saved/', views.SavedJobsListView.as_view(), name='saved-jobs'),
 
-    #Withdraw application
+    # Withdraw application
     path('jobs/applications/<int:pk>/withdraw/', views.WithdrawApplicationView.as_view(), name='withdraw-application'),
 
     # Employer sees applications
@@ -81,19 +144,16 @@ urlpatterns = [
     # Notifications
     path('notifications/', views.NotificationListView.as_view(), name='notification-list'),
     path('notifications/<int:pk>/read/', views.MarkNotificationReadView.as_view(), name='mark-notification-read'),
-
+ 
     path('notifications/<int:pk>/unread/', MarkNotificationUnreadView.as_view()),
     path('notifications/<int:pk>/delete/', DeleteNotificationView.as_view()),
     path('notifications/clear-all/', ClearAllNotificationsView.as_view()),
-    
+   
     path("settings/", UserSettingsView.as_view(), name="user-settings"),
     path("jobs/save/", SaveJobView.as_view(), name="save-job"),
     path("jobs/save/<int:job_id>/", SaveJobView.as_view(), name="remove-saved-job"),
     path("jobs/applications/<int:pk>/", JobApplicationDetailView.as_view()),
-
-
-
-
+ 
     # Conversations
     path('chat/conversations/', ConversationListView.as_view(), name='chat-conversations'),
     path('chat/conversations/<int:pk>/', ConversationDetailView.as_view(), name='chat-conversation-detail'),
@@ -106,14 +166,106 @@ urlpatterns = [
     path('chat/users/', ChatUsersView.as_view(), name='chat-users'),
     path('chat/employer/initiate/', EmployerInitiateChatView.as_view(), name='employer-initiate-chat'),
     path("chat/", chat_api, name="chat_api"),
+    
     # Password
     path('auth/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('auth/reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password-confirm'),
     path('auth/create-password/', CreatePasswordView.as_view(), name='create-password'),
     path('auth/validate-reset-token/', ValidateResetTokenView.as_view(), name='validate-reset-token'),
     path('admin/create-password-token/', AdminCreatePasswordTokenView.as_view(), name='admin-create-password-token'),
-    path('help-topics/', help_topics, name='help-topics'),
+    
+    # raise ticket
     path('raise-ticket/', RaiseTicketCreateView.as_view(), name='raise-ticket'),
-
-]
+    
+    # contact 
+    path('contact/', ContactMessageCreateAPIView.as_view(), name='contact-message'),
+    
+    # newsletter subscribe
+    path("subscribe/", NewsletterSubscribeAPIView.as_view(), name="subscribe-newsletter"),
+    
+    # Company Verify 
+    path("company/verify/", SubmitCompanyVerification.as_view()),
+    path("admin/company-verification/<int:pk>/", CompanyVerificationAction.as_view()),
+    
+    # Post a Job
+    path('jobs/preview/', CreateJobPreviewView.as_view(), name='job-preview'),
+    path('jobs/preview/<int:pk>/', PreviewJobView.as_view(), name='job-preview-detail'),
+    path('jobs/publish/<int:pk>/', PublishJobView.as_view(), name='job-publish'),
+    path('jobs/update/<int:pk>/', UpdateJobView.as_view(), name='job-update'),
+    path('jobs/delete/<int:pk>/', DeleteJobView.as_view(), name='job-delete'),
+    path('jobs/published/', PostedJobListView.as_view(), name='job-list-published'),
+    path('jobs/my-jobs/', EmployerJobListView.as_view(), name='job-list-employer'),
+    path('jobs/all/', JobSeekerJobListView.as_view(), name='all-jobs'),
+    path('jobs/<int:pk>/', JobSeekerJobDetailView.as_view(), name='job-detail'),
  
+    # Verify Email OTP
+    path('verify-email-otp/', VerifyEmailOTPView.as_view(), name='verify-email-otp'),
+    path('send-email-otp/', SendEmailOTPView.as_view()),
+    
+    # OTP Login
+    path('send-login-otp/', SendLoginOTPView.as_view(), name='send-login-otp'),
+    path('verify-login-otp/', VerifyLoginOTPView.as_view(), name='verify-login-otp'),
+ 
+    # Company Profile (NEW - Replaces old Company URLs)
+    path('company/profile/create/', CompanyProfileCreateView.as_view(), name='company-profile-create'),
+    path('company/profile/', CompanyProfileDetailView.as_view(), name='company-profile-detail'),
+    path('company/profile/update/', CompanyProfileUpdateView.as_view(), name='company-profile-update'),
+    path('company/link-to-existing/', LinkToExistingCompanyView.as_view(), name='link-to-existing-company'),
+
+    #dashboad-verification status
+    path('company/verification-status/', CompanyVerificationStatusView.as_view(), name='company-verification-status'),
+    
+    # Company Profile Public Endpoints
+    path('companies/', CompanyProfileListView.as_view(), name='company-profile-list'),
+    path('companies/<int:company_id>/', CompanyProfileByIdView.as_view(), name='company-profile-by-id'),
+    
+    # Report A Job
+    path('complaints/submit/', SubmitComplaintView.as_view(), name='submit-complaint'),
+    path('admin/complaints/', AdminComplaintListView.as_view(), name='admin-complaint-list'),
+    path('admin/complaints/<int:pk>/', AdminUpdateComplaintView.as_view(), name='admin-complaint-update'),
+
+    # Billing
+    path("plans/", PlanListView.as_view(), name='plan-list'),
+    path("create-order/", CreateOrderView.as_view(), name='create-order'),
+    path("subscription/", CurrentSubscriptionView.as_view(), name='current-subscription'),
+    path("cancel/", CancelSubscriptionView.as_view(), name='cancel-subscription'),
+    path("invoices/", InvoiceListView.as_view(), name='invoice-list'),
+    path("invoice/<int:pk>/download/", InvoiceDownloadView.as_view(), name='invoice-download'),
+    path("payment-methods/", PaymentMethodView.as_view(), name='payment-methods'),
+    path("payment-methods/<int:pk>/", DeletePaymentMethodView.as_view(), name='delete-payment-method'),
+    path("webhook/", razorpay_webhook, name='razorpay-webhook'),
+    path("verify-payment/", VerifyPaymentView.as_view(), name='verify-payment'),
+
+    path('company/send-email-otp/', SendCompanyEmailOTPView.as_view(), name='send-company-email-otp'),
+    path('company/verify-email-otp/', VerifyCompanyEmailOTPView.as_view(), name='verify-company-email-otp'),
+    path('employer/onboarding-status/', EmployerOnboardingStatusView.as_view(), name='employer-onboarding-status'),
+
+    # Google Login
+    path("google-login/", GoogleLoginView.as_view()),
+    # admin login
+    path('admin-login/', AdminLoginView.as_view(), name='admin-login'),
+    #ActivityMonitor
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    path('company/', AdminCompanyListView.as_view(), name='dashboardlist'),
+    path('company/<int:pk>/status/', UpdateCompanyStatusView.as_view(), name='update-company-status'),
+    #UserManagement
+    path('users/', UserListView.as_view(), name='user-list'),
+    path('users/<int:pk>/status/', UserStatusUpdateView.as_view(), name='user-status-update'),
+    path('users/stats/', UserStatsView.as_view(), name='user-stats'),
+
+     #admin JobMonitoring
+    path('admin/jobs/', AdminJobListView.as_view(), name='admin-job-list'),
+    path('admin/jobs/<int:pk>/approve/', AdminJobApproveView.as_view(), name='admin-job-approve'),
+    path('admin/jobs/<int:pk>/reject/', AdminJobRejectView.as_view(), name='admin-job-reject'),
+    path('admin/jobs/<int:pk>/flag/', AdminJobFlagView.as_view(), name='admin-job-flag'),
+    path('admin/jobs/<int:pk>/delete/', AdminJobDeleteView.as_view(), name='admin-job-delete'),
+    path('admin/jobs/stats/', AdminJobStatsView.as_view(), name='admin-job-stats'),
+
+    #job highlight limits
+    path('jobs/highlight-limit/', JobHighlightLimitView.as_view(), name='job-highlight-limit'),
+
+    #admin dashboard
+    path('admin/dashboard/', AdminDashboardStats.as_view()),
+    path('admin/jobs/ajoblist/', AJobListView.as_view()),
+    path('admin/dashboard/overview/', AdminDashboardOverviewView.as_view(), name='admin-dashboard-overview'),
+]
