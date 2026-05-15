@@ -447,7 +447,12 @@ class JobSeekerProfileWriteSerializer(WritableNestedModelSerializer):
             })
  
         return attrs
- 
+
+    def validate_employment_status(self, value):
+        if value:
+            return value.capitalize()  # 'fresher' → 'Fresher', 'experienced' → 'Experienced'
+        return value
+
     # =====================================================
     # UPDATE (UNCHANGED)
     # =====================================================

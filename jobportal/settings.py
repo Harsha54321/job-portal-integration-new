@@ -113,10 +113,24 @@ WSGI_APPLICATION = 'jobportal.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
  
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',  
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'jobportal_dev',
+        'USER': 'jobportal_user',
+        'PASSWORD': 'Jobportal@01',
+        'HOST': '54.183.89.14',
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        }
     }
 }
  
@@ -127,7 +141,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
  
 EMAIL_HOST_USER = 'jobportal709@gmail.com'
-EMAIL_HOST_PASSWORD = 'ljjl kgtl rdrl kspo'
+EMAIL_HOST_PASSWORD = 'yoka vlvv dnok thor'
  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
  

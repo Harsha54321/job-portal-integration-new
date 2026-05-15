@@ -33,6 +33,9 @@ class User(AbstractUser):
     last_seen = models.DateTimeField(auto_now=True)
     login_time = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        db_table = 'User'
+
     def __str__(self):
         return f"{self.username} ({self.user_type})"
 
@@ -150,6 +153,9 @@ class JobSeekerProfile(models.Model):
     def get_total_experience(self):
         return self.experiences.count()
  
+    class Meta:
+        db_table = 'JobSeekerProfile'
+
     def __str__(self):
         return f"Job Seeker: {self.user.email}"
 
@@ -163,6 +169,9 @@ class AdminProfile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'AdminProfile'
 
     def __str__(self):
         return f"Admin: {self.user.email}"
@@ -239,6 +248,7 @@ class EducationEntry(models.Model):
     )
 
     class Meta:
+        db_table = 'EducationEntry'
         ordering = ['-end_year', '-completion_year', '-start_year']
 
     def __str__(self):
@@ -297,6 +307,7 @@ class WorkExperienceEntry(models.Model):
     key_responsibilities = models.TextField(blank=True)
 
     class Meta:
+        db_table = 'WorkExperienceEntry'
         ordering = ['-start_date']
 
     def __str__(self):
@@ -310,6 +321,7 @@ class Skill(models.Model):
     name = models.CharField(max_length=100)
 
     class Meta:
+        db_table = 'Skill'
         unique_together = ['profile', 'name']
 
     def __str__(self):
@@ -330,6 +342,7 @@ class LanguageKnown(models.Model):
     )
 
     class Meta:
+        db_table = 'LanguageKnown'
         unique_together = ['profile', 'name']
 
     def __str__(self):
@@ -340,6 +353,9 @@ class Certification(models.Model):
     profile = models.ForeignKey(JobSeekerProfile, on_delete=models.CASCADE, related_name='certifications')
     name = models.CharField(max_length=200)
     certificate_file = models.FileField(upload_to='certificates/', null=True, blank=True)
+
+    class Meta:
+        db_table = 'Certification'
 
     def __str__(self):
         return self.name
@@ -357,6 +373,8 @@ class EmployerProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'EmployerProfile'
 
 
 class JobHistory(models.Model):
@@ -368,7 +386,10 @@ class JobHistory(models.Model):
     deleted_at = models.DateTimeField()
  
     data = models.JSONField(default=dict)
- 
+
+    class Meta:
+        db_table = 'JobHistory'
+
 
 # Post a Job Model (Main Job Model)
 from django.core.exceptions import ValidationError
@@ -455,6 +476,9 @@ class PostAJob(models.Model):
         blank=True
     )
  
+    class Meta:
+        db_table = 'PostAJob'
+
     # ================= VALIDATIONS =================
     def clean(self):
         valid_statuses = [status[0] for status in self.JobStatus.choices]
@@ -549,6 +573,7 @@ class JobApplication(models.Model):
     resume_version = models.FileField(upload_to='application_resumes/', null=True, blank=True)
 
     class Meta:
+        db_table = 'JobApplication'
         indexes = [
             models.Index(fields=['user', 'job']),
         ]
@@ -563,6 +588,7 @@ class SavedJob(models.Model):
     saved_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'SavedJob'
         unique_together = ['user', 'job']
 
     def __str__(self):
@@ -576,6 +602,9 @@ class NewsletterSubscriber(models.Model):
     email = models.EmailField(unique=True)
     subscribed_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'NewsletterSubscriber'
 
     def __str__(self):
         return self.email
@@ -616,6 +645,7 @@ class Notification(models.Model):
     )
  
     class Meta:
+        db_table = 'Notification'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -635,6 +665,7 @@ class Conversation(models.Model):
     jobseeker_can_reply = models.BooleanField(default=False)
    
     class Meta:
+        db_table = 'Conversation'
         ordering = ['-updated_at']
    
     def __str__(self):
@@ -655,6 +686,7 @@ class Message(models.Model):
     is_first_message = models.BooleanField(default=False)
    
     class Meta:
+        db_table = 'Message'
         ordering = ['timestamp']
    
     def save(self, *args, **kwargs):
@@ -681,6 +713,9 @@ class ChatMessage(models.Model):
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = 'ChatMessage'
+
     def __str__(self):
         return f"{self.sender}: {self.message[:30]}"
 
@@ -702,6 +737,9 @@ class UserSettings(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'UserSettings'
+
     def __str__(self):
         return f"{self.user.email} settings"
 
@@ -709,6 +747,9 @@ class UserSettings(models.Model):
 class HelpTopic(models.Model):
     title = models.CharField(max_length=200)
     path = models.CharField(max_length=200)
+
+    class Meta:
+        db_table = 'HelpTopic'
 
     def __str__(self):
         return self.title
@@ -744,6 +785,9 @@ class RaiseTicket(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = 'RaiseTicket'
+
     def __str__(self):
         return f"{self.name} - {self.subject}"
 
@@ -756,6 +800,9 @@ class PasswordResetToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'PasswordRestToken'
 
     def __str__(self):
         return f"Reset token for {self.user.email}"
@@ -775,6 +822,9 @@ class ContactMessage(models.Model):
     contact = models.CharField(max_length=15)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ContactMessage'
 
     def __str__(self):
         return f"{self.name} - {self.email}"
@@ -816,9 +866,9 @@ class CompanyVerification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
  
     class Meta:
+        db_table = 'CompanyVerification'
         ordering = ['-created_at']
-        # Add a unique constraint for employer + legal_name instead
-        unique_together = ['employer', 'legal_name']  # Each employer can only verify one company
+        unique_together = ['employer', 'legal_name']
  
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -882,6 +932,9 @@ class CompanyProfile(models.Model):
        
     created_by = models.ForeignKey(User,on_delete=models.SET_NULL,null=True, blank=True,related_name='companies_created')
    
+    class Meta:
+        db_table = 'CompanyProfile'
+
     def __str__(self):
         return self.company_name
 
@@ -892,16 +945,21 @@ class EmailOTP(models.Model):
     PURPOSE_CHOICES = (
         ('signup', 'Signup'),
         ('login', 'Login'),
+        ('email_verification', 'Email Verification'),
+        ('password_reset', 'Password Reset'),
     )
 
     email = models.EmailField(null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  
 
     otp = models.CharField(max_length=6)
-    purpose = models.CharField(max_length=10, choices=PURPOSE_CHOICES)
+    purpose = models.CharField(max_length=50, choices=PURPOSE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'EmailOTP'
 
     def is_valid(self):
         return timezone.now() < self.expires_at and not self.is_verified
@@ -970,6 +1028,7 @@ class Complaint(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
    
     class Meta:
+        db_table = 'Complaint'
         ordering = ['-created_at']
         unique_together = ['user', 'reported_job']
         indexes = [
@@ -1010,6 +1069,9 @@ class Plan(models.Model):
     def __str__(self):
         return self.name
    
+    class Meta:
+        db_table = 'Plan'
+
     def get_all_pricing(self):
         """Simple implementation to avoid error"""
         return {
@@ -1047,7 +1109,10 @@ class Subscription(models.Model):
            
             self.end_date = now() + timedelta(days=days)
         super().save(*args, **kwargs)
- 
+
+    class Meta:
+        db_table = 'Subscription'
+
 class Payment(models.Model):
     STATUS_CHOICES = (
         ('created', 'Created'),
@@ -1075,8 +1140,11 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     razorpay_response = models.JSONField(blank=True, null=True)
- 
- 
+
+    class Meta:
+        db_table = 'Payment'
+
+
 class Invoice(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
  
@@ -1101,8 +1169,11 @@ class Invoice(models.Model):
     end_date = models.DateTimeField()
  
     created_at = models.DateTimeField(auto_now_add=True)
- 
- 
+
+    class Meta:
+        db_table = 'Invoice'
+
+
 class PaymentMethod(models.Model):
     TYPE = [
         ('card', 'Card'),
@@ -1127,7 +1198,10 @@ class PaymentMethod(models.Model):
         if self.is_default:
             PaymentMethod.objects.filter(user=self.user).update(is_default=False)
         super().save(*args, **kwargs)
- 
+
+    class Meta:
+        db_table = 'PaymentMethod'
+
 
 # Company Email OTP
 
@@ -1149,6 +1223,9 @@ class CompanyEmailOTP(models.Model):
         from django.utils import timezone
         return timezone.now() < self.expires_at and not self.is_verified
     
+    class Meta:
+        db_table = 'CompanyEmailOTP'
+
     def __str__(self):
         return f"OTP for {self.email} - {self.purpose}"        
     
@@ -1160,32 +1237,44 @@ class ACompany(models.Model):
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
  
+    class Meta:
+        db_table = 'ACompany'
+
     def __str__(self):
         return self.name
- 
- 
+
+
 class AEmployer(models.Model):
     name = models.CharField(max_length=255)
     company = models.ForeignKey(ACompany, on_delete=models.CASCADE)
  
+    class Meta:
+        db_table = 'AEmployer'
+
     def __str__(self):
         return self.name
- 
- 
+
+
 class AJobSeeker(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField()
  
+    class Meta:
+        db_table = 'AJobseeker'
+
     def __str__(self):
         return self.name
- 
- 
+
+
 class AJob(models.Model):
     title = models.CharField(max_length=255)
     company = models.ForeignKey(ACompany, on_delete=models.CASCADE)
     status = models.CharField(max_length=50, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
  
+    class Meta:
+        db_table = 'AJob'
+
     def __str__(self):
         return self.title
 
@@ -1206,12 +1295,18 @@ class Role(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = 'Role'
+
     def __str__(self):
         return self.name
 
 
 class Module(models.Model):
     name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        db_table = 'Module'
 
     def __str__(self):
         return self.name
@@ -1227,7 +1322,8 @@ class Permission(models.Model):
     delete = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ['role', 'module']  # one permission row per role+module combo
+        db_table = 'Permission'
+        unique_together = ['role', 'module']
 
     def __str__(self):
         return f"{self.role.name} → {self.module.name}"
