@@ -131,7 +131,7 @@
 .carousel-des {
   font-size: 14px;
   color: #555;
-  margin: 24px 10px;
+  /* margin: 24px 10px; */
   line-height: 1.5;
   min-height: 84px;
   flex-grow: 1; /* Pushes the button down to the bottom */

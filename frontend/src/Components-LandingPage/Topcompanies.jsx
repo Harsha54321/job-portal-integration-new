@@ -79,17 +79,23 @@ export const Topcompanies = () => {
     });
   };
 
-  const companyPriority = ["google", "wipro", "stackly", "cognizant", "amazon", "apple"];
+  // const companyPriority = ["google", "wipro", "stackly", "cognizant", "amazon", "apple"];
+
+  // const topCompanies = useMemo(() => {
+  //   return companyPriority
+  //     .map((name) =>
+  //       companies.find((company) =>
+  //         company.company_name?.toLowerCase().includes(name)
+  //       )
+  //     )
+  //     .filter(Boolean);
+  // }, [companies]);
 
   const topCompanies = useMemo(() => {
-    return companyPriority
-      .map((name) =>
-        companies.find((company) =>
-          company.company_name?.toLowerCase().includes(name)
-        )
-      )
-      .filter(Boolean);
-  }, [companies]);
+  if (!Array.isArray(companies)) return [];
+ 
+  return companies.slice(0, 10);
+}, [companies]);
 
   const settings = {
     dots: false,

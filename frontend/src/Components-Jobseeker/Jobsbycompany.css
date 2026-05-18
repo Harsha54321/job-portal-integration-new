@@ -89,8 +89,8 @@
   font-size: 14px;
   color: #555;
   line-height: 1.5;
-  margin: 12px 0 20px;
-  min-height: 42px;
+  /* margin: 12px 0 20px; */
+  min-height: 84px;
 }
 
 /* BUTTON */
