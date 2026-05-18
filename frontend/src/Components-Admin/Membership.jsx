@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import "./Membership.css";
 import Eye from '../assets/show_password.png';
-import Tick from '../assets/AdminAssets/Greentick.png';
+import Tick from '../assets/AdminAssets/GreenTick.png';
 import Delete from '../assets/DeleteIcon.png';
 import SixDots from '../assets/AdminAssets/SixDots.png';
 import UPI from '../assets/Billing/UpiIcon.png';

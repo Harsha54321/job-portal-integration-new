@@ -275,9 +275,30 @@ class JobSeekerProfileView(generics.RetrieveUpdateAPIView):
         return super().update(request, *args, **kwargs)
 
 class JobSeekerListView(generics.ListAPIView):
-    queryset = JobSeekerProfile.objects.all()
+
+    permission_classes = [IsAuthenticated]
+
     serializer_class = JobSeekerProfileReadSerializer
-    permission_classes = [IsAdminOrEmployer]
+ 
+    def get_queryset(self):
+
+        return JobSeekerProfile.objects.select_related(
+
+            'user'
+
+        ).filter(
+
+            user__is_active=True,
+
+            user__user_type='jobseeker'
+
+        ).defer(
+
+            'user__password',
+
+            'user__last_login',
+
+        )[:100]
    
 
 class EmployerProfileView(generics.RetrieveUpdateAPIView):
@@ -1870,7 +1891,7 @@ class CompanyVerificationStatusView(APIView):
             
             return Response({
                 "status": verification.status,  # 'pending', 'approved', 'rejected'
-                "is_verified": verification.status == "approved",
+                "is_verified": verification.status == "Verified",
                 "legal_name": verification.legal_name,
                 "submitted_at": verification.created_at,
                 "message": f"Your verification is {verification.status}"

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "./FinancialReport.css";
 import PlatformTraffic from '../assets/AdminAssets/PlatformTraffic.png';
 import SessionTime from '../assets/AdminAssets/SessionTime.png';
-import Star from '../assets/AdminAssets/Star_Icon.png';
+import Star from '../assets/AdminAssets/Star_icon.png';
 import GlobalTech from '../assets/AdminAssets/GlobalTech.png';
 import DynamicCreative from '../assets/AdminAssets/DynamicCreative.png';
 import UnifiedMedia from '../assets/AdminAssets/UnifiedMedia.png';
