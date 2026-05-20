@@ -6,39 +6,70 @@ import { SavedJobsCard } from "./SavedJobsCard";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { Header } from "../Components-LandingPage/Header";
 import { useJobs } from '../JobContext';
- 
+
 export const MyJobs = () => {
     const location = useLocation();
-    const [activeTab, setActiveTab] = useState("saved");
+
+    // Initialize tab from localStorage or location state or default to "saved"
+    const [activeTab, setActiveTab] = useState(() => {
+        // First check if we have a saved tab in localStorage
+        const savedTab = localStorage.getItem("myJobs_activeTab");
+        if (savedTab && (savedTab === "saved" || savedTab === "applied")) {
+            return savedTab;
+        }
+        // Then check if location state has activeTab (from navigation)
+        if (location.state?.activeTab) {
+            return location.state.activeTab;
+        }
+        // Default to saved
+        return "saved";
+    });
+
     const { savedJobs, appliedJobs, loading, unsaveJob, fetchAllJobs } = useJobs();
- 
-    // Preserve tab state from navigation
+
+    // Filter out withdrawn applications
+    const activeAppliedJobs = appliedJobs?.filter(
+        (application) => application.status?.toLowerCase() !== "withdrawn"
+    ) || [];
+
+    const activeSavedJobs = savedJobs?.filter(
+        (job) => job?.status?.toLowerCase() !== "withdrawn"
+    ) || [];
+
+    // Preserve tab state from navigation and save to localStorage
     useEffect(() => {
         if (location.state?.activeTab) {
             setActiveTab(location.state.activeTab);
+            localStorage.setItem("myJobs_activeTab", location.state.activeTab);
         }
     }, [location]);
- 
-    // Fetch jobs on load ✅ (important)
+
+    // Save activeTab to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem("myJobs_activeTab", activeTab);
+    }, [activeTab]);
+
+    // Fetch jobs on load (important)
     useEffect(() => {
         fetchAllJobs();
     }, []);
- 
+
     // Debug logging
     useEffect(() => {
         console.log("=== MyJobs Data Debug ===");
         console.log("Saved Jobs Array:", savedJobs);
         console.log("Applied Jobs Array:", appliedJobs);
+        console.log("Active Applied Jobs (excluding withdrawn):", activeAppliedJobs);
         console.log("Saved Jobs Count:", savedJobs?.length);
         console.log("Applied Jobs Count:", appliedJobs?.length);
         console.log("Active Tab:", activeTab);
-    }, [savedJobs, appliedJobs, activeTab]);
- 
+    }, [savedJobs, appliedJobs, activeTab, activeAppliedJobs]);
+
     const handleRemoveSavedJob = async (jobId) => {
         await unsaveJob(jobId);
         await fetchAllJobs();
     };
- 
+
     if (loading) {
         return (
             <>
@@ -50,11 +81,11 @@ export const MyJobs = () => {
             </>
         );
     }
- 
+
     return (
         <>
             <Header />
- 
+
             <main>
                 {/* Top Section */}
                 <div className='myjobs-main-info'>
@@ -63,31 +94,31 @@ export const MyJobs = () => {
                         View and manage the jobs you've saved, applied for, or shortlisted—all in one place.
                     </p>
                 </div>
- 
+
                 {/* Tabs */}
                 <div className="toggle-myjobs-main">
                     <button
                         className={`myjobs-select ${activeTab === "saved" ? "active" : ""}`}
                         onClick={() => setActiveTab("saved")}
                     >
-                        Saved ({savedJobs?.length || 0})
+                        Saved ({activeSavedJobs?.length || 0})
                     </button>
- 
+
                     <button
                         className={`myjobs-select ${activeTab === "applied" ? "active" : ""}`}
                         onClick={() => setActiveTab("applied")}
                     >
-                        Applied ({appliedJobs?.length || 0})
+                        Applied ({activeAppliedJobs?.length || 0})
                     </button>
                 </div>
- 
+
                 {/* GRID CONTAINER */}
                 <div className="my-jobs-common-container">
- 
+
                     {/* SAVED TAB */}
                     {activeTab === "saved" && (
-                        savedJobs && savedJobs.length > 0 ? (
-                            savedJobs.map((job) => (
+                        activeSavedJobs.length > 0 ? (
+                            activeSavedJobs.map((job) => (
                                 <SavedJobsCard
                                     key={job.id}
                                     job={job}
@@ -101,11 +132,11 @@ export const MyJobs = () => {
                             </div>
                         )
                     )}
- 
+
                     {/* APPLIED TAB */}
                     {activeTab === "applied" && (
-                        appliedJobs && appliedJobs.length > 0 ? (
-                            appliedJobs.map((application) => (
+                        activeAppliedJobs.length > 0 ? (
+                            activeAppliedJobs.map((application) => (
                                 <AppliedJobCard
                                     key={application.id}
                                     appliedJob={application}
@@ -118,14 +149,11 @@ export const MyJobs = () => {
                             </div>
                         )
                     )}
- 
+
                 </div>
             </main>
- 
+
             <Footer />
         </>
     );
 };
- 
-
- 

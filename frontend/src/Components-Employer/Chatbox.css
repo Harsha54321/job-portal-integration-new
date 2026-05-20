@@ -197,3 +197,45 @@
     color: #888;
     margin: 10px 0;
 }
+
+/* Disabled send button */
+.web-send-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #ccc;
+}
+
+/* Unread badge styling */
+.unread-badge {
+    background: #dc2626;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Message status indicators */
+.message-status {
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+.message-status.read {
+    color: #34b7f1;
+}
+
+.message-status.sent {
+    color: #888;
+}
+
+/* Date separator styling */
+.date-separator {
+    background-color: #e9ecef;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #666;
+}

@@ -377,6 +377,7 @@ export const Jlogin = () => {
       <header className="login-header">
         <Link to="/" className="logo">
           <span className="logo-text">Job portal</span>
+          <span className="subtext">For Jobseekers</span>
         </Link>
 
         <div className="header-links">

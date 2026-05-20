@@ -545,6 +545,7 @@ export const Jsignup = () => {
         <header className="j-sign-up-header">
           <Link to="/" className="logo">
             <span className="logo-text">Job portal</span>
+            <span className="subtext">For Jobseekers</span>
           </Link>
 
           <div className="j-sign-up-header-links">

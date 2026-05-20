@@ -23,6 +23,7 @@ export const ReportAJob = () => {
     const [formValues, setFormValues] = useState(initialValues);
     const [errors, setErrors] = useState({});
     const { id } = useParams();
+    const EXPLANATION_MAX_LENGTH = 100;
 
     useEffect(() => {
         if (id) {
@@ -98,8 +99,8 @@ export const ReportAJob = () => {
             newErrors.explanation = "Please provide an explanation";
         } else if (!isValidTextWithSpaces(formValues.explanation)) {
             newErrors.explanation = "Only alphabets and spaces allowed";
-        } else if (formValues.explanation.length > 500) {
-            newErrors.explanation = "Explanation cannot exceed 500 characters";
+        } else if (formValues.explanation.length > EXPLANATION_MAX_LENGTH) {
+            newErrors.explanation = `Explanation cannot exceed ${EXPLANATION_MAX_LENGTH} characters`;
         }
 
         setErrors(newErrors);
@@ -135,10 +136,8 @@ export const ReportAJob = () => {
         }
         //  Handle Explanation - Only alphabets and spaces
         else if (name === "explanation") {
-            // Remove numbers and special characters, keep alphabets and spaces
             const onlyAlphaAndSpace = value.replace(/[^A-Za-z\s]/g, "");
-            // Limit to 500 characters
-            const limitedValue = onlyAlphaAndSpace.slice(0, 500);
+            const limitedValue = onlyAlphaAndSpace.slice(0, EXPLANATION_MAX_LENGTH);
             setFormValues({ ...formValues, [name]: limitedValue });
         }
         // Handle mobile number
@@ -300,12 +299,17 @@ export const ReportAJob = () => {
                                 rows="4"
                                 value={formValues.explanation}
                                 onChange={handleChange}
-                                maxLength={500}
+                                maxLength={EXPLANATION_MAX_LENGTH}
                                 placeholder="Please provide detailed explanation"
                                 className={errors.explanation ? "error-field" : ""}
                             />
-                            {errors.explanation && <span className="error-text">{errors.explanation}</span>}
-                        </div>
+                            <div className="character-count">
+                                Character limit: {formValues.explanation.length}/{EXPLANATION_MAX_LENGTH}
+                            </div>
+
+                            {errors.explanation && (
+                                <span className="error-text">{errors.explanation}</span>
+                            )}                        </div>
                     </div>
 
                     <div className="report-actions">

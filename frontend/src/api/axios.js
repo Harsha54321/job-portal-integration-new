@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const baseURL = "http://127.0.0.1:8000/api/";
-// const baseURL = "http://54.183.89.14/api/";
+// const baseURL = "http://127.0.0.1:8000/api/";
+const baseURL = "http://54.183.89.14/api/";
 
 console.log("API Base URL:", baseURL);
 
@@ -68,7 +68,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     console.log(
-      `✅ ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`
+      `${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`
     );
     return response;
   },
@@ -76,7 +76,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     console.error(
-      `❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - Error:`,
+      `${error.config?.method?.toUpperCase()} ${error.config?.url} - Error:`,
       error.response?.status
     );
     console.error("Error details:", error.response?.data);
@@ -115,14 +115,14 @@ api.interceptors.response.use(
         const newAccessToken = response.data.access;
 
         localStorage.setItem("access", newAccessToken);
-        console.log("✅ Token refreshed successfully");
+        console.log("Token refreshed successfully");
 
         originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         return api(originalRequest);
       } catch (refreshError) {
-        console.error("❌ Token refresh failed:", refreshError);
+        console.error("Token refresh failed:", refreshError);
 
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");

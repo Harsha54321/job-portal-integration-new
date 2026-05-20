@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import api from "./api/axios";
 
 const JobContext = createContext();
@@ -35,6 +35,10 @@ export const JobProvider = ({ children }) => {
     const [activeSidebarUsers, setActiveSidebarUsers] = useState([]);
     const [onlineStatus, setOnlineStatus] = useState("yes");
 
+    // Cache for messages to prevent unnecessary updates
+    const messagesCache = useRef(new Map());
+    const isUpdatingMessages = useRef(false);
+
     // ================= HELPER FUNCTIONS =================
     const getFormattedDate = () => {
         return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -51,8 +55,22 @@ export const JobProvider = ({ children }) => {
         }));
     };
 
+    const refreshAppliedJobs = useCallback(async () => {
+        try {
+            const appliedRes = await api.get("/jobs/applied/");
+            setAppliedJobs(formatAppliedJobs(appliedRes.data));
+        } catch (err) {
+            console.error("Error refreshing applied jobs:", err);
+        }
+    }, []);
+
     const formatAppliedJobs = (jobs) => {
-        return jobs.map(job => ({
+        // Filter out withdrawn applications
+        const activeJobs = jobs.filter(job =>
+            job.status?.toLowerCase() !== "withdrawn"
+        );
+
+        return activeJobs.map(job => ({
             ...job,
             appliedDate:
                 job.appliedDate ||
@@ -137,7 +155,7 @@ export const JobProvider = ({ children }) => {
     const fetchEmployerJobs = useCallback(async () => {
         try {
             const res = await api.get("/jobs/my-jobs/");
-            return res.data.jobs || [];   // FIX
+            return res.data.jobs || [];
         } catch (err) {
             console.error(err);
             return [];
@@ -222,19 +240,10 @@ export const JobProvider = ({ children }) => {
 
             if (response.data.id) {
                 try {
-                    // const publishResponse = await api.patch(`/jobs/publish/${response.data.id}/`, {}, {
-                    //     headers: {
-                    //         'Authorization': `Bearer ${token}`
-                    //     }
-                    // });
-
                     const publishResponse = await api.patch(`/jobs/publish/${response.data.id}/`,
                         { is_highlighted: jobData.is_highlighted ?? false },
                         { headers: { 'Authorization': `Bearer ${token}` } }
                     );
-
-
-
                     console.log('✅ Job published:', publishResponse.data);
                 } catch (publishError) {
                     console.warn('Job created but publishing failed:', publishError);
@@ -277,25 +286,28 @@ export const JobProvider = ({ children }) => {
         }
     };
 
-    // ================= CHAT FUNCTIONS =================
+    // ================= OPTIMIZED CHAT FUNCTIONS =================
     const fetchChats = useCallback(async () => {
         try {
             const token = localStorage.getItem('access');
             const userType = localStorage.getItem('user_type');
             const currentUserId = parseInt(localStorage.getItem('user_id'), 10);
 
-            console.log("Fetching chats for:", { userType, currentUserId });
-
             const response = await api.get("chat/conversations/");
-            console.log('Chats API response:', response.data);
 
             const chatsWithMessages = response.data.map(chat => ({
                 ...chat,
                 messages: chat.messages || []
             }));
 
-            console.log("All conversations stored:", chatsWithMessages.length);
-            setChats(chatsWithMessages);
+            // Only update if data has changed
+            setChats(prevChats => {
+                const prevStr = JSON.stringify(prevChats);
+                const newStr = JSON.stringify(chatsWithMessages);
+                if (prevStr === newStr) return prevChats;
+                return chatsWithMessages;
+            });
+
             return chatsWithMessages;
         } catch (err) {
             console.error("Error fetching chats:", err);
@@ -305,17 +317,11 @@ export const JobProvider = ({ children }) => {
 
     const startConversation = useCallback(async (userId, message) => {
         try {
-            console.log("startConversation called with:", { userId, message });
-
             const jobseekerId = parseInt(userId, 10);
-            console.log("Sending jobseeker_id:", jobseekerId);
-
             const res = await api.post("/chat/employer/initiate/", {
                 jobseeker_id: jobseekerId,
                 message: message
             });
-
-            console.log("API Response:", res.data);
 
             addChatToSidebar(userId);
             await fetchChats();
@@ -328,26 +334,52 @@ export const JobProvider = ({ children }) => {
         }
     }, [fetchChats]);
 
-    const fetchMessages = async (conversationId) => {
+    const fetchMessages = useCallback(async (conversationId) => {
         try {
-            console.log("Fetching messages for conversation:", conversationId);
-            const res = await api.get(`chat/conversations/${conversationId}/messages/`);
-            console.log("Messages response:", res.data);
+            // Check cache first
+            const cacheKey = `messages_${conversationId}`;
+            const cachedMessages = messagesCache.current.get(cacheKey);
 
-            setChats(prev => prev.map(chat =>
-                chat.id === conversationId
-                    ? { ...chat, messages: res.data }
-                    : chat
-            ));
+            const response = await api.get(`chat/conversations/${conversationId}/messages/`);
+            const newMessages = response.data;
 
-            return res.data;
+            // Compare with cache to prevent unnecessary updates
+            const cachedStr = cachedMessages ? JSON.stringify(cachedMessages) : '';
+            const newStr = JSON.stringify(newMessages);
+
+            if (cachedStr === newStr && cachedMessages) {
+                return cachedMessages;
+            }
+
+            // Update cache
+            messagesCache.current.set(cacheKey, newMessages);
+
+            // Update chats state only if messages actually changed
+            setChats(prev => {
+                const chatIndex = prev.findIndex(c => c.id === conversationId);
+                if (chatIndex === -1) return prev;
+
+                const currentMessages = prev[chatIndex].messages;
+                const currentStr = JSON.stringify(currentMessages);
+
+                if (currentStr === newStr) return prev;
+
+                const updatedChats = [...prev];
+                updatedChats[chatIndex] = {
+                    ...updatedChats[chatIndex],
+                    messages: newMessages
+                };
+                return updatedChats;
+            });
+
+            return newMessages;
         } catch (err) {
             console.error("Error fetching messages:", err);
             throw err;
         }
-    };
+    }, []);
 
-    const sendMessage = async (conversationId, content) => {
+    const sendMessage = useCallback(async (conversationId, content) => {
         try {
             const userId = parseInt(localStorage.getItem('user_id'), 10);
 
@@ -363,36 +395,43 @@ export const JobProvider = ({ children }) => {
                 receiverId = receiver?.id;
             }
 
+            let response;
             if (!receiverId) {
-                console.warn("Conversation not in state, using fallback API call");
-                const res = await api.post("chat/messages/send/", {
+                response = await api.post("chat/messages/send/", {
                     conversation_id: conversationId,
                     content: content
                 });
-                return { success: true, data: res.data };
+            } else {
+                response = await api.post("chat/messages/send/", {
+                    receiver_id: receiverId,
+                    content: content
+                });
             }
 
-            const response = await api.post("chat/messages/send/", {
-                receiver_id: receiverId,
-                content: content
-            });
+            const newMessage = response.data;
 
+            // Update cache
+            const cacheKey = `messages_${conversationId}`;
+            const cachedMessages = messagesCache.current.get(cacheKey) || [];
+            messagesCache.current.set(cacheKey, [...cachedMessages, newMessage]);
+
+            // Update chats state
             setChats(prev => prev.map(chat =>
                 chat.id === conversationId
                     ? {
                         ...chat,
-                        messages: [...(chat.messages || []), response.data],
-                        last_message: response.data
+                        messages: [...(chat.messages || []), newMessage],
+                        last_message: newMessage
                     }
                     : chat
             ));
 
-            return { success: true, data: response.data };
+            return { success: true, data: newMessage };
         } catch (err) {
             console.error("Error sending message:", err.response?.data || err);
             return { success: false, error: err.response?.data };
         }
-    };
+    }, [chats]);
 
     const addChatToSidebar = (userId) => {
         if (!activeSidebarUsers.includes(parseInt(userId))) {
@@ -400,6 +439,7 @@ export const JobProvider = ({ children }) => {
         }
     };
 
+    // ================= EMPLOYER DATA FETCH =================
     // ================= EMPLOYER DATA FETCH =================
     const fetchEmployerData = useCallback(async () => {
         try {
@@ -419,16 +459,18 @@ export const JobProvider = ({ children }) => {
             const employerJobs = await fetchEmployerJobs();
             console.log(`📋 Loaded ${employerJobs.length} jobs`);
 
-            // let allJobseekers = [];
-            // try {
-            //     const jobseekersRes =await api.get("/jobseekers/",{timeout:10000});
-            //     const allData = jobseekersRes.data;
-            //     const jobseekersOnly = allData.filter(item => item.user?.user_type === "jobseeker");
-            //     setAlluser(jobseekersOnly);
-            // } catch (err) {
-            //     console.error("Error fetching jobseekers:", err);
-            //     setAlluser([]);
-            // }
+            let allJobseekers = [];
+            try {
+                const jobseekersRes = await api.get("/jobseekers/", { timeout: 10000 });
+                const allData = jobseekersRes.data;
+                const jobseekersOnly = allData.filter(item => item.user?.user_type === "jobseeker");
+                setAlluser(jobseekersOnly);
+                console.log(`✅ Loaded ${jobseekersOnly.length} jobseekers`);
+                allJobseekers = jobseekersOnly;
+            } catch (err) {
+                console.error("Error fetching jobseekers:", err);
+                setAlluser([]);
+            }
 
             const employer = {
                 id: employerData.user?.id,
@@ -454,11 +496,10 @@ export const JobProvider = ({ children }) => {
         }
     }, [fetchEmployerJobs]);
 
-    // ================= REFRESH EMPLOYER DATA (ONLY FOR EMPLOYER) =================
+    // ================= REFRESH EMPLOYER DATA =================
     const refreshEmployerData = useCallback(async () => {
         const userType = localStorage.getItem("user_type");
 
-        // Only refresh if user is employer
         if (userType !== "employer") {
             console.log("Not employer, skipping refresh");
             return;
@@ -501,7 +542,7 @@ export const JobProvider = ({ children }) => {
         };
     };
 
-    // ================= INITIAL LOAD (Without breaking jobseeker) =================
+    // ================= INITIAL LOAD =================
     useEffect(() => {
         const token = localStorage.getItem("access");
         const userType = localStorage.getItem("user_type");
@@ -540,7 +581,7 @@ export const JobProvider = ({ children }) => {
         };
 
         load();
-    }, []); // Empty dependency array - runs only once on mount
+    }, []);
 
     // ================= PROVIDER =================
     return (
@@ -548,6 +589,7 @@ export const JobProvider = ({ children }) => {
             // Jobs
             jobs, setJobs,
             appliedJobs, setAppliedJobs,
+            refreshAppliedJobs,
             savedJobs, setSavedJobs,
             loading, setLoading,
 
@@ -570,7 +612,7 @@ export const JobProvider = ({ children }) => {
             editJob,
             deleteJob,
             getJobStats,
-            refreshEmployerData,  // ← Added only for employer
+            refreshEmployerData,
 
             // All users
             Alluser, setAlluser,

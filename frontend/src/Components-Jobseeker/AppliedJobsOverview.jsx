@@ -35,7 +35,7 @@ export const AppliedJobsOverview = () => {
 
   const { id } = useParams();
   const navigate = useNavigate();
-  const { setAppliedJobs } = useJobs();
+  const { setAppliedJobs, refreshAppliedJobs } = useJobs();
 
   const [appliedJob, setAppliedJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,16 +66,14 @@ export const AppliedJobsOverview = () => {
 
     try {
       await api.patch(`/jobs/applications/${appliedJob.id}/withdraw/`);
-      // ✅ Update local page state
+      // Update local page state
       setAppliedJob(prev => ({
         ...prev,
         status: "withdrawn"
       }));
 
-      // ✅ Remove from global context
-      setAppliedJobs(prev =>
-        prev.filter(a => a.id !== appliedJob.id)
-      );
+      // Refresh applied jobs in context
+      await refreshAppliedJobs();
 
       alert("Application withdrawn successfully");
       navigate("/Job-portal/jobseeker");
@@ -109,15 +107,15 @@ export const AppliedJobsOverview = () => {
 
   const formatLocation = (location) => {
 
-        if (!location) return "Location not specified";
+    if (!location) return "Location not specified";
 
-        if (Array.isArray(location)) {
-            return location.join(", ");
-        }
-        return location;
-    };
+    if (Array.isArray(location)) {
+      return location.join(", ");
+    }
+    return location;
+  };
 
-    const locationDisplay = formatLocation(job.location);
+  const locationDisplay = formatLocation(job.location);
 
   const viewJob = {
     title: job.job_title,

@@ -1314,29 +1314,29 @@ const EducationDetails = ({
         } else if (!isValidInstitution(data.sslc.institution)) {
             newErrors.sslcinstitution = "*Invalid institution name";
         }
-        if (!data.sslc.percentage) newErrors.sslcpercentage = "*percentage Required";
+        if (!data.sslc.percentage) newErrors.sslcpercentage = "*Percentage is required";
         else if (!percentageReg.test(data.sslc.percentage))
             newErrors.sslcpercentage = "should not be greater than 100";
-        if (!data.sslc.location?.trim()) newErrors.sslclocation = "*location Required";
-        if (!data.sslc.year) newErrors.sslcyear = "Date Of Year Required";
+        if (!data.sslc.location?.trim()) newErrors.sslclocation = "*Location is required";
+        if (!data.sslc.year) newErrors.sslcyear = "*Year of completion is required";
         else if (new Date(data.sslc.year) > today) {
             newErrors.sslcyear = "Year cannot be in the future";
         }
 
 
         if (!data.hsc.stream || data.hsc.stream === "Select")
-            newErrors.hscstream = "Select atleast One";
+            newErrors.hscstream = "*Please select your stream";
         if (!data.hsc.institution?.trim()) {
             newErrors.hscinstitution = "*Institution Required";
         } else if (!isValidInstitution(data.hsc.institution)) {
             newErrors.hscinstitution = "*Invalid institution name";
         }
-        if (!data.hsc.percentage) newErrors.hscpercentage = "* percentage Required";
+        if (!data.hsc.percentage) newErrors.hscpercentage = "*Percentage is required";
         else if (!percentageReg.test(data.hsc.percentage))
             newErrors.hscpercentage = "should not be greater than 100";
 
-        if (!data.hsc.location?.trim()) newErrors.hsclocation = "*location Required";
-        if (!data.hsc.year) newErrors.hscyear = "Date Of Year Required";
+        if (!data.hsc.location?.trim()) newErrors.hsclocation = "*Location is required";
+        if (!data.hsc.year) newErrors.hscyear = "*Year of completion is required";
         else if (parseInt(data.hsc.year) > currentYear) newErrors.hscyear = "*Cannot be in future";
         else if (data.sslc.year && parseInt(data.hsc.year) <= parseInt(data.sslc.year))
             newErrors.hscyear = "*Must be after SSLC";
@@ -1405,7 +1405,7 @@ const EducationDetails = ({
             if (!grad.dept) {
                 newErrors[`graddepartment${grad.id}`] = "department is required";
             }
-            
+
             else if (grad.startYear) {
                 const start = new Date(grad.startYear);
                 const end = new Date(grad.endYear);
@@ -1421,13 +1421,44 @@ const EducationDetails = ({
 
         setErrors(newErrors);
 
+        const hasRequiredFieldError = Object.values(newErrors).some((message) =>
+            message.toLowerCase().includes("required") ||
+            message.toLowerCase().includes("select")
+        );
+
         if (Object.keys(newErrors).length === 0) {
             onNext();
         } else {
             // Auto-open the first section with an error
-            if (newErrors.sslcinstitution || newErrors.sslcyear) setOpenSection("sslc");
-            else if (newErrors.hscstream || newErrors.hscyear) setOpenSection("hsc");
-            alert("Please fill the required fields in your education details.");
+            if (
+                newErrors.sslcinstitution ||
+                newErrors.sslcpercentage ||
+                newErrors.sslclocation ||
+                newErrors.sslcyear
+            ) {
+                setOpenSection("sslc");
+            } else if (
+                newErrors.hscstream ||
+                newErrors.hscinstitution ||
+                newErrors.hscpercentage ||
+                newErrors.hsclocation ||
+                newErrors.hscyear
+            ) {
+                setOpenSection("hsc");
+            } else {
+                const firstGradErrorKey = Object.keys(newErrors).find((key) =>
+                    key.startsWith("grad")
+                );
+
+                if (firstGradErrorKey && data.graduations.length > 0) {
+                    setOpenSection(`grad-${data.graduations[0].id}`);
+                }
+            }
+
+            // Alert only for empty/select required fields
+            if (hasRequiredFieldError) {
+                alert("Please fill all required fields.");
+            }
         }
     };
 
@@ -1955,7 +1986,14 @@ const WorkExperience = ({
         if (Object.keys(newErrors).length === 0) {
             onNext();
         } else {
-            alert("Please fill all required fields.");
+            const hasRequiredFieldError = Object.values(newErrors).some((message) =>
+                message.toLowerCase().includes("required") ||
+                message.toLowerCase().includes("select")
+            );
+
+            if (hasRequiredFieldError) {
+                alert("Please fill all required fields.");
+            }
         }
     };
 
@@ -2060,8 +2098,7 @@ const WorkExperience = ({
                                         name="startDate"
                                         value={entry.startDate || ""}
                                         onChange={(e) => handleDateChangeWithValidation(entry.id, 'startDate', e.target.value, entry)}
-                                        className={errors[`startDate_${entry.id}`] ? "input-error" : "", "cursor-as-pointer"}
-                                    />
+                                        className={`${errors[`startDate_${entry.id}`] ? "input-error" : ""} cursor-as-pointer`} />
                                     {errors[`startDate_${entry.id}`] && <span className="error-message">{errors[`startDate_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
@@ -2071,9 +2108,12 @@ const WorkExperience = ({
                                         name="endDate"
                                         value={entry.endDate || ""}
                                         onChange={(e) => handleDateChangeWithValidation(entry.id, 'endDate', e.target.value, entry)}
-                                        className={errors[`endDate_${entry.id}`] ? "input-error" : "", "cursor-as-pointer"}
-                                    />
-                                    {errors[`endDate_entry.id`] && <span className="error-message">{errors[`endDate_${entry.id}`]}</span>}
+                                        className={`${errors[`endDate_${entry.id}`] ? "input-error" : ""} cursor-as-pointer`} />
+                                    {errors[`endDate_${entry.id}`] && (
+                                        <span className="error-message">
+                                            {errors[`endDate_${entry.id}`]}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="form-group">
                                     <label>Industry / Domain</label>
@@ -2702,32 +2742,31 @@ const Certifications = ({
 };
 
 // --- FINAL SUBMIT BUTTON SECTION ---
-const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
+const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, saving }) => {
     const onlyNums = /^[0-9]*$/;
     const AlphaOnlyreg = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
     const [errors, setErrors] = useState({});
 
+    const isFresher = String(experienceType || "").toLowerCase() === "fresher";
+
     const handleLocalChange = (e) => {
         const { name, value } = e.target;
 
-        // Strict Number Logic for CTC fields
         if (name === "currentCTC" || name === "expectedCTC") {
             if (!onlyNums.test(value)) return;
             if (value.length > 9) return;
         }
+
         if (name === "role") {
             if (value !== "" && !/^[A-Za-z\s]*$/.test(value)) return;
         }
 
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: "" }));
+            setErrors((prev) => ({ ...prev, [name]: "" }));
         }
 
         onChange(e);
     };
-
-
-
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -2737,76 +2776,93 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
         const currentVal = parseInt(data.currentCTC || 0);
         const expectedVal = parseInt(data.expectedCTC || 0);
 
-        if (!data.currentCTC) {
-            newErrors.currentCTC = "Current CTC Required";
-        } else if (!onlyNums.test(data.currentCTC)) {
-            newErrors.currentCTC = "Salary in numbers only";
-        } else if (currentVal < 50000) {
-            newErrors.currentCTC = "Minimum Current CTC allowed is 50,000";
+        if (!isFresher) {
+            if (!data.currentCTC) {
+                newErrors.currentCTC = "Current CTC Required";
+            } else if (!onlyNums.test(data.currentCTC)) {
+                newErrors.currentCTC = "Salary in numbers only";
+            } else if (currentVal < 50000) {
+                newErrors.currentCTC = "Minimum Current CTC allowed is 50,000";
+            }
+
+            if (!data.jobType || data.jobType === "Select") {
+                newErrors.jobType = "Please select a job type";
+            }
+
+            if (!data.role) {
+                newErrors.role = "Role Required";
+            } else if (!AlphaOnlyreg.test(data.role)) {
+                newErrors.role = "Only letters allowed";
+            }
         }
 
-        //  Expected CTC
         if (!data.expectedCTC) {
             newErrors.expectedCTC = "Expected CTC Required";
         } else if (!onlyNums.test(data.expectedCTC)) {
             newErrors.expectedCTC = "Salary in numbers only";
         } else if (expectedVal < 100000) {
             newErrors.expectedCTC = "*Minimum Expected CTC allowed is 1,00,000";
-        } else if (expectedVal <= currentVal) {
+        } else if (!isFresher && expectedVal <= currentVal) {
             newErrors.expectedCTC = "*Expected CTC should be greater than Current CTC";
         }
 
-        //  Other validations
-        if (!data.jobType || data.jobType === "Select") {
-            newErrors.jobType = "Please select a job type";
+        if (!data.ready) {
+            newErrors.ready = "Please select your availability";
         }
-        if (!data.role) {
-            newErrors.role = "Role Required";
-        }
-        else if (!AlphaOnlyreg.test(data.role)) {
-            newErrors.role = "Only letters allowed";
-        }
-        if (!data.ready) newErrors.ready = "Please select your availability";
-        if (!data.relocate)
+
+        if (!data.relocate) {
             newErrors.relocate = "Please select relocation preference";
+        }
 
         setErrors(newErrors);
 
         if (Object.keys(newErrors).length === 0) {
             onSubmitFinal();
-        }
-        else {
+        } else {
             alert("Please fill all required fields.");
         }
     };
 
     const formatCurrency = (val) => {
         if (!val) return "";
-        return new Intl.NumberFormat('en-IN').format(val);
+        return new Intl.NumberFormat("en-IN").format(val);
     };
 
     return (
         <form className="content-card" onSubmit={handleSubmit}>
             <div className="profile-header">
                 <h2>Preferences / Career Details</h2>
-                <button type="button" className="reset-link" onClick={() => { onReset("preferences"); setErrors({}); }}>
+                <button
+                    type="button"
+                    className="reset-link"
+                    onClick={() => {
+                        onReset("preferences");
+                        setErrors({});
+                    }}
+                >
                     Reset
                 </button>
             </div>
+
             <div className="form-grid">
-                <div className="form-group">
-                    <label>Current CTC</label>
-                    <input
-                        type="text"
-                        name="currentCTC"
-                        value={data.currentCTC || ""}
-                        onChange={handleLocalChange}
-                        placeholder="Enter your Current CTC Min 50,000"
-                        className={errors.currentCTC ? "input-error" : ""}
-                    />
-                    <small className="help-text">₹ {formatCurrency(data.currentCTC)}</small>
-                    {errors.currentCTC && <span className="error-msg">{errors.currentCTC}</span>}
-                </div>
+                {!isFresher && (
+                    <div className="form-group">
+                        <label>Current CTC</label>
+                        <input
+                            type="text"
+                            name="currentCTC"
+                            value={data.currentCTC || ""}
+                            onChange={handleLocalChange}
+                            placeholder="Enter your Current CTC Min 50,000"
+                            className={errors.currentCTC ? "input-error" : ""}
+                        />
+                        <small className="help-text">₹ {formatCurrency(data.currentCTC)}</small>
+                        {errors.currentCTC && (
+                            <span className="error-msg">{errors.currentCTC}</span>
+                        )}
+                    </div>
+                )}
+
                 <div className="form-group">
                     <label>Expected CTC</label>
                     <input
@@ -2818,14 +2874,18 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                         className={errors.expectedCTC ? "input-error" : ""}
                     />
                     <small className="help-text">₹ {formatCurrency(data.expectedCTC)}</small>
-                    {errors.expectedCTC && <span className="error-msg">{errors.expectedCTC}</span>}
+                    {errors.expectedCTC && (
+                        <span className="error-msg">{errors.expectedCTC}</span>
+                    )}
                 </div>
+
                 <div className="form-group">
                     <label>Preferred Job Type</label>
                     <select
                         name="jobType"
-                        value={data.jobType}
+                        value={data.jobType || "Select"}
                         onChange={handleLocalChange}
+                        disabled={isFresher}
                         className={errors.jobType ? "input-error" : ""}
                     >
                         <option value="Select">Select</option>
@@ -2838,17 +2898,21 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                         <span className="error-msg">{errors.jobType}</span>
                     )}
                 </div>
+
                 <div className="form-group">
                     <label>Preferred Industry/Role</label>
                     <input
                         type="text"
                         name="role"
-                        value={data.role || ''}
+                        value={data.role || ""}
                         onChange={handleLocalChange}
+                        disabled={isFresher}
                         placeholder="Enter preferred industry/role"
                         className={errors.role ? "input-error" : ""}
                     />
-                    {errors.role && <span className="error-msg">{errors.role}</span>}
+                    {errors.role && (
+                        <span className="error-msg">{errors.role}</span>
+                    )}
                 </div>
             </div>
 
@@ -2875,8 +2939,11 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                         <small>
                             Inform employers that you’re available to begin immediately.
                         </small>
-                        {errors.ready && <span className="error-msg">{errors.ready}</span>}
+                        {errors.ready && (
+                            <span className="error-msg">{errors.ready}</span>
+                        )}
                     </div>
+
                     <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
                         <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
                             <input
@@ -2885,9 +2952,10 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                                 value="Yes"
                                 checked={data.ready === "Yes"}
                                 onChange={onChange}
-                            />{" "}
+                            />
                             Yes
                         </label>
+
                         <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
                             <input
                                 type="radio"
@@ -2895,11 +2963,12 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                                 value="No"
                                 checked={data.ready === "No"}
                                 onChange={onChange}
-                            />{" "}
+                            />
                             No
                         </label>
                     </div>
                 </div>
+
                 <div style={{ display: "flex", gap: "12rem" }}>
                     <div>
                         <label
@@ -2913,12 +2982,13 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                             Willing to Relocate
                         </label>
                         <small>
-                            Inform employers that you’re available to begin immediately.
+                            Let employers know if you are open to moving for job opportunities.
                         </small>
                         {errors.relocate && (
                             <span className="error-msg">{errors.relocate}</span>
                         )}
                     </div>
+
                     <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
                         <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
                             <input
@@ -2927,9 +2997,10 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                                 value="Yes"
                                 checked={data.relocate === "Yes"}
                                 onChange={onChange}
-                            />{" "}
+                            />
                             Yes
                         </label>
+
                         <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
                             <input
                                 type="radio"
@@ -2937,7 +3008,7 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
                                 value="No"
                                 checked={data.relocate === "No"}
                                 onChange={onChange}
-                            />{" "}
+                            />
                             No
                         </label>
                     </div>
@@ -2946,7 +3017,7 @@ const Preferences = ({ data, onChange, onReset, onSubmitFinal, saving }) => {
 
             <div className="form-actions">
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                    {saving ? "Saving..." : "Save & Continue"}
+                    {saving ? "Saving..." : "Save"}
                 </button>
             </div>
         </form>
@@ -4125,6 +4196,7 @@ export const MyProfile = () => {
                 return (
                     <Preferences
                         data={allData.preferences}
+                        experienceType={allData.currentDetails.experienceType || allData.experience.status}
                         onChange={(e) => handleUpdate("preferences", e)}
                         onReset={() => handleReset("preferences")}
                         onSubmitFinal={handleFinalSubmit}

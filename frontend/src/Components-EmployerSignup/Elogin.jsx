@@ -82,7 +82,7 @@ export const Elogin = () => {
           state: { fromLoginRedirect: true, rejected: true }
         });
       } else {
-        // ✅ Add justLoggedIn: true to trigger auto-refresh in dashboard
+        // Add justLoggedIn: true to trigger auto-refresh in dashboard
         setTimeout(() => {
           navigate('/Job-portal/employer/dashboard', { 
             replace: true,
@@ -92,7 +92,7 @@ export const Elogin = () => {
       }
     } catch (error) {
       console.error("Error checking status:", error);
-      // ✅ Add justLoggedIn: true to trigger auto-refresh in dashboard
+      // Add justLoggedIn: true to trigger auto-refresh in dashboard
       navigate('/Job-portal/employer/dashboard', { 
         replace: true,
         state: { justLoggedIn: true }
