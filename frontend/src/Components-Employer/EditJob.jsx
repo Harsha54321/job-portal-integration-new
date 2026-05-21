@@ -9,19 +9,19 @@ import place from '../assets/opportunity_location.png';
 import './PostJobForm.css';
 import { useJobs } from '../JobContext';
 import starIcon from '../assets/Star_icon.png'
- 
+
 export const EditJob = () => {
- 
+
   const navigate = useNavigate();
   const location = useLocation();
   const { editJob } = useJobs();
- 
+
   // Get the job data from location state
   const jobData = location.state?.jobData || location.state || null;
- 
+
   console.log('EditJob received data:', jobData);
   console.log('Job Status from backend:', jobData?.job_status);
- 
+
   // Helper function to safely extract company name
   const getCompanyName = (company) => {
     if (!company) return 'Company';
@@ -30,7 +30,7 @@ export const EditJob = () => {
     if (typeof company === 'object' && company.company_name) return company.company_name;
     return 'Company';
   };
- 
+
   // Extract all dynamic data from the job with safe parsing
   const jobTitle = jobData?.job_title || jobData?.title || 'Untitled Job';
   const companyName = getCompanyName(jobData?.company_name || jobData?.company);
@@ -43,13 +43,13 @@ export const EditJob = () => {
   const workType = jobData?.work_type || jobData?.WorkType || 'Not specified';
   const jobCategory = jobData?.job_category || 'Full-time';
   const logo = jobData?.company.company_logo || null;
- 
+
   // Tags for display
   const tags = jobData?.tags || [jobCategory];
- 
+
   // Get current status from job data
   const currentJobStatus = jobData?.job_status || 'Reviewing Application';
- 
+
   // Map status to type for styling
   const getStatusType = (status) => {
     if (status === 'Hiring in Progress') return 'progress';
@@ -57,88 +57,88 @@ export const EditJob = () => {
     if (status === 'Hiring Done') return 'done';
     return 'reviewing';
   };
- 
+
   const statusOptions = [
     { text: 'Hiring in Progress', type: 'progress' },
     { text: 'Reviewing Application', type: 'reviewing' },
     { text: 'Hiring Done', type: 'done' }
   ];
- 
+
   const [selectedStatus, setSelectedStatus] = useState(currentJobStatus);
   const [currentDisplayStatus, setCurrentDisplayStatus] = useState(currentJobStatus);
   const [isUpdating, setIsUpdating] = useState(false);
- 
+
   const handleStatusChange = (e) => {
     setSelectedStatus(e.target.value);
   };
- 
+
   const handleSubmit = async () => {
     if (isUpdating) return;
-   
+
     setIsUpdating(true);
-   
+
     try {
-        console.log('Updating job status to:', selectedStatus);
-        console.log('Job ID:', jobData?.id);
-       
-        const updateData = {
-            job_status: selectedStatus
-        };
-       
-        console.log('Sending update data:', updateData);
-       
-        const result = await editJob(jobData.id, updateData);
-       
-        console.log('Update result:', result);
-       
-        // Check if update was successful (handle different response formats)
-        if (result && (result.success === true || result.status === 'success')) {
-            // Update the display status immediately
-            setCurrentDisplayStatus(selectedStatus);
-            
-            // Also update the jobData object if it's being used elsewhere
-            if (jobData) {
-                jobData.job_status = selectedStatus;
-            }
-            
-            alert(`Job status updated to: ${selectedStatus}`);
-            
-            // Option 1: Navigate back after delay
-            setTimeout(() => {
-                navigate('/Job-portal/Employer/Dashboard');
-            }, 2000);
-            
-            // Option 2: Or stay on page and show success message
-            // setIsUpdating(false);
-            // alert('Status updated successfully!');
-            
-        } else {
-            // Extract error message from response
-            const errorMsg = result?.error?.job_status?.[0] || 
-                           result?.error || 
-                           result?.message || 
-                           'Failed to update status';
-            alert(errorMsg);
-            setIsUpdating(false);
+      console.log('Updating job status to:', selectedStatus);
+      console.log('Job ID:', jobData?.id);
+
+      const updateData = {
+        job_status: selectedStatus
+      };
+
+      console.log('Sending update data:', updateData);
+
+      const result = await editJob(jobData.id, updateData);
+
+      console.log('Update result:', result);
+
+      // Check if update was successful (handle different response formats)
+      if (result && (result.success === true || result.status === 'success')) {
+        // Update the display status immediately
+        setCurrentDisplayStatus(selectedStatus);
+
+        // Also update the jobData object if it's being used elsewhere
+        if (jobData) {
+          jobData.job_status = selectedStatus;
         }
-    } catch (error) {
-        console.error('Error updating status:', error);
-        
-        let errorMessage = 'Error updating status';
-        if (error.response) {
-            console.error('Error response:', error.response.data);
-            errorMessage = error.response.data?.error || 
-                          error.response.data?.message || 
-                          JSON.stringify(error.response.data);
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
-        
-        alert(errorMessage);
+
+        alert(`Job status updated to: ${selectedStatus}`);
+
+        // Option 1: Navigate back after delay
+        setTimeout(() => {
+          navigate('/Job-portal/Employer/Dashboard');
+        }, 2000);
+
+        // Option 2: Or stay on page and show success message
+        // setIsUpdating(false);
+        // alert('Status updated successfully!');
+
+      } else {
+        // Extract error message from response
+        const errorMsg = result?.error?.job_status?.[0] ||
+          result?.error ||
+          result?.message ||
+          'Failed to update status';
+        alert(errorMsg);
         setIsUpdating(false);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+
+      let errorMessage = 'Error updating status';
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        errorMessage = error.response.data?.error ||
+          error.response.data?.message ||
+          JSON.stringify(error.response.data);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(errorMessage);
+      setIsUpdating(false);
     }
-};
- 
+  };
+
   if (!jobData) {
     return (
       <>
@@ -153,24 +153,24 @@ export const EditJob = () => {
       </>
     );
   }
- 
+
   // Safe logo rendering
   const logoContent = logo ?
     (<img src={logo} alt={companyName} className="Opportunities-job-logo" />) :
     (<div className="Opportunities-job-logo-placeholder">
       {companyName && typeof companyName === 'string' && companyName.charAt(0).toUpperCase() || 'C'}
     </div>);
- 
+
   return (
     <>
       <EHeader />
- 
+
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "100px", minHeight: "80vh", padding: "20px" }}>
         <div>
           <h2>Update Job Status</h2>
           <p style={{ color: "#666", marginTop: "5px" }}>Update the hiring status for: {jobTitle}</p>
         </div>
-       
+
         <div style={{ width: "50%", minWidth: "300px" }} className="Opportunities-job-card">
           <div className="Opportunities-job-header">
             <div>
@@ -184,7 +184,7 @@ export const EditJob = () => {
             </div>
             {logoContent}
           </div>
- 
+
           <div className="Opportunities-job-details">
             <p className='Opportunities-detail-line'>
               <img src={time} className='card-icons' alt="time" />
@@ -196,10 +196,26 @@ export const EditJob = () => {
             </p>
             <p className='Opportunities-detail-line'>
               <img src={place} className='card-icons' alt="loc" />
-              {locationText}
+              <span style={{ wordBreak: 'break-word', flex: 1 }}>
+                {(() => {
+                  if (Array.isArray(locationText)) {
+                    return locationText.join(', ');
+                  }
+                  if (typeof locationText === 'string') {
+                    // If locations are concatenated without separators like "BangaloreHyderabadChennai"
+                    if (!locationText.includes(',') && !locationText.includes(' ') && /[A-Z]/.test(locationText)) {
+                      // Split by capital letters
+                      const splitLocations = locationText.split(/(?=[A-Z])/);
+                      return splitLocations.join(', ');
+                    }
+                    return locationText;
+                  }
+                  return locationText;
+                })()}
+              </span>
             </p>
           </div>
- 
+
           <div className='Opportunities-details-bottom'>
             <div className="Opportunities-job-tags">
               {tags && tags.length > 0 ? (
@@ -216,16 +232,16 @@ export const EditJob = () => {
               {workType}
             </div>
           </div>
- 
+
           <hr className="Opportunities-separator" />
- 
+
           <div className='applied-app-status-container' style={{ padding: "15px 0" }}>
             <span className={`applied-application-status status-${getStatusType(currentDisplayStatus)}`}>
               Current Status: {currentDisplayStatus}
             </span>
           </div>
         </div>
- 
+
         <div style={{ marginTop: "30px", textAlign: "center", width: "50%", minWidth: "300px" }}>
           <label style={{ fontWeight: "bold", display: "block", marginBottom: "10px" }}>
             Update Job Status:
@@ -251,7 +267,7 @@ export const EditJob = () => {
               </option>
             ))}
           </select>
- 
+
           <button
             onClick={handleSubmit}
             disabled={isUpdating}

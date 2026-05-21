@@ -427,7 +427,7 @@ class PostAJob(models.Model):
     work_type = models.CharField(max_length=50, choices=WorkType.choices)
     shift = models.CharField(max_length=50, choices=Shift.choices)
     work_duration = models.CharField(max_length=100)
-    salary = models.DecimalField(max_digits=10, decimal_places=2)
+    salary = models.CharField(max_length=100, blank=True, default='Not Disclosed')
     experience = models.CharField(max_length=100)
     location = models.JSONField(default=list, blank=True)
     openings = models.PositiveIntegerField()

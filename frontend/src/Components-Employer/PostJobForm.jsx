@@ -39,21 +39,22 @@ export const PostJobForm = ({ onCancel }) => {
   ];
 
   const [formData, setFormData] = useState({
-    job_title: '',  
-    industry_type: [],  
+    job_title: '',
+    industry_type: [],
     department: [],
     education: [],
-    work_type: '', 
+    work_type: '',
     shift: '',
-    work_duration: '', 
+    work_duration: '',
     salary: '',
+    fresher: '', // New field for fresher (yes/no)
     experience: '',
-    location: [],  
+    location: [],
     openings: '',
-    job_category: '',  
-    key_skills: [],  
-    job_highlights: [''], 
-    job_description: '',  
+    job_category: '',
+    key_skills: [],
+    job_highlights: [''],
+    job_description: '',
     responsibilities: ['']
 
   });
@@ -118,7 +119,9 @@ export const PostJobForm = ({ onCancel }) => {
     const openingsRegex = /^[1-9][0-9]{0,2}$/;
 
     const contentRegex = /^(?=.*[a-zA-Z])[a-zA-Z0-9\s.,-]{5,}$/;
-    const expRegex = /^(\d+(\.\d+)?)\s*(to|-|—)?\s*(\d+(\.\d+)?)?\s*(years?|yrs?)$/i;
+
+    // Updated experience regex to accept formats like 0, 0-12 (without years)
+    const expRegex = /^(\d{1,2})(\s*-\s*(\d{1,2}))?$/;
 
     // --- VALIDATION LOGIC ---
 
@@ -159,42 +162,43 @@ export const PostJobForm = ({ onCancel }) => {
       }
     }
 
-
-    
-
-const expStr = formData.experience.trim().toLowerCase();
-
-  if (!expStr) {
-
-    newErrors.experience = "Experience is required";
-
-  } else if (!expRegex.test(expStr)) {
-
-    newErrors.experience = "Invalid format (e.g., '2.5 years' or '2.5 to 3.5 years')";
-
-  } else {
-
-    // Logic to verify range validity (start must be less than end)
-
-    const isRange = expStr.includes('-') || expStr.includes('to');
-
-    if (isRange) {
-
-      const parts = expStr.split(/\s*(?:to|-)\s*/).map(p => parseFloat(p));
-
-      if (parts.length >= 2 && parts[1] <= parts[0]) {
-
-        newErrors.experience = "End year must be greater than start year";
-
-      }
-
+    if (!formData.fresher) {
+      newErrors.fresher = "Please select whether fresher is allowed or not";
     }
 
-  }
- 
+    // Experience validation - conditional based on fresher
+    const expStr = formData.experience.trim();
 
-    
-
+    if (formData.fresher === 'no') {
+      // Experience is REQUIRED when fresher = no
+      if (!expStr) {
+        newErrors.experience = "Experience is required";
+      } else if (!expRegex.test(expStr)) {
+        newErrors.experience = "Invalid format (e.g., '0', '0-6', '3-12')";
+      } else {
+        // Additional validation for range values
+        if (expStr.includes('-')) {
+          const [start, end] = expStr.split('-').map(num => parseInt(num.trim()));
+          if (end <= start) {
+            newErrors.experience = "End value must be greater than start value";
+          }
+          if (start < 0 || end < 0) {
+            newErrors.experience = "Experience cannot be negative";
+          }
+        } else {
+          const value = parseInt(expStr);
+          if (value < 0) {
+            newErrors.experience = "Experience cannot be negative";
+          }
+        }
+      }
+    } else if (formData.fresher === 'yes') {
+      // Experience is OPTIONAL when fresher = yes
+      // Only validate format if user entered something
+      if (expStr && !expRegex.test(expStr)) {
+        newErrors.experience = "Invalid format (e.g., '0', '0-6', '3-12')";
+      }
+    }
     // Openings
     const openingsStr = String(formData.openings).trim();
     if (!openingsStr || openingsStr === '0') {
@@ -336,6 +340,21 @@ const expStr = formData.experience.trim().toLowerCase();
     }
   };
 
+  // Function to combine fresher and experience fields
+  const combineExperienceData = () => {
+    const fresherValue = formData.fresher === 'yes' ? 'Fresher' : '';
+    const experienceValue = formData.experience.trim();
+
+    if (fresherValue && experienceValue) {
+      return `${fresherValue}, ${experienceValue} years`;
+    } else if (fresherValue) {
+      return fresherValue;
+    } else if (experienceValue) {
+      return `${experienceValue} years`;
+    }
+    return '';
+  };
+
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     if (!validateForm()) {
@@ -345,6 +364,9 @@ const expStr = formData.experience.trim().toLowerCase();
     // Convert location array to comma-separated string
     const locationString = locationList.join(', ');
 
+    // Combine fresher and experience data
+    const combinedExperience = combineExperienceData();
+
     // Prepare data for backend - match PostAJob model exactly
     const submissionData = {
       job_title: formData.job_title,
@@ -353,8 +375,8 @@ const expStr = formData.experience.trim().toLowerCase();
       work_type: formData.work_type,
       shift: formData.shift,
       work_duration: formData.work_duration,
-      salary: parseFloat(formData.salary) || 0,
-      experience: formData.experience,
+      salary: formData.salary || 0,
+      experience: combinedExperience, // Send combined data
       location: locationList,  // Send as string, not array
       openings: parseInt(formData.openings) || 0,
       job_category: formData.job_category,
@@ -503,11 +525,48 @@ const expStr = formData.experience.trim().toLowerCase();
                 </div>
               </div>
 
+              {/* New Fresher Field */}
               <div className="jobpost-form-row">
-                <label className="jobpost-label">Experience</label>
+                <label className="jobpost-label">Fresher</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <input className={`jobpost-input ${errors.experience ? "input-error" : ""}`} type="text" name="experience" placeholder="Minimum years required" value={formData.experience} onChange={handleChange} />
+                  <div className={`jobpost-radio-container ${errors.fresher ? "input-error" : ""}`}>
+                    <label className="jobpost-radio-label">
+                      <input
+                        type="radio"
+                        name="fresher"
+                        value="yes"
+                        checked={formData.fresher === 'yes'}
+                        onChange={handleChange}
+                      /> Yes
+                    </label>
+                    <label className="jobpost-radio-label">
+                      <input
+                        type="radio"
+                        name="fresher"
+                        value="no"
+                        checked={formData.fresher === 'no'}
+                        onChange={handleChange}
+                      /> No
+                    </label>
+                  </div>
+                  {errors.fresher && <span className="error-msg">{errors.fresher}</span>}
+                </div>
+              </div>
+
+              {/* Modified Experience Field */}
+              <div className="jobpost-form-row">
+                <label className="jobpost-label">Experience (in years)</label>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <input
+                    className={`jobpost-input ${errors.experience ? "input-error" : ""}`}
+                    type="text"
+                    name="experience"
+                    placeholder="e.g., 0, 0-12, 6-24 (in months)"
+                    value={formData.experience}
+                    onChange={handleChange}
+                  />
                   {errors.experience && <span className="error-msg">{errors.experience}</span>}
+                  <small style={{ color: '#666', marginTop: '5px' }}>Enter single value or range (e.g., 0, 0-12, 3-6). Do not include "years" or "months".</small>
                 </div>
               </div>
 
@@ -675,8 +734,7 @@ const expStr = formData.experience.trim().toLowerCase();
                       )}
 
                       {index === formData.job_highlights.length - 1 && (
-                        <span
-                          className="jobpost-plus-icon"
+                        <span className="jobpost-plus-icon"
                           onClick={addHighlightField}
                         >
                           +
