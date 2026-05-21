@@ -459,18 +459,18 @@ export const JobProvider = ({ children }) => {
             const employerJobs = await fetchEmployerJobs();
             console.log(`📋 Loaded ${employerJobs.length} jobs`);
 
-            let allJobseekers = [];
-            try {
-                const jobseekersRes = await api.get("/jobseekers/", { timeout: 10000 });
-                const allData = jobseekersRes.data;
-                const jobseekersOnly = allData.filter(item => item.user?.user_type === "jobseeker");
-                setAlluser(jobseekersOnly);
-                console.log(`✅ Loaded ${jobseekersOnly.length} jobseekers`);
-                allJobseekers = jobseekersOnly;
-            } catch (err) {
-                console.error("Error fetching jobseekers:", err);
-                setAlluser([]);
-            }
+            // let allJobseekers = [];
+            // try {
+            //     const jobseekersRes = await api.get("/jobseekers/", { timeout: 10000 });
+            //     const allData = jobseekersRes.data;
+            //     const jobseekersOnly = allData.filter(item => item.user?.user_type === "jobseeker");
+            //     setAlluser(jobseekersOnly);
+            //     console.log(`✅ Loaded ${jobseekersOnly.length} jobseekers`);
+            //     allJobseekers = jobseekersOnly;
+            // } catch (err) {
+            //     console.error("Error fetching jobseekers:", err);
+            //     setAlluser([]);
+            // }
 
             const employer = {
                 id: employerData.user?.id,

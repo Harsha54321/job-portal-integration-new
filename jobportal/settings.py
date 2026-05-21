@@ -128,6 +128,7 @@ DATABASES = {
         'PASSWORD': 'Jobportal@01',
         'HOST': '54.183.89.14',
         'PORT': '3306',
+        'CONN_MAX_AGE':60,
         'OPTIONS': {
             'charset': 'utf8mb4',
         }
