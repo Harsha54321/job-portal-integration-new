@@ -190,7 +190,7 @@ export const SearchResults = () => {
     const [SelectedIndustryType, setSelectedIndustryType] = useState([]);
 
     useEffect(() => {
-        const saved = localStorage.getItem("filters");
+        const saved = sessionStorage.getItem("filters");
 
         if (saved && jobs.length > 0) {
             const data = JSON.parse(saved);
@@ -366,7 +366,7 @@ export const SearchResults = () => {
             location: "",
             experience: ""
         }));
-        localStorage.setItem("filters", JSON.stringify({
+        sessionStorage.setItem("filters", JSON.stringify({
             selectedLocations,
             selectedWorkType,
             SelectedCompany,
@@ -381,7 +381,7 @@ export const SearchResults = () => {
     };
 
     const HandleClear = () => {
-        localStorage.removeItem("filters");
+        sessionStorage.removeItem("filters");
 
         //  Reset search bar states
         setSearchQuery("");

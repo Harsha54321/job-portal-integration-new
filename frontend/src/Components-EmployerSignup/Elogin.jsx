@@ -8,8 +8,8 @@ import "./Elogin.css";
 
 export const Elogin = () => {
   const navigate = useNavigate();
-  const savedEmail = localStorage.getItem("rememberedEmail");
-  const savedPassword = localStorage.getItem("rememberedPassword");
+  const savedEmail = sessionStorage.getItem("rememberedEmail");
+  const savedPassword = sessionStorage.getItem("rememberedPassword");
   const [rememberMe, setRememberMe] = useState(false);
 
   const [passwordShow, setPasswordShow] = useState(true);
@@ -22,7 +22,7 @@ export const Elogin = () => {
   });
 
   useEffect(() => {
-    if (localStorage.getItem("rememberedEmail")) {
+    if (sessionStorage.getItem("rememberedEmail")) {
       setRememberMe(true);
     }
   }, []);
@@ -125,29 +125,29 @@ export const Elogin = () => {
       }
 
       if (rememberMe) {
-        localStorage.setItem("rememberedEmail", formValues.username);
-        localStorage.setItem("rememberedPassword", formValues.password);
+        sessionStorage.setItem("rememberedEmail", formValues.username);
+        sessionStorage.setItem("rememberedPassword", formValues.password);
       } else {
-        localStorage.removeItem("rememberedEmail");
-        localStorage.removeItem("rememberedPassword");
+        sessionStorage.removeItem("rememberedEmail");
+        sessionStorage.removeItem("rememberedPassword");
       }
 
-      localStorage.setItem("access", res.data.access);
-      localStorage.setItem("refresh", res.data.refresh);
-      localStorage.setItem("userRole", "Employer");
+      sessionStorage.setItem("access", res.data.access);
+      sessionStorage.setItem("refresh", res.data.refresh);
+      sessionStorage.setItem("userRole", "Employer");
 
       if (res.data.user_id) {
-        localStorage.setItem("user_id", res.data.user_id);
+        sessionStorage.setItem("user_id", res.data.user_id);
       } else if (res.data.user && res.data.user.id) {
-        localStorage.setItem("user_id", res.data.user.id);
+        sessionStorage.setItem("user_id", res.data.user.id);
       } else if (res.data.id) {
-        localStorage.setItem("user_id", res.data.id);
+        sessionStorage.setItem("user_id", res.data.id);
       }
 
-      localStorage.setItem("user_type", res.data.user.user_type);
+      sessionStorage.setItem("user_type", res.data.user.user_type);
 
       if (res.data.profile_id) {
-        localStorage.setItem("profile_id", res.data.profile_id);
+        sessionStorage.setItem("profile_id", res.data.profile_id);
       }
 
       await checkAndRedirect();

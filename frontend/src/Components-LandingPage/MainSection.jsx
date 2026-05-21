@@ -23,15 +23,15 @@ export const MainSection = () => {
       timestamp: Date.now()
     };
  
-    localStorage.setItem('pendingSearch', JSON.stringify(searchData));
+    sessionStorage.setItem('pendingSearch', JSON.stringify(searchData));
     sessionStorage.setItem('savedSearch', JSON.stringify(searchData));
  
     return searchData;
   };
  
   const handleSearch = () => {
-    const access = localStorage.getItem('access');
-    const userRole = localStorage.getItem('userRole');
+    const access = sessionStorage.getItem('access');
+    const userRole = sessionStorage.getItem('userRole');
     const isLoggedIn = Boolean(access) && userRole === 'jobseeker';
  
     if (isLoggedIn) {
@@ -45,7 +45,7 @@ export const MainSection = () => {
       return;
     }
  
-    localStorage.removeItem('pendingSearch');
+    sessionStorage.removeItem('pendingSearch');
     sessionStorage.removeItem('savedSearch');
     setShowLoginPopup(true);
   };

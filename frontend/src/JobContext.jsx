@@ -17,7 +17,7 @@ export const JobProvider = ({ children }) => {
 
     // Jobseeker
     const [currentUser, setCurrentUser] = useState(null);
-    const currentUserId = currentUser?.id || localStorage.getItem("user_id") || null;
+    const currentUserId = currentUser?.id || sessionStorage.getItem("user_id") || null;
 
     // Employer
     const [currentEmployer, setCurrentEmployer] = useState(null);
@@ -115,7 +115,7 @@ export const JobProvider = ({ children }) => {
                 targetId: notification.user
             }));
 
-            const userType = localStorage.getItem("user_type");
+            const userType = sessionStorage.getItem("user_type");
 
             if (userType === "jobseeker") {
                 setNotificationsData(transformedData);
@@ -143,7 +143,7 @@ export const JobProvider = ({ children }) => {
         } catch (err) {
             console.error("Jobs fetch error:", err);
             if (err.response?.status === 401) {
-                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = "/";
             }
         }
@@ -224,7 +224,7 @@ export const JobProvider = ({ children }) => {
         try {
             console.log('📤 Sending job data to PostAJob endpoint:', JSON.stringify(jobData, null, 2));
 
-            const token = localStorage.getItem('access');
+            const token = sessionStorage.getItem('access');
             if (!token) {
                 throw new Error("No authentication token found");
             }
@@ -289,9 +289,9 @@ export const JobProvider = ({ children }) => {
     // ================= OPTIMIZED CHAT FUNCTIONS =================
     const fetchChats = useCallback(async () => {
         try {
-            const token = localStorage.getItem('access');
-            const userType = localStorage.getItem('user_type');
-            const currentUserId = parseInt(localStorage.getItem('user_id'), 10);
+            const token = sessionStorage.getItem('access');
+            const userType = sessionStorage.getItem('user_type');
+            const currentUserId = parseInt(sessionStorage.getItem('user_id'), 10);
 
             const response = await api.get("chat/conversations/");
 
@@ -381,7 +381,7 @@ export const JobProvider = ({ children }) => {
 
     const sendMessage = useCallback(async (conversationId, content) => {
         try {
-            const userId = parseInt(localStorage.getItem('user_id'), 10);
+            const userId = parseInt(sessionStorage.getItem('user_id'), 10);
 
             if (!conversationId) {
                 throw new Error("Conversation ID missing");
@@ -498,7 +498,7 @@ export const JobProvider = ({ children }) => {
 
     // ================= REFRESH EMPLOYER DATA =================
     const refreshEmployerData = useCallback(async () => {
-        const userType = localStorage.getItem("user_type");
+        const userType = sessionStorage.getItem("user_type");
 
         if (userType !== "employer") {
             console.log("Not employer, skipping refresh");
@@ -544,8 +544,8 @@ export const JobProvider = ({ children }) => {
 
     // ================= INITIAL LOAD =================
     useEffect(() => {
-        const token = localStorage.getItem("access");
-        const userType = localStorage.getItem("user_type");
+        const token = sessionStorage.getItem("access");
+        const userType = sessionStorage.getItem("user_type");
 
         if (!token) {
             setLoading(false);

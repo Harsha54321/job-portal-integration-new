@@ -92,7 +92,7 @@ export const FindTalent = () => {
 
   useEffect(() => {
 
-    const userType = localStorage.getItem('user_type');
+    const userType = sessionStorage.getItem('user_type');
 
     if (userType !== 'employer') {
 
@@ -466,7 +466,26 @@ export const FindTalent = () => {
 
             value={searchTerm}
 
-            onChange={(e) => setSearchTerm(e.target.value)}
+            // onChange={(e) => setSearchTerm(e.target.value)}
+
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setSearchTerm(newValue);
+
+
+              if (newValue.trim() === '') {
+                setSelectedLanguages([]);
+                setSelectedEdu([]);
+                setSelectedSkills([]);
+                setAppliedFilters({
+                  search: '',
+                  languages: [],
+                  education: [],
+                  skills: [],
+                  experience: maxExp
+                });
+              }
+            }}
 
             onKeyPress={handleKeyPress}
 
@@ -556,7 +575,7 @@ export const FindTalent = () => {
           )}
 
           {/* Experience Filter */}
-          <div className="FindTalent-filter-category">
+          {/* <div className="FindTalent-filter-category">
             <h3>Experience (Max: {maxExp} years)</h3>
             <input
 
@@ -573,8 +592,32 @@ export const FindTalent = () => {
               className="FindTalent-exp-slider"
 
             />
-          </div>
+          </div> */}
 
+
+          <div className="FindTalent-filter-category">
+  <h3>Experience (Max: {maxExp} years)</h3>
+  
+  <input
+    type="range"
+    min="0"
+    max="20"
+    value={maxExp}
+    className="FindTalent-exp-slider"
+    onChange={(e) => setMaxExp(parseInt(e.target.value))}
+  />
+
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '12px',
+    color: '#64748b',
+    marginTop: '4px'
+  }}>
+    <span>0 yrs</span>
+    <span>20 yrs</span>
+  </div>
+</div>
           {/* Education Filter */}
 
           {filterOptions.education.length > 0 && (

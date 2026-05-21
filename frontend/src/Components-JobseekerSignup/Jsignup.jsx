@@ -323,7 +323,7 @@ export const Jsignup = () => {
         alert("Signup successful! Please login to continue.");
         console.log("Signed up successfully", formValues);
 
-        localStorage.setItem('temp_user_email', formValues.email);
+        sessionStorage.setItem('temp_user_email', formValues.email);
 
         setFormValues(initialValues);
         setIsEmailVerified(false);
@@ -398,10 +398,10 @@ export const Jsignup = () => {
         }
       )
 
-      localStorage.setItem("access", response.data.access)
-      localStorage.setItem("refresh", response.data.refresh)
-      localStorage.setItem("user", JSON.stringify(response.data.user))
-      localStorage.setItem("user_type", response.data.user.user_type)
+      sessionStorage.setItem("access", response.data.access)
+      sessionStorage.setItem("refresh", response.data.refresh)
+      sessionStorage.setItem("user", JSON.stringify(response.data.user))
+      sessionStorage.setItem("user_type", response.data.user.user_type)
 
       alert("Google Signup Successful")
 

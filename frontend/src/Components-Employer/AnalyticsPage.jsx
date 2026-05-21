@@ -14,12 +14,12 @@ export const AnalyticsPage = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ FIX: API call cheyataniki proper useEffect
+  // FIX: API call cheyataniki proper useEffect
   useEffect(() => {
     const fetchApplications = async () => {
       try {
         console.log("🔵 Fetching applications for analytics...");
-        const token = localStorage.getItem('access');
+        const token = sessionStorage.getItem('access');
         console.log("Token exists:", !!token);
         
         const response = await api.get('jobs/applications/');

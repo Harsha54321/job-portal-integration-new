@@ -40,8 +40,8 @@ export const Joblisting = () => {
  
   const handleViewAllJobs = () => {
     const isLoggedIn =
-      !!localStorage.getItem("access") &&
-      localStorage.getItem("userRole") === "jobseeker";
+      !!sessionStorage.getItem("access") &&
+      sessionStorage.getItem("userRole") === "jobseeker";
  
     if (isLoggedIn) {
       navigate(allJobsPath);

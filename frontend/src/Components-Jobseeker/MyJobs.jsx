@@ -10,10 +10,10 @@ import { useJobs } from '../JobContext';
 export const MyJobs = () => {
     const location = useLocation();
 
-    // Initialize tab from localStorage or location state or default to "saved"
+    // Initialize tab from sessionStorage or location state or default to "saved"
     const [activeTab, setActiveTab] = useState(() => {
-        // First check if we have a saved tab in localStorage
-        const savedTab = localStorage.getItem("myJobs_activeTab");
+        // First check if we have a saved tab in sessionStorage
+        const savedTab = sessionStorage.getItem("myJobs_activeTab");
         if (savedTab && (savedTab === "saved" || savedTab === "applied")) {
             return savedTab;
         }
@@ -36,17 +36,17 @@ export const MyJobs = () => {
         (job) => job?.status?.toLowerCase() !== "withdrawn"
     ) || [];
 
-    // Preserve tab state from navigation and save to localStorage
+    // Preserve tab state from navigation and save to sessionStorage
     useEffect(() => {
         if (location.state?.activeTab) {
             setActiveTab(location.state.activeTab);
-            localStorage.setItem("myJobs_activeTab", location.state.activeTab);
+            sessionStorage.setItem("myJobs_activeTab", location.state.activeTab);
         }
     }, [location]);
 
-    // Save activeTab to localStorage whenever it changes
+    // Save activeTab to sessionStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem("myJobs_activeTab", activeTab);
+        sessionStorage.setItem("myJobs_activeTab", activeTab);
     }, [activeTab]);
 
     // Fetch jobs on load (important)

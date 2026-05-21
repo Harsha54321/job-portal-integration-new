@@ -67,10 +67,10 @@ export const AdminDashboard = () => {
 useEffect(() => {
     const checkAuthorization = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const accessToken = localStorage.getItem('access_token');
-            const userData = localStorage.getItem('user');
-            const userType = localStorage.getItem('user_type');
+            const token = sessionStorage.getItem('token');
+            const accessToken = sessionStorage.getItem('access_token');
+            const userData = sessionStorage.getItem('user');
+            const userType = sessionStorage.getItem('user_type');
             
             const authToken = token || accessToken;
             
@@ -259,11 +259,11 @@ useEffect(() => {
                     
                             <button 
                                 onClick={() => {
-                                    localStorage.removeItem('token');
-                                    localStorage.removeItem('access_token');
-                                    localStorage.removeItem('refresh');
-                                    localStorage.removeItem('user');
-                                    localStorage.removeItem('userData');
+                                    sessionStorage.removeItem('token');
+                                    sessionStorage.removeItem('access_token');
+                                    sessionStorage.removeItem('refresh');
+                                    sessionStorage.removeItem('user');
+                                    sessionStorage.removeItem('userData');
                                     navigate('/Job-portal/Admin/login')
                                 }} 
                                 className='unauthorized-btn unauthorized-btn-primary'

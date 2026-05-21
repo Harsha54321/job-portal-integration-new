@@ -3035,7 +3035,7 @@ export const MyProfile = () => {
     const [saving, setSaving] = useState(false);
     const fetchProfile = async () => {
         try {
-            const token = localStorage.getItem("access");
+            const token = sessionStorage.getItem("access");
             if (!token) {
                 window.location.href = "/login";
                 return;
@@ -3231,7 +3231,7 @@ export const MyProfile = () => {
             console.error("Failed to load profile", err);
             if (err.response?.status === 401) {
                 alert("your session time expired, please login again");
-                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = "/Job-portal/jobseeker/login";
             }
         }
@@ -3833,7 +3833,7 @@ export const MyProfile = () => {
         setSaving(true);
 
         try {
-            const token = localStorage.getItem("access");
+            const token = sessionStorage.getItem("access");
             if (!token) {
                 window.location.href = "/login";
                 return;

@@ -20,7 +20,7 @@ export const AvatarMenu = () => {
   const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
     try {
-      const refresh = localStorage.getItem("refresh");
+      const refresh = sessionStorage.getItem("refresh");
 
       if (!refresh) {
         throw new Error("No refresh token");
@@ -33,9 +33,9 @@ export const AvatarMenu = () => {
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("userRole");
+      sessionStorage.removeItem("access");
+      sessionStorage.removeItem("refresh");
+      sessionStorage.removeItem("userRole");
       setOpen(false);
       navigate("/");
     }

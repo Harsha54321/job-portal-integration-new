@@ -1,11 +1,13 @@
 /* Container Layout */
 .talent-page-container {
   max-width: 1250px;
-  margin: 60px auto;
+  margin: 10px auto;
   padding: 40px 20px;
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: #f8fafc;
   color: #334155;
+
+  scroll-behavior: smooth;
 }
 
 /* --- Search Bar Section --- */
@@ -59,17 +61,26 @@
   display: flex;
   gap: 30px;
   align-items: flex-start;
+  
 }
 
 /* --- Sidebar Styling --- */
 .FindTalent-filters-sidebar {
   width: 280px;
+  min-width: 280px;  /* ✅ ఇది add చేయి */
+  flex-shrink: 0;
   background: white;
   padding: 24px;
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   position: sticky;
   top: 20px;
+  
+  bottom: 20px;
+  align-self: flex-start;
+  overflow-y: auto;
+  max-height: calc(100vh - 350px);
+  overscroll-behavior: contain;
 }
 
 .FindTalent-filter-top {
@@ -143,8 +154,14 @@
 }
 
 /* --- Talent Card (The Modern Design) --- */
+/* .FindTalent-talent-list {
+  flex: 1;
+} */
+
 .FindTalent-talent-list {
   flex: 1;
+  min-width: 0;        
+  padding-left: 10px;  
 }
 
 .FindTalent-talent-card {
@@ -283,4 +300,15 @@
 .FindTalent-load-more-btn:hover {
   background: #2563eb;
   color: white;
+}
+
+.FindTalent-exp-slider {
+  width: calc(100% + 0px); /* same గా ఉంచు */
+  display: block;
+  cursor: pointer;
+  accent-color: #2563eb;
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0; /* ✅ ఇది add చేయి */
 }

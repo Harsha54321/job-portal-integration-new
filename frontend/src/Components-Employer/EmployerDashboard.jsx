@@ -55,7 +55,7 @@ export const EmployerDashboard = () => {
 
     const [activeMenu, setActiveMenu] = useState(null);
     const [activetab, setActiveTab] = useState(() => {
-        return localStorage.getItem('employerActiveTab') || 'Dashboard';
+        return sessionStorage.getItem('employerActiveTab') || 'Dashboard';
     });
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [selectedJob, setSelectedJob] = useState(null);
@@ -81,7 +81,7 @@ export const EmployerDashboard = () => {
     // Add this alongside your other useEffects
     useEffect(() => {
         if (activetab) {
-            localStorage.setItem('employerActiveTab', activetab);
+            sessionStorage.setItem('employerActiveTab', activetab);
         }
     }, [activetab]);
 
@@ -121,7 +121,7 @@ export const EmployerDashboard = () => {
     // ============ FETCH VERIFICATION STATUS ============
     useEffect(() => {
         const fetchVerificationStatus = async () => {
-            const token = localStorage.getItem("access");
+            const token = sessionStorage.getItem("access");
             if (!token) return;
             try {
                 const response = await api.get('/company/verification-status/');
@@ -134,11 +134,11 @@ export const EmployerDashboard = () => {
                 });
 
                 if (response.data.status === 'Verified') {
-                    localStorage.removeItem('verification_pending');
+                    sessionStorage.removeItem('verification_pending');
                 }
             } catch (error) {
                 console.error("Error fetching verification status:", error);
-                const hasPendingVerification = localStorage.getItem('verification_pending') === 'true';
+                const hasPendingVerification = sessionStorage.getItem('verification_pending') === 'true';
                 const fromVerify = location.state?.fromVerify || false;
 
                 setVerificationStatus({
@@ -152,7 +152,7 @@ export const EmployerDashboard = () => {
         fetchVerificationStatus();
 
         const interval = setInterval(() => {
-            const token = localStorage.getItem("access");
+            const token = sessionStorage.getItem("access");
             if (token && verificationStatus.status !== 'Verified') {
                 fetchVerificationStatus();
             } else {
@@ -185,7 +185,7 @@ export const EmployerDashboard = () => {
             const targetTab = location.state.targetTab;
 
             setActiveTab(targetTab);
-            localStorage.setItem(
+            sessionStorage.setItem(
                 "employerActiveTab",
                 targetTab
             );
@@ -247,7 +247,7 @@ export const EmployerDashboard = () => {
         setShowLogoutModal(false);
 
         try {
-            const refresh = localStorage.getItem("refresh");
+            const refresh = sessionStorage.getItem("refresh");
 
             if (refresh) {
                 await api.post("logout/", { refresh });
@@ -256,16 +256,16 @@ export const EmployerDashboard = () => {
             console.error("Logout failed:", err);
         } finally {
 
-            localStorage.clear();
+            sessionStorage.clear();
             sessionStorage.clear();
 
-            localStorage.removeItem("employerActiveTab");
-            localStorage.removeItem("access");
-            localStorage.removeItem("refresh");
-            localStorage.removeItem("userRole");
-            localStorage.removeItem("user_id");
-            localStorage.removeItem("user_type");
-            localStorage.removeItem("profile_id");
+            sessionStorage.removeItem("employerActiveTab");
+            sessionStorage.removeItem("access");
+            sessionStorage.removeItem("refresh");
+            sessionStorage.removeItem("userRole");
+            sessionStorage.removeItem("user_id");
+            sessionStorage.removeItem("user_type");
+            sessionStorage.removeItem("profile_id");
 
             navigate('/');
         }
@@ -289,7 +289,7 @@ export const EmployerDashboard = () => {
     // }, [fromVerify]);
 
     useEffect(() => {
-        const token = localStorage.getItem("access");
+        const token = sessionStorage.getItem("access");
         const isInsidePortal = location.pathname.includes("/Job-portal/employer") ||
             location.pathname.includes("/Job-portal/jobseeker");
 

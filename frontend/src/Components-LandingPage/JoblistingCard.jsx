@@ -15,8 +15,8 @@ export const JoblistingCard = ({ job }) => {
  
   const handleOpenPopup = () => {
     const isLoggedIn =
-      !!localStorage.getItem("access") &&
-      localStorage.getItem("userRole") === "jobseeker";
+      !!sessionStorage.getItem("access") &&
+      sessionStorage.getItem("userRole") === "jobseeker";
  
     if (isLoggedIn) {
       navigate(redirectPath);

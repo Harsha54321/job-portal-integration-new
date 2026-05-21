@@ -39,8 +39,8 @@ export const Jlogin = () => {
   };
 
   useEffect(() => {
-    const savedUsername = localStorage.getItem("rememberedUsername");
-    const savedPassword = localStorage.getItem("rememberedPassword");
+    const savedUsername = sessionStorage.getItem("rememberedUsername");
+    const savedPassword = sessionStorage.getItem("rememberedPassword");
 
     if (savedUsername && savedPassword) {
       setFormValues((prev) => ({
@@ -225,7 +225,7 @@ export const Jlogin = () => {
       };
     }
 
-    localStorage.removeItem("pendingSearch");
+    sessionStorage.removeItem("pendingSearch");
     sessionStorage.removeItem("savedSearch");
 
     return {
@@ -257,23 +257,23 @@ export const Jlogin = () => {
         return;
       }
       if (response.data.access && response.data.refresh) {
-        localStorage.setItem('access', response.data.access);
-        localStorage.setItem('refresh', response.data.refresh);
-        localStorage.setItem('user_type', 'jobseeker');
+        sessionStorage.setItem('access', response.data.access);
+        sessionStorage.setItem('refresh', response.data.refresh);
+        sessionStorage.setItem('user_type', 'jobseeker');
 
         if (response.data.user) {
-          localStorage.setItem('user_data', JSON.stringify(response.data.user));
-          localStorage.setItem('user_id', response.data.user.id);
+          sessionStorage.setItem('user_data', JSON.stringify(response.data.user));
+          sessionStorage.setItem('user_id', response.data.user.id);
         }
 
-        localStorage.setItem("userRole", "jobseeker");
+        sessionStorage.setItem("userRole", "jobseeker");
 
         if (rememberMe) {
-          localStorage.setItem("rememberedUsername", formValues.username);
-          localStorage.setItem("rememberedPassword", formValues.password);
+          sessionStorage.setItem("rememberedUsername", formValues.username);
+          sessionStorage.setItem("rememberedPassword", formValues.password);
         } else {
-          localStorage.removeItem("rememberedUsername");
-          localStorage.removeItem("rememberedPassword");
+          sessionStorage.removeItem("rememberedUsername");
+          sessionStorage.removeItem("rememberedPassword");
         }
 
         await fetchAllJobs();
@@ -281,7 +281,7 @@ export const Jlogin = () => {
         const nextStep = getRedirectAfterLogin();
 
         if (nextStep.type === "search") {
-          localStorage.removeItem('pendingSearch');
+          sessionStorage.removeItem('pendingSearch');
           sessionStorage.removeItem('savedSearch');
 
           navigate('/Job-portal/jobseeker/searchresults', {

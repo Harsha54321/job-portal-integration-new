@@ -331,9 +331,9 @@ export const Esignup = () => {
 
   //       // Store tokens if returned
   //       if (response.data.access && response.data.refresh) {
-  //         localStorage.setItem("access", response.data.access);
-  //         localStorage.setItem("refresh", response.data.refresh);
-  //         localStorage.setItem("userType", "employer");
+  //         sessionStorage.setItem("access", response.data.access);
+  //         sessionStorage.setItem("refresh", response.data.refresh);
+  //         sessionStorage.setItem("userType", "employer");
   //         console.log("✅ Tokens stored successfully");
   //       }
 
@@ -420,9 +420,9 @@ export const Esignup = () => {
 
         if (loginResponse.data.access) {
           // Store tokens
-          localStorage.setItem("access", loginResponse.data.access);
-          localStorage.setItem("refresh", loginResponse.data.refresh);
-          localStorage.setItem("userType", "employer");
+          sessionStorage.setItem("access", loginResponse.data.access);
+          sessionStorage.setItem("refresh", loginResponse.data.refresh);
+          sessionStorage.setItem("userType", "employer");
 
           console.log("✅ Tokens stored");
 

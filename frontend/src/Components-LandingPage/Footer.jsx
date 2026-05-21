@@ -7,8 +7,8 @@ export const Footer = () => {
   const navigate = useNavigate()
   
   
-  const accessToken = localStorage.getItem("access");
-  const userRole = localStorage.getItem("userRole");
+  const accessToken = sessionStorage.getItem("access");
+  const userRole = sessionStorage.getItem("userRole");
   const isJobseeker = accessToken && userRole === "jobseeker";
   const isEmployer = accessToken && userRole === "Employer";
   const isLoggedIn = !!accessToken;

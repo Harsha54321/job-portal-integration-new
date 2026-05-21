@@ -38,8 +38,8 @@ export const Topcompanies = () => {
 
   const handleOpenPopup = (type, companyId = null) => {
     const isLoggedIn =
-      !!localStorage.getItem("access") &&
-      localStorage.getItem("userRole") === "jobseeker";
+      !!sessionStorage.getItem("access") &&
+      sessionStorage.getItem("userRole") === "jobseeker";
 
     const path =
       type === "jobs" && companyId
