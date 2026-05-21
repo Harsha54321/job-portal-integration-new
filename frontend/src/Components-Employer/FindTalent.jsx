@@ -88,7 +88,7 @@ export const FindTalent = () => {
 
   });
 
-  // ✅ Fetch jobseekers only when this page loads
+  // Fetch jobseekers only when this page loads
 
   useEffect(() => {
 
