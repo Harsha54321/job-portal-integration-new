@@ -582,24 +582,22 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        // Validation Logic
+        // Validation RegEx rules for live typing
         if (name === "jobTitle" && !AlphaOnlyWithSpace.test(value)) return;
         if (name === "company" && value !== "" && !/^(?=.*[A-Za-z])[A-Za-z0-9\s\.\-\'\,\&\(\)@#\$]*$/.test(value)) return;
-        if ((name === "currentLocation" || name === "prefLocation") && !AlphaOnlyWithSpace.test(value)) return;
+        if ((name === "currentLocation" || name === "prefLocation") && !/^[A-Za-z\s,]*$/.test(value)) return;
 
         // Reset experience fields when switching to fresher
         if (name === "experienceType") {
             if (value === "fresher") {
-                // Clear all experience-related fields when switching to fresher
                 onChange({ target: { name: "experience", value: "" } });
                 onChange({ target: { name: "jobTitle", value: "" } });
                 onChange({ target: { name: "company", value: "" } });
                 onChange({ target: { name: "noticePeriod", value: "" } });
             }
-            // Note: When switching to experienced, don't auto-clear anything
-            // Let the user fill the details
         }
 
+        // Clear individual error as the user types a correct value
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: "" }));
         }
@@ -611,24 +609,38 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
         e.preventDefault();
         const newErrors = {};
 
-        // Validate experienceType is selected
+        // 1. Validate experienceType is selected (Required for everyone)
         if (!data.experienceType) {
             newErrors.experienceType = "*Please select your experience status";
-        }
-        // Only validate other fields if NOT fresher
-        else if (!isFresher) {
-            // Validation for Experienced users
-            if (!data.jobTitle?.trim()) newErrors.jobTitle = "*Job Title is required";
-            if (!data.company?.trim()) newErrors.company = "*Company name is required";
-            if (!data.experience) newErrors.experience = "*Experience is required";
-            else if (isNaN(data.experience)) newErrors.experience = "*Please enter a valid number";
-            if (data.noticePeriod === "Select" || !data.noticePeriod) newErrors.noticePeriod = "*Please select a notice period";
-            if (!data.currentLocation?.trim()) newErrors.currentLocation = "*Current location is required";
-            if (!data.prefLocation?.trim()) newErrors.prefLocation = "*Preferred location is required";
+        } else {
+            // 2. Validate locations (Required for BOTH Freshers and Experienced users)
+            if (!data.currentLocation?.trim()) {
+                newErrors.currentLocation = "*Current location is required";
+            }
+            if (!data.prefLocation?.trim()) {
+                newErrors.prefLocation = "*Preferred location is required";
+            }
+
+            // 3. Separate Validation block strictly for Experienced users
+            if (!isFresher) {
+                if (!data.jobTitle?.trim()) newErrors.jobTitle = "*Job Title is required";
+                if (!data.company?.trim()) newErrors.company = "*Company name is required";
+                
+                if (!data.experience) {
+                    newErrors.experience = "*Experience is required";
+                } else if (isNaN(data.experience)) {
+                    newErrors.experience = "*Please enter a valid number";
+                }
+                
+                if (!data.noticePeriod || data.noticePeriod === "Select") {
+                    newErrors.noticePeriod = "*Please select a notice period";
+                }
+            }
         }
 
         setErrors(newErrors);
 
+        // Run navigation step if there are absolutely zero errors detected
         if (Object.keys(newErrors).length === 0) {
             onNext();
         } else {
@@ -637,7 +649,7 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
     };
 
     return (
-        <form className="content-card" onSubmit={handleSubmit}>
+        <form className="content-card" onSubmit={handleSubmit} noValidate>
             <div className="profile-header">
                 <h2>Current Details</h2>
                 <button
@@ -653,9 +665,9 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
             </div>
 
             <div className="form-grid">
-                {/* 1. Experience Status - Always Visible */}
+                {/* Experience Status */}
                 <div className="form-group">
-                    <label>Experience Status</label>
+                    <label>Experience Status *</label>
                     <select
                         name="experienceType"
                         value={data.experienceType || ""}
@@ -669,11 +681,11 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                     {errors.experienceType && <span className="error-message">{errors.experienceType}</span>}
                 </div>
 
-                {/* HIDE THESE FIELDS IF FRESHER */}
-                {!isFresher && (
+                {/* Conditional Fields: Hidden if user is a Fresher */}
+                {!isFresher && data.experienceType === "experienced" && (
                     <>
                         <div className="form-group">
-                            <label>Total Experience (Years)</label>
+                            <label>Total Experience (Years) *</label>
                             <input
                                 type="text"
                                 name="experience"
@@ -689,7 +701,7 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                         </div>
 
                         <div className="form-group">
-                            <label>Current Job Title</label>
+                            <label>Current Job Title *</label>
                             <input
                                 type="text"
                                 name="jobTitle"
@@ -702,7 +714,7 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                         </div>
 
                         <div className="form-group">
-                            <label>Current Company</label>
+                            <label>Current Company *</label>
                             <input
                                 type="text"
                                 name="company"
@@ -715,7 +727,7 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                         </div>
 
                         <div className="form-group">
-                            <label>Notice Period</label>
+                            <label>Notice Period *</label>
                             <select
                                 name="noticePeriod"
                                 value={data.noticePeriod || "Select"}
@@ -733,33 +745,27 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                     </>
                 )}
 
-                {/* Location Fields - Always visible but styling changes for fresher */}
-                <div className={`form-group full-width ${isFresher ? "disabled-field" : ""}`}>
-                    <label>Current Location</label>
+                {/* Location Fields: Rendered cleanly for both statuses */}
+                <div className="form-group full-width">
+                    <label>Current Location *</label>
                     <input
                         type="text"
                         name="currentLocation"
                         value={data.currentLocation || ""}
-                        required
-                        onChange={(e) => {
-                            if (/^[A-Za-z\s,]*$/.test(e.target.value)) handleChange(e);
-                        }}
+                        onChange={handleChange}
                         className={errors.currentLocation ? "input-error" : ""}
                         placeholder="e.g., Bangalore"
                     />
                     {errors.currentLocation && <span className="error-message">{errors.currentLocation}</span>}
                 </div>
 
-                <div className={`form-group full-width ${isFresher ? "disabled-field" : ""}`}>
-                    <label>Preferred Location(s)</label>
+                <div className="form-group full-width">
+                    <label>Preferred Location(s) *</label>
                     <input
                         type="text"
                         name="prefLocation"
                         value={data.prefLocation || ""}
-                        required
-                        onChange={(e) => {
-                            if (/^[A-Za-z\s,]*$/.test(e.target.value)) handleChange(e);
-                        }}
+                        onChange={handleChange}
                         className={errors.prefLocation ? "input-error" : ""}
                         placeholder="e.g., Bangalore, Chennai, Coimbatore"
                     />
@@ -2313,11 +2319,16 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
             <PopupModal
                 title={editIndex !== null ? "Edit Skill" : "Add Skill"}
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => { setIsModalOpen(false); setError(""); }}
                 onSave={handleSave}
                 onDelete={handleDelete}
                 mode={editIndex !== null ? "edit" : "add"}
             >
+                {error && (
+                    <div style={{ color: "red", fontSize: "0.85rem", marginBottom: "1rem", fontWeight: "500" }}>
+                        {error}
+                    </div>
+                )}
                 <div className="form-group">
                     <label>Skill *</label>
                     <FilterableDropdown
@@ -2394,6 +2405,11 @@ const LanguagesKnown = ({
 
         if (!value) {
             setError("Language cannot be empty");
+            return;
+        }
+
+        if (!currentLang.proficiency || currentLang.proficiency === "Select") {
+            setError("Please select your language proficiency level");
             return;
         }
 
@@ -2475,11 +2491,17 @@ const LanguagesKnown = ({
             <PopupModal
                 title={editIndex !== null ? "Edit Language" : "Add Language"}
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => { setIsModalOpen(false); setError(""); }}
                 onSave={handleSave}
                 onDelete={handleDelete}
                 mode={editIndex !== null ? "edit" : "add"}
             >
+                {error && (
+                    <div style={{ color: "red", fontSize: "0.85rem", marginBottom: "1rem", fontWeight: "500" }}>
+                        {error}
+                    </div>
+                )}
+
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                     <label>Language Name *</label>
                     <FilterableDropdown
@@ -2498,6 +2520,7 @@ const LanguagesKnown = ({
                         <option value="Fluent">Fluent</option>
                         <option value="Native">Native</option>
                     </select>
+
                 </div>
             </PopupModal>
         </form>
@@ -3033,7 +3056,7 @@ export const MyProfile = () => {
     const [saving, setSaving] = useState(false);
     const fetchProfile = async () => {
         try {
-            const token = localStorage.getItem("access");
+            const token = sessionStorage.getItem("access");
             if (!token) {
                 window.location.href = "/login";
                 return;
@@ -3229,7 +3252,7 @@ export const MyProfile = () => {
             console.error("Failed to load profile", err);
             if (err.response?.status === 401) {
                 alert("your session time expired, please login again");
-                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = "/Job-portal/jobseeker/login";
             }
         }
@@ -3831,7 +3854,7 @@ export const MyProfile = () => {
         setSaving(true);
 
         try {
-            const token = localStorage.getItem("access");
+            const token = sessionStorage.getItem("access");
             if (!token) {
                 window.location.href = "/login";
                 return;
@@ -3936,13 +3959,66 @@ export const MyProfile = () => {
                     }));
                 }
             }
-        } catch (err) {
+        }catch (err) {
             console.error("Profile save failed", err);
             if (err.response?.status === 401) {
                 alert("Session expired. Please login again.");
-            } else if (err.response) {
-                console.log("Backend error:", err.response.data);
-                alert(JSON.stringify(err.response.data, null, 2));
+                return;
+            }
+            
+            if (err.response && err.response.data) {
+                const backendErrors = err.response.data;
+                
+                // Fallback text if something generic fails
+                let alertMessage = "Could not save profile. Please fix the following:\n\n";
+                let issuesFound = false;
+
+                // Dictionary mapping technical fields to beautiful visual step names
+                const fieldMapping = {
+                    full_name: { field: "Full Name", section: "Profile" },
+                    gender: { field: "Gender", section: "Profile" },
+                    dob: { field: "Date of Birth", section: "Profile" },
+                    marital_status: { field: "Marital Status", section: "Profile" },
+                    nationality: { field: "Nationality", section: "Profile" },
+                    current_job_title: { field: "Current Job Title", section: "Current Details" },
+                    current_company: { field: "Current Company", section: "Current Details" },
+                    total_experience_years: { field: "Total Experience", section: "Current Details" },
+                    notice_period: { field: "Notice Period", section: "Current Details" },
+                    current_location: { field: "Current Location", section: "Current Details" },
+                    preferred_locations: { field: "Preferred Locations", section: "Current Details" },
+                    phone: { field: "Mobile Number", section: "Contact Details" },
+                    full_address: { field: "Address", section: "Contact Details" },
+                    city: { field: "City", section: "Contact Details" },
+                    state: { field: "State", section: "Contact Details" },
+                    pincode: { field: "Pincode", section: "Contact Details" },
+                    country: { field: "Country", section: "Contact Details" },
+                    current_ctc: { field: "Current CTC", section: "Preferences / Career Details" },
+                    expected_ctc: { field: "Expected CTC", section: "Preferences / Career Details" },
+                    preferred_job_type: { field: "Preferred Job Type", section: "Preferences / Career Details" },
+                    preferred_role_industry: { field: "Preferred Industry/Role", section: "Preferences / Career Details" }
+                };
+
+                // Loop over the keys arriving from the server dictionary
+                Object.keys(backendErrors).forEach((key) => {
+                    const errorContent = backendErrors[key];
+                    const msg = Array.isArray(errorContent) ? errorContent[0] : errorContent;
+                    
+                    if (fieldMapping[key]) {
+                        issuesFound = true;
+                        alertMessage += `📍 Section: [${fieldMapping[key].section}] \n👉 Field: ${fieldMapping[key].field} - ${msg}\n\n`;
+                    } else if (key === "educations" || key === "experiences" || key === "skills" || key === "languages") {
+                        // Handle array block descriptions cleanly
+                        issuesFound = true;
+                        alertMessage += `📍 Section: [${format(key)}] \n👉 Issue: ${msg}\n\n`;
+                    }
+                });
+
+                if (issuesFound) {
+                    alert(alertMessage);
+                } else {
+                    // Fallback to text message parsing if nested deep down inside unknown error namespaces
+                    alert("Validation Error:\n" + JSON.stringify(backendErrors));
+                }
             } else {
                 alert("Failed to save profile. Try again.");
             }

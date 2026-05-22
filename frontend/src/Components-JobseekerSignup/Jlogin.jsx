@@ -252,7 +252,7 @@ export const Jlogin = () => {
       const response = await api.post('login/', loginData);
 
       if (response.data.user.user_type !== 'jobseeker') {
-        setErrors({ general: "Please use employer login" });
+        setErrors({ general: "Only jobseeker credentials should be used here" });
         setLoading(false);
         return;
       }
@@ -293,7 +293,12 @@ export const Jlogin = () => {
             }
           });
         } else {
-          navigate(nextStep.path, { replace: true });
+          navigate(location.state?.intendedPath || nextStep.path, {
+            replace: true,
+            state: {
+              targetTab: location.state?.targetTab || "Profile"
+            }
+          });
         }
       } else {
         throw new Error('Invalid response format from server');

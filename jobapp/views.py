@@ -743,14 +743,29 @@ class SaveJobView(APIView):
         serializer.is_valid(raise_exception=True)
  
         try:
-            serializer.save(user=request.user)
-        except IntegrityError:
-            raise ValidationError({"detail": "Job already saved"})
+            # Save the job
+            saved_job = serializer.save(user=request.user)
  
-        return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED
-        )
+            # Create notification immediately after save
+            Notification.objects.create(
+                user=request.user,
+                message=f"Job '{saved_job.job.job_title}' saved successfully",
+                is_read=False
+            )
+ 
+            return Response(
+                {
+                    "message": "Job saved successfully",
+                    "saved_job": serializer.data
+                },
+                status=status.HTTP_201_CREATED
+            )
+ 
+        except IntegrityError:
+            return Response(
+                {"detail": "Job already saved"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
  
     def delete(self, request, job_id):
         deleted, _ = SavedJob.objects.filter(
@@ -764,7 +779,10 @@ class SaveJobView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
  
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"message": "Removed successfully"},
+            status=status.HTTP_204_NO_CONTENT
+        )
  
 
 class SavedJobsListView(generics.ListAPIView):
@@ -1791,31 +1809,66 @@ class SendLoginOTPView(APIView):
     permission_classes = [AllowAny]
  
     def post(self, request):
-        email = request.data.get("email")
+        email = request.data.get("email", "").strip()
  
         if not email:
-            return Response({"error": "Email is required"}, status=400)
+            return Response(
+                {"error": "Email is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
  
-        user = User.objects.filter(email=email).first()
+        # Find user
+        user = User.objects.filter(email__iexact=email).first()
+ 
         if not user:
-            return Response({"error": "User not found. Please sign up first."}, status=404)
+            return Response(
+                {"error": "User not found. Please sign up first."},
+                status=status.HTTP_404_NOT_FOUND
+            )
  
-        EmailOTP.objects.filter(email=email, purpose="login").delete()
+        # Allow OTP only for Jobseekers
+        if user.user_type != User.UserType.JOBSEEKER:
+            return Response(
+                {
+                    "error": "OTP login is available only for Jobseekers"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
  
+        # Check active account
+        if not user.is_active:
+            return Response(
+                {
+                    "error": "Your account is inactive"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+ 
+        # Remove previous login OTPs
+        EmailOTP.objects.filter(
+            email=user.email,
+            purpose="login"
+        ).delete()
+ 
+        # Generate OTP
         otp = generate_4digit_otp()
  
         EmailOTP.objects.create(
-            email=email,
+            email=user.email,
             otp=otp,
             purpose="login",
             expires_at=timezone.now() + timedelta(minutes=5)
         )
  
-        send_email_otp(email, otp, "login")
+        # Send OTP mail
+        send_email_otp(user.email, otp, "login")
  
-        print(f"🔐 Login OTP for {email}: {otp}")
+        print(f"🔐 Login OTP for {user.email}: {otp}")
  
-        return Response({"message": "OTP sent successfully"})
+        return Response(
+            {"message": "OTP sent successfully"},
+            status=status.HTTP_200_OK
+        )
  
 
 class VerifyLoginOTPView(APIView):

@@ -449,3 +449,200 @@
     font-size: 13px;
   }
 }
+
+.login-form input[type="text"],
+.login-form input[type="password"],
+.login-form input[type="email"],
+.login-form input[type="tel"] {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 6px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fff;
+}
+
+.login-form input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Consistent error styling */
+.login-form .input-error {
+  border-color: #dc3545 !important;
+}
+
+.login-form .input-error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+/* Adjust password wrapper to match */
+.login-form .password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.login-form .password-wrapper input {
+  padding-right: 42px; /* space for eye icon */
+}
+
+/* Eye icon positioning */
+.login-form .password-wrapper .eye-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.login-form .password-wrapper .eye-icon:hover {
+  opacity: 1;
+}
+
+.login-form .password-wrapper .show-icon {
+  height: 20px;
+  width: auto;
+}
+
+/* Make all button variants visually consistent */
+.j-login-btn,
+.google-btn-outline,
+.mobile-btn-outline {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.j-login-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  margin-top: 24px;
+  margin-bottom: 10px;
+}
+
+.j-login-btn:hover:not(:disabled) {
+  background-color: #0069d9;
+}
+
+.j-login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments for mobile */
+@media screen and (max-width: 768px) {
+  .login-form input[type="text"],
+  .login-form input[type="password"],
+  .login-form input[type="email"],
+  .login-form input[type="tel"] {
+    padding: 11px 14px;
+    font-size: 14px;
+  }
+  
+  .j-login-btn,
+  .google-btn-outline,
+  .mobile-btn-outline {
+    padding: 11px;
+    font-size: 14px;
+  }
+}
+
+/* Extra small devices */
+@media screen and (max-width: 480px) {
+  .login-form input[type="text"],
+  .login-form input[type="password"],
+  .login-form input[type="email"],
+  .login-form input[type="tel"] {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  .j-login-btn,
+  .google-btn-outline,
+  .mobile-btn-outline {
+    padding: 10px;
+  }
+}
+
+/* Add to Jlogin.css - Fix Remember Me alignment */
+
+/* Form options container - ensure proper flex alignment */
+.login-form .form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 15px 0 20px;
+  font-size: 14px;
+  color: #032240;
+  font-weight: 400;
+  gap: 12px;
+}
+
+/* Remember me label styling */
+.login-form .remember-me-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: #032240;
+  user-select: none;
+}
+
+/* Remember me checkbox styling */
+.login-form .remember-me-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #007bff;
+  flex-shrink: 0;
+}
+
+/* Forgot password link styling */
+.login-form .forgot-password {
+  margin: 0;
+  text-decoration: none;
+  font-size: 14px;
+  color: #007bff;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.login-form .forgot-password:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+/* Mobile responsive fix */
+@media screen and (max-width: 480px) {
+  .login-form .form-options {
+    font-size: 13px;
+    gap: 8px;
+  }
+  
+  .login-form .remember-me-label {
+    font-size: 13px;
+    gap: 6px;
+  }
+  
+  .login-form .forgot-password {
+    font-size: 13px;
+  }
+}

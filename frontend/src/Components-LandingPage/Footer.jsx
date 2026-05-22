@@ -14,16 +14,19 @@ export const Footer = () => {
   const isLoggedIn = !!accessToken;
  
   // If logged in, go to path. If not, force redirect to login.
-  const protectedNavigate = (path, state = {}) => {
+  const protectedNavigate = (path,state, targetTabName = '') => {
     if (isLoggedIn) {
-      navigate(path, state);
+      navigate(path, state,{ state: { fromFooter: true, targetTab: targetTabName } });
     } else {
-      // Redirect to the appropriate login based on the path context
       if (path.toLowerCase().includes('employer')) {
-        navigate('/Job-portal/employer/login');
- 
+        navigate('/Job-portal/employer/login', {
+          state: { fromFooter: true, intendedPath: '/Job-portal/Employer/Dashboard', targetTab: targetTabName || 'Dashboard' }
+        });
       } else {
-        navigate('/Job-portal/jobseeker/login');
+        // Only added this state object mapping fallback to your existing redirect
+        navigate('/Job-portal/jobseeker/login', {
+          state: { fromFooter: true, intendedPath: path, targetTab: targetTabName || 'Profile' }
+        });
       }
     }
   };
@@ -57,8 +60,8 @@ export const Footer = () => {
           <div className="footer-link-section">
             <h3>Job Seekers</h3>
             <ul>
-              <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/myprofile')}>Create Profile</span></li>
-              <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/jobs')}>Browse Jobs</span></li>
+              <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/myprofile', 'Profile')}>Create Profile</span></li>
+              <li><span onClick={() => navigate('/Job-portal/jobseeker/jobs')}>Browse Jobs</span></li>
               <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/myjobs', { state: { activeTab: 'saved' } })}>Saved Jobs</span></li>
               <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/myjobs', { state: { activeTab: 'applied' } })}> Applied Jobs </span></li>
             </ul>
@@ -118,5 +121,3 @@ export const Footer = () => {
     </footer>
   )
 }
- 
- 

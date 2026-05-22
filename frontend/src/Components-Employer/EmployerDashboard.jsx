@@ -179,18 +179,46 @@ export const EmployerDashboard = () => {
         fetchApplications();
     }, []);
 
-    // ============ HANDLE TARGET TAB FROM FOOTER ============
+    // Add this hook layout inside your Jobseeker Dashboard view file
     useEffect(() => {
         if (location.state?.targetTab) {
-            const targetTab = location.state.targetTab;
+            setActiveTab(location.state.targetTab);
 
-            setActiveTab(targetTab);
-            sessionStorage.setItem(
-                "employerActiveTab",
-                targetTab
-            );
+            // Wipe path records cleanly so future user actions function natively
+            window.history.replaceState({ ...window.history.state, targetTab: undefined }, document.title);
         }
-    }, [location.state?.targetTab]);
+    }, [location.state]);
+
+    // ============ HANDLE TARGET TAB FROM FOOTER ============
+// ============ HANDLE TARGET TAB FROM FOOTER ============
+    useEffect(() => {
+        // 1. Define the handler at the top level of the useEffect so cleanup can see it
+        const handleStateRefresh = () => {
+            // Read directly from window history to bypass race-condition wipes
+            const currentHistoryState = window.history.state;
+            if (currentHistoryState?.targetTab) {
+                setActiveTab(currentHistoryState.targetTab);
+                sessionStorage.setItem("employerActiveTab", currentHistoryState.targetTab);
+            }
+        };
+
+        // 2. Attach the window event listener
+        window.addEventListener('popstate', handleStateRefresh);
+
+        // 3. Process the state values
+        if (location.state?.targetTab) {
+            const targetTab = location.state.targetTab;
+            
+            setActiveTab(targetTab);
+            sessionStorage.setItem("employerActiveTab", targetTab);
+            
+            window.history.replaceState({ ...window.history.state, targetTab: undefined }, document.title);
+        } else {
+            handleStateRefresh();
+        }
+
+        return () => window.removeEventListener('popstate', handleStateRefresh);
+    }, [location.state, location.pathname]);
 
     // ============ MEMOIZED STATS ============
     const jobStats = useMemo(() => {

@@ -21,9 +21,22 @@ export const MyJobs = () => {
         if (location.state?.activeTab) {
             return location.state.activeTab;
         }
+        if (location.state?.state?.activeTab) {
+            return location.state.state.activeTab;
+        }
         // Default to saved
         return "saved";
     });
+
+    useEffect(() => {
+        const incomingTab = location.state?.activeTab || location.state?.state?.activeTab;
+
+        if (incomingTab) {
+            setActiveTab(incomingTab);
+            sessionStorage.setItem("myJobs_activeTab", incomingTab);
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const { savedJobs, appliedJobs, loading, unsaveJob, fetchAllJobs } = useJobs();
 
