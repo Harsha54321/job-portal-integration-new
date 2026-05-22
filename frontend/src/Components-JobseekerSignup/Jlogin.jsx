@@ -112,7 +112,7 @@ export const Jlogin = () => {
       const response = await api.post('send-login-otp/', {
         email: formValues.username,
         purpose: 'login',
-
+        user_type: 'jobseeker'
       });
 
       console.log('OTP Response:', response.data);
@@ -593,7 +593,7 @@ export const Jlogin = () => {
                 onClick={() => setView('email-otp')}
                 disabled={loading}
               >
-                <img src={Google} alt="Google" /> Google
+                <img src={Email} alt="Email" /> Email ID
               </button>
             </>
           )}
