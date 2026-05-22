@@ -569,10 +569,15 @@ export const Esignup = () => {
           <span className='subtext'>For Employers</span>
         </Link>
         <div className="j-sign-up-header-links">
-          <span className='no-account'>Already have an account?</span>
-          <Link to="/Job-portal/employer/login" className="signup-btn">Login</Link>
-          <div className="separator"></div>
-          <Link to='/Job-portal/jobseeker/login' className="employer-redirect-link">Job seekers Login</Link>
+          <span className="no-account">Already have an account?</span>
+
+          <Link to="/Job-portal/employer/login" className="signup-btn">
+            Login
+          </Link>
+
+          <Link to="/Job-portal/role-selection" className="header-back-btn">
+            ← Back
+          </Link>
         </div>
       </header>
 

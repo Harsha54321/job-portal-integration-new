@@ -819,7 +819,18 @@ class EmployerApplicationsListView(generics.ListAPIView):
             return JobApplication.objects.none()
         jobs = PostAJob.objects.filter(employer=user, is_published=True)
         return JobApplication.objects.filter(job__in=jobs)
-   
+ 
+    def get_total_experience_years(self, obj):
+        try:
+            profile = obj.user.jobseeker_profile
+            # Handle None or empty values
+            experience = profile.total_experience_years
+            if experience is None:
+                return 0
+            # Convert to float if it's a Decimal
+            return float(experience)
+        except (JobSeekerProfile.DoesNotExist, AttributeError):
+            return 0 
 
 class EmployerApplicationStatusUpdateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]

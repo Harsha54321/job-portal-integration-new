@@ -17,12 +17,17 @@ export const Header = () => {
   // const [showNotification, setShowNotification] = useState(false);
   // const [notificationsData, setNotificationsData] = useState([]);
 
-  // ✅ Get notifications from JobContext
-  const { notificationsData, showNotification, setShowNotification, fetchNotifications } = useJobs();
+  // Get notifications from JobContext
+  const { notificationsData, showNotification, setShowNotification, fetchNotifications, chats, currentUserId } = useJobs();
 
   const newNotificationsCount = Array.isArray(notificationsData)
     ? notificationsData.filter(n => !n.is_read).length
     : 0;
+
+  const unreadMessagesCount = chats.filter(
+    chat => (chat.unread_count || 0) > 0
+  ).length;
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showPortalDropdown, setShowPortalDropdown] = useState(false);
 
@@ -143,13 +148,40 @@ export const Header = () => {
             {navIcons.map((IC, index) => {
               const isActive = location.pathname === IC.path;
               return (
-                <Link key={index} to={IC.path} >
+                <Link
+                  key={index}
+                  to={IC.path}
+                  style={{ position: "relative" }}
+                >
                   <img
                     src={IC.image}
                     alt={IC.label}
                     title={IC.label}
                     className={isActive ? 'jheader-icons-active' : 'jheader-icons'}
                   />
+                  {/* Message Count Badge */}
+                  {IC.label === "Chat" && unreadMessagesCount > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-5px",
+                        right: "-5px",
+                        background: "#007bff",
+                        color: "white",
+                        borderRadius: "50%",
+                        minWidth: "18px",
+                        height: "18px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        padding: "0 5px"
+                      }}
+                    >
+                      {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -180,37 +212,9 @@ export const Header = () => {
           </>
         ) : (
           <>
-            <Link to="/Job-portal/jobseeker/login" className="login-btn">Login</Link>
-            <Link to="/Job-portal/jobseeker/signup" className="signup-btn">Sign up</Link>
-            <div className="separator"></div>
-            <div
-              className="portal-dropdown"
-              onMouseEnter={() => setShowPortalDropdown(true)}
-              onMouseLeave={() => setShowPortalDropdown(false)}
-            >
-              <div className="emp-log-link">
-                For Employers ▾
-              </div>
-
-              {showPortalDropdown && (
-                <div className="portal-dropdown-menu">
-
-                  <Link
-                    to="/Job-portal/employer/login"
-                    className="portal-dropdown-item"
-                  >
-                    Employer
-                  </Link>
-
-                  <Link
-                    to="/Job-portal/Admin/login"
-                    className="portal-dropdown-item"
-                  >
-                    Admin
-                  </Link>
-
-                </div>
-              )}
+            <div className="auth-action-links">
+              <Link to="/Job-portal/role-selection" className="login-btn">Login</Link>
+              <Link to="/Job-portal/role-selection" className="signup-btn">Sign up</Link>
             </div>
           </>
         )}
@@ -221,16 +225,9 @@ export const Header = () => {
             <a href="#" onClick={preventNav} className="active">Home</a>
             <a href="#" onClick={preventNav}>Jobs</a>
             <a href="#" onClick={preventNav}>Companies</a>
-
-            <Link to="/Job-portal/jobseeker/login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-            <Link to="/Job-portal/jobseeker/signup" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
-            <Link to="/Job-portal/employer/login" onClick={() => setMobileMenuOpen(false)}>Employers</Link>
-            <Link
-              to="/Job-portal/Admin/login"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Admin
-            </Link>
+            <Link to="/Job-portal/role-selection" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+            <Link to="/Job-portal/role-selection" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
+            <Link to="/Job-portal/role-selection" onClick={() => setMobileMenuOpen(false)}>Choose Role</Link>
           </div>
         </div>
       )}

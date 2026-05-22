@@ -1162,11 +1162,30 @@ class JobApplicationListSerializer(serializers.ModelSerializer):
 class JobApplicationEmployerSerializer(serializers.ModelSerializer):
     job = JobReadSerializer(read_only=True)
     user = UserReadSerializer(read_only=True)
- 
+    total_experience_years = serializers.SerializerMethodField()
+
     class Meta:
         model = JobApplication
-        fields = ['id', 'job', 'user', 'applied_date', 'status', 'cover_letter']
+        fields = ['id', 'job', 'user', 'applied_date', 'status', 'cover_letter','total_experience_years']
         read_only_fields = ['id', 'applied_date']
+
+    # def get_total_experience_years(self, obj):
+    #     profile = getattr(obj.user, 'jobseeker_profile', None)
+    #     return profile.total_experience_years if profile else 0
+
+    def get_total_experience_years(self, obj):
+        try:
+            profile = obj.user.jobseeker_profile
+            if profile:
+                experience = profile.total_experience_years
+                print(f"✅ User: {obj.user.username} (ID: {obj.user.id}) - Experience: {experience}")
+                return float(experience) if experience is not None else 0
+            else:
+                print(f"❌ No JobSeekerProfile for user: {obj.user.username} (ID: {obj.user.id})")
+                return 0
+        except Exception as e:
+            print(f"❌ Error getting experience for {obj.user.username}: {e}")
+            return 0
  
  
 # Other Models

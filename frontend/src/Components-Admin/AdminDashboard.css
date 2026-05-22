@@ -22,17 +22,15 @@
 .Admin-Sidebar-list {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 20px 0;
-
+    justify-content: flex-start;
+    padding: 8px 0 25px;
 }
 
 .Admin-Navbar {
-    margin: 2px 7px;
+    margin: 1px 7px;
     padding-left: 15px;
     width: 215px;
     border-radius: 10px;
-
 }
 
 .Admin-Navbox {
@@ -578,4 +576,12 @@
     100% {
         background-position: 0% 50%;
     }
+}
+.Admin-Navbar {
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.Admin-Navbar:hover {
+  background-color: rgba(0, 102, 204, 0.35);
 }

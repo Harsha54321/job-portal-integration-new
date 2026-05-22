@@ -38,6 +38,8 @@ import { JobsThroughCompany } from './Components-Jobseeker/JobsThroughCompany'
 
 import { AboutUs } from './Components-LandingPage/AboutUs'
 
+import RoleLanding from './Components-LandingPage/RoleLanding'
+
 import { SearchResults } from './Components-Jobseeker/SearchResults'
 
 import { JobProvider } from './JobContext';
@@ -139,9 +141,13 @@ const router = createBrowserRouter([
     element: <Layout />,
 
     children: [
-
       { path: '/', element: <Landingpage /> },
 
+      {
+        path: '/Job-portal/role-selection',
+        element: <RoleLanding />,
+      },
+      
       {
 
         path: '/Job-portal/jobseeker',

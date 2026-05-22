@@ -380,7 +380,7 @@ export const Jlogin = () => {
           <span className="subtext">For Jobseekers</span>
         </Link>
 
-        <div className="header-links">
+        <div className="login-header-actions">
           <span className="no-account">Don't have an account?</span>
 
           <Link
@@ -397,10 +397,8 @@ export const Jlogin = () => {
             Sign up
           </Link>
 
-          <div className="separator"></div>
-
-          <Link to="/Job-portal/employer/login" className="employer-redirect-link">
-            Employers Login
+          <Link to="/Job-portal/role-selection" className="login-header-back-btn">
+            ← Back
           </Link>
         </div>
       </header>

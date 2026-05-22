@@ -196,7 +196,14 @@ export const AdminLogin = () => {
 
             <div className="Admin-Login-Module">
                 <form onSubmit={handleSubmit} className="admin-login-form">
-                    <h2>Login as Administrator</h2>
+                    <div className="admin-login-title-row">
+                        <Link to="/Job-portal/role-selection" className="auth-back-btn">
+                            ← Back
+                        </Link>
+
+                        <h2>Login as Administrator</h2>
+                    </div>
+                    
                     <p style={{ color: '#666', textAlign: "center", fontSize: '14px' }}>Login to manage users and postings</p>
                     {serverError && (
                         <div className="server-error" style={{

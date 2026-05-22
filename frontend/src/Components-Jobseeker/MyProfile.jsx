@@ -2885,7 +2885,6 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                         name="jobType"
                         value={data.jobType || "Select"}
                         onChange={handleLocalChange}
-                        disabled={isFresher}
                         className={errors.jobType ? "input-error" : ""}
                     >
                         <option value="Select">Select</option>
@@ -2906,7 +2905,6 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                         name="role"
                         value={data.role || ""}
                         onChange={handleLocalChange}
-                        disabled={isFresher}
                         placeholder="Enter preferred industry/role"
                         className={errors.role ? "input-error" : ""}
                     />
@@ -3035,7 +3033,7 @@ export const MyProfile = () => {
     const [saving, setSaving] = useState(false);
     const fetchProfile = async () => {
         try {
-            const token = sessionStorage.getItem("access");
+            const token = localStorage.getItem("access");
             if (!token) {
                 window.location.href = "/login";
                 return;
@@ -3231,7 +3229,7 @@ export const MyProfile = () => {
             console.error("Failed to load profile", err);
             if (err.response?.status === 401) {
                 alert("your session time expired, please login again");
-                sessionStorage.clear();
+                localStorage.clear();
                 window.location.href = "/Job-portal/jobseeker/login";
             }
         }
@@ -3833,7 +3831,7 @@ export const MyProfile = () => {
         setSaving(true);
 
         try {
-            const token = sessionStorage.getItem("access");
+            const token = localStorage.getItem("access");
             if (!token) {
                 window.location.href = "/login";
                 return;

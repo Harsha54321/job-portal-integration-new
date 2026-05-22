@@ -47,7 +47,7 @@ export const PostJobForm = ({ onCancel }) => {
     shift: '',
     work_duration: '',
     salary: '',
-    fresher: '', // New field for fresher (yes/no)
+    fresher: '',
     experience: '',
     location: [],
     openings: '',
@@ -525,7 +525,6 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
-              {/* New Fresher Field */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Fresher</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -724,7 +723,15 @@ export const PostJobForm = ({ onCancel }) => {
                         onChange={(e) => handleHighlightChange(index, e.target.value)}
                       />
 
-                      {index !== formData.job_highlights.length - 1 && (
+                      {index === 0 ? (
+                        <span
+                          className="jobpost-plus-icon"
+                          onClick={addHighlightField}
+                        >
+                          +
+                        </span>
+                      ) : (
+                        /* Every item after the first shows a clean Delete/Minus button */
                         <span
                           className="jobpost-minus-icon"
                           onClick={() => removeHighlightField(index)}
@@ -732,15 +739,6 @@ export const PostJobForm = ({ onCancel }) => {
                           -
                         </span>
                       )}
-
-                      {index === formData.job_highlights.length - 1 && (
-                        <span className="jobpost-plus-icon"
-                          onClick={addHighlightField}
-                        >
-                          +
-                        </span>
-                      )}
-
                     </div>
                   ))}
 
@@ -772,7 +770,15 @@ export const PostJobForm = ({ onCancel }) => {
                         onChange={(e) => handleResponsibilityChange(index, e.target.value)}
                       />
 
-                      {index !== formData.responsibilities.length - 1 && (
+                      {index === 0 ? (
+                        <span
+                          className="jobpost-plus-icon"
+                          onClick={addResponsibilityField}
+                        >
+                          +
+                        </span>
+                      ) : (
+                        /* Sub-fields cleanly shift into place with Minus icon badges */
                         <span
                           className="jobpost-minus-icon"
                           onClick={() => removeResponsibilityField(index)}
@@ -780,16 +786,6 @@ export const PostJobForm = ({ onCancel }) => {
                           -
                         </span>
                       )}
-
-                      {index === formData.responsibilities.length - 1 && (
-                        <span
-                          className="jobpost-plus-icon"
-                          onClick={addResponsibilityField}
-                        >
-                          +
-                        </span>
-                      )}
-
                     </div>
                   ))}
 

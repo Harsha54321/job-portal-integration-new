@@ -34,10 +34,13 @@ import { AdminReports } from './AdminReports'
 import { JobMonitoring } from './JobMonitoring'
 import { Membership } from './Membership'
 import api from '../api/axios'
+import Logout from '../assets/Employer/Elogout.png'
+import { LogoutModal } from '../Components-Jobseeker/LogoutModal'
 
 export const AdminDashboard = () => {
     const { jobs, Alluser, currentEmployer } = useJobs();
     const [activetab, setActiveTab] = useState('Dashboard');
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [totalCompanies, setTotalCompanies] = useState(0);
     const [totalEmployers, setTotalEmployers] = useState(0);
     const [overviewLoading, setOverviewLoading] = useState(true);
@@ -64,77 +67,77 @@ export const AdminDashboard = () => {
     const [totalOverviewData, setTotalOverviewData] = useState(null);
     const [overviewError, setOverviewError] = useState(null);
 
-useEffect(() => {
-    const checkAuthorization = async () => {
-        try {
-            const token = sessionStorage.getItem('token');
-            const accessToken = sessionStorage.getItem('access_token');
-            const userData = sessionStorage.getItem('user');
-            const userType = sessionStorage.getItem('user_type');
-            
-            const authToken = token || accessToken;
-            
-            console.log("Checking authorization...");
-            console.log("Token exists:", !!authToken);
-            console.log("User type from storage:", userType);
-            
-            if (!authToken) {
-                setIsAuthorized(false);
-                setAuthError("No authentication token found. Please login.");
-                setLoading(false);
-                return;
-            }
+    useEffect(() => {
+        const checkAuthorization = async () => {
+            try {
+                const token = sessionStorage.getItem('token');
+                const accessToken = sessionStorage.getItem('access_token');
+                const userData = sessionStorage.getItem('user');
+                const userType = sessionStorage.getItem('user_type');
 
-            // Check if user is admin from stored data
-            let isAdmin = false;
-            
-            if (userData) {
-                try {
-                    const parsedUser = JSON.parse(userData);
-                    console.log("User data from storage:", parsedUser);
-                    
-                    // Check for admin status
-                    if (parsedUser.user_type === 'admin' || 
-                        parsedUser.role === 'admin' || 
-                        parsedUser.is_admin === true ||
-                        parsedUser.isAdmin === true) {
-                        isAdmin = true;
-                    }
-                } catch (e) {
-                    console.error("Error parsing user data:", e);
+                const authToken = token || accessToken;
+
+                console.log("Checking authorization...");
+                console.log("Token exists:", !!authToken);
+                console.log("User type from storage:", userType);
+
+                if (!authToken) {
+                    setIsAuthorized(false);
+                    setAuthError("No authentication token found. Please login.");
+                    setLoading(false);
+                    return;
                 }
-            }
-            
-            // Also check user_type directly
-            if (userType === 'admin') {
-                isAdmin = true;
-            }
-            
-            if (isAdmin) {
-                setIsAuthorized(true);
+
+                // Check if user is admin from stored data
+                let isAdmin = false;
+
+                if (userData) {
+                    try {
+                        const parsedUser = JSON.parse(userData);
+                        console.log("User data from storage:", parsedUser);
+
+                        // Check for admin status
+                        if (parsedUser.user_type === 'admin' ||
+                            parsedUser.role === 'admin' ||
+                            parsedUser.is_admin === true ||
+                            parsedUser.isAdmin === true) {
+                            isAdmin = true;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing user data:", e);
+                    }
+                }
+
+                // Also check user_type directly
+                if (userType === 'admin') {
+                    isAdmin = true;
+                }
+
+                if (isAdmin) {
+                    setIsAuthorized(true);
+                    setLoading(false);
+                    return;
+                }
+
+                setIsAuthorized(false);
+                setAuthError("You are not authorized to access the Admin Dashboard. Admin privileges required.");
                 setLoading(false);
-                return;
+
+            } catch (error) {
+                console.error("Authorization check failed:", error);
+                setIsAuthorized(false);
+                setAuthError("Unable to verify authorization. Please contact support.");
+                setLoading(false);
             }
+        };
 
-            setIsAuthorized(false);
-            setAuthError("You are not authorized to access the Admin Dashboard. Admin privileges required.");
-            setLoading(false);
-            
-        } catch (error) {
-            console.error("Authorization check failed:", error);
-            setIsAuthorized(false);
-            setAuthError("Unable to verify authorization. Please contact support.");
-            setLoading(false);
-        }
-    };
-
-    checkAuthorization();
-}, []);
+        checkAuthorization();
+    }, []);
 
     useEffect(() => {
         const fetchOverview = async () => {
             if (!isAuthorized) return;
-            
+
             setOverviewLoading(true);
             setOverviewError(null);
             try {
@@ -145,7 +148,7 @@ useEffect(() => {
             } catch (error) {
                 console.log("Failed to fetch overview data:", error);
                 setOverviewError("Could not load overview data");
-                
+
                 if (error.response?.status === 401 || error.response?.status === 403) {
                     setIsAuthorized(false);
                     setAuthError("Session expired. Please login again.");
@@ -154,7 +157,7 @@ useEffect(() => {
                 setOverviewLoading(false);
             }
         };
-        
+
         if (isAuthorized) {
             fetchOverview();
         }
@@ -163,7 +166,7 @@ useEffect(() => {
     useEffect(() => {
         const fetchJobAds = async () => {
             if (!isAuthorized) return;
-            
+
             setJobAdsLoading(true);
             setJobAdsError(null);
             try {
@@ -173,7 +176,7 @@ useEffect(() => {
             } catch (error) {
                 console.error("Failed to fetch job ads:", error);
                 setJobAdsError("Could not load job ads");
-                
+
                 if (error.response?.status === 401 || error.response?.status === 403) {
                     setIsAuthorized(false);
                     setAuthError("Session expired. Please login again.");
@@ -182,7 +185,7 @@ useEffect(() => {
                 setJobAdsLoading(false);
             }
         };
-        
+
         if (isAuthorized) {
             fetchJobAds();
         }
@@ -191,13 +194,13 @@ useEffect(() => {
     useEffect(() => {
         const fetchDashboard = async () => {
             if (!isAuthorized) return;
-            
-            setLoading(true); 
+
+            setLoading(true);
             try {
                 const res = await api.get('admin/dashboard/');
                 setDashboardData(res.data);
                 console.log("Dashboard data:", res.data)
-                
+
                 if (res.data) {
                     setTotalStats({
                         total_jobs: res.data.total_jobs || 0,
@@ -210,7 +213,7 @@ useEffect(() => {
                 }
             } catch (error) {
                 console.error("Dashboard data error", error);
-                
+
                 if (error.response?.status === 401 || error.response?.status === 403) {
                     setIsAuthorized(false);
                     setAuthError("Session expired. Please login again.");
@@ -219,11 +222,38 @@ useEffect(() => {
                 setLoading(false);
             }
         };
-        
+
         if (isAuthorized) {
             fetchDashboard();
         }
     }, [isAuthorized]);
+
+    const handleLogoutConfirm = async () => {
+        setShowLogoutModal(false);
+
+        try {
+            const refresh = sessionStorage.getItem("refresh");
+
+            if (refresh) {
+                await api.post("logout/", { refresh });
+            }
+        } catch (err) {
+            console.error("Logout failed:", err);
+        } finally {
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("access_token");
+            sessionStorage.removeItem("access");
+            sessionStorage.removeItem("refresh");
+            sessionStorage.removeItem("user");
+            sessionStorage.removeItem("userData");
+            sessionStorage.removeItem("user_type");
+            sessionStorage.removeItem("admin_id");
+
+            sessionStorage.clear();
+
+            navigate("/");
+        }
+    };
 
     if (loading || isAuthorized === null) {
         return (
@@ -247,8 +277,8 @@ useEffect(() => {
                     <div className='unauthorized-card unauthorized-card-premium'>
                         <div className='unauthorized-icon'>
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 8V12M12 16H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke="#d32f2f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M12 12V16" stroke="#d32f2f" strokeWidth="2" strokeLinecap="round"/>
+                                <path d="M12 8V12M12 16H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke="#d32f2f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M12 12V16" stroke="#d32f2f" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                         </div>
                         <h2 className='unauthorized-title'>Access Denied</h2>
@@ -256,8 +286,8 @@ useEffect(() => {
                             {authError || "You are not authorized to access the Admin Dashboard. Admin privileges required."}
                         </p>
                         <div className='unauthorized-actions'>
-                    
-                            <button 
+
+                            <button
                                 onClick={() => {
                                     sessionStorage.removeItem('token');
                                     sessionStorage.removeItem('access_token');
@@ -265,7 +295,7 @@ useEffect(() => {
                                     sessionStorage.removeItem('user');
                                     sessionStorage.removeItem('userData');
                                     navigate('/Job-portal/Admin/login')
-                                }} 
+                                }}
                                 className='unauthorized-btn unauthorized-btn-primary'
                             >
                                 Login Again
@@ -345,6 +375,12 @@ useEffect(() => {
                                 {activetab === "settings" ? <img src={SettingsAct} width={15} height={15} alt="dashboard" />
                                     : <img src={Settings} width={15} height={15} alt="settings" />}
                                 <div className='Enav-item'>settings</div>
+                            </div>
+                        </div>
+                        <div onClick={() => setShowLogoutModal(true)} className="Admin-Navbar">
+                            <div className="Admin-Navbox">
+                                <img src={Logout} width={15} height={15} alt="Logout" />
+                                <div className="Enav-item">Logout</div>
                             </div>
                         </div>
                     </div>
@@ -535,6 +571,12 @@ useEffect(() => {
                     {activetab === 'settings' && (<h3>settings</h3>)}
                 </div>
             </div>
+
+            <LogoutModal
+                show={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleLogoutConfirm}
+            />
         </>
     )
 }

@@ -21,11 +21,13 @@ export const AnalyticsPage = () => {
         console.log("🔵 Fetching applications for analytics...");
         const token = sessionStorage.getItem('access');
         console.log("Token exists:", !!token);
-        
+
         const response = await api.get('jobs/applications/');
+
         console.log("✅ Applications response:", response.data);
         console.log("✅ Applications count:", response.data?.length);
-        
+        console.log("FIRST APPLICATION:", response.data[0]);
+
         setApplications(response.data || []);
       } catch (error) {
         console.error("❌ Error fetching applications:", error);
@@ -34,7 +36,7 @@ export const AnalyticsPage = () => {
         setLoading(false);
       }
     };
-    
+
     fetchApplications();
   }, []); // Empty dependency array - runs once when component mounts
 
@@ -85,23 +87,23 @@ export const AnalyticsPage = () => {
 
       months.forEach((m, index) => {
         const monthLabel = index === 0 ? firstMonthFullName : index === 1 ? secondMonthFullName : thirdMonthFullName;
-        
+
         let count = 0;
         applications.forEach(app => {
           const isOurJob = employerJobIds.includes(String(app.job?.id));
-          const isCorrectStatus = stage.status.some(s => 
+          const isCorrectStatus = stage.status.some(s =>
             app.status?.toLowerCase() === s.toLowerCase()
           );
-          
+
           const appDate = new Date(app.applied_date);
           const appMonth = appDate.toLocaleString('default', { month: 'short' });
           const isCorrectMonth = appMonth.toLowerCase() === m.toLowerCase();
-          
+
           if (isOurJob && isCorrectStatus && isCorrectMonth) {
             count++;
           }
         });
-        
+
         row[monthLabel] = count;
       });
 
@@ -112,15 +114,15 @@ export const AnalyticsPage = () => {
   // Doughnut Chart Data
   const dynamicStatusData = useMemo(() => {
     const counts = { progress: 0, reviewing: 0, done: 0 };
-    
+
     if (!currentEmployer?.jobPosted) return [0, 0, 0];
-    
+
     const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-    
+
     currentEmployer.jobPosted.forEach(job => {
       const postDate = new Date(job.created_at || job.posted_date);
       const postMonth = postDate.toLocaleString('default', { month: 'long' });
-      
+
       if (postMonth === currentMonth) {
         const jobStatus = (job.job_status || "").toLowerCase();
         if (jobStatus === "hiring in progress") counts.progress++;
@@ -128,49 +130,70 @@ export const AnalyticsPage = () => {
         else if (jobStatus === "hiring done") counts.done++;
       }
     });
-    
+
     return [counts.progress, counts.reviewing, counts.done];
   }, [currentEmployer]);
 
   // Experience Chart Data
   const experienceChartData = useMemo(() => {
     if (!applications.length) return [];
-    
+
+
+
     const levels = ["16-20+", "11-15", "6-10", "1-5", "Fresher"];
     const employerJobIds = currentEmployer?.jobPosted?.map(job => String(job.id)) || [];
 
     return levels.map((level) => {
       const row = { level };
-      
+
       months.forEach((m, index) => {
         const monthLabel = index === 0 ? firstMonthFullName : index === 1 ? secondMonthFullName : thirdMonthFullName;
         let count = 0;
-        
+
         applications.forEach(app => {
           const isOurJob = employerJobIds.includes(String(app.job?.id));
           if (!isOurJob) return;
-          
+
           const appDate = new Date(app.applied_date);
           const appMonth = appDate.toLocaleString('default', { month: 'short' });
           if (appMonth.toLowerCase() !== m.toLowerCase()) return;
-          
-          const expYears = app.user?.experience || 0;
-          
+
+
+          console.log("Full application:", app);
+
+          let expYears = app.total_experience_years;
+        
+        // Handle null, undefined, or string values
+        if (expYears === null || expYears === undefined) {
+          expYears = 0;
+        } else {
+          expYears = parseFloat(expYears);
+        }
+
+        console.log("User:", app.user?.username, "Experience:", expYears);
+
+
+
+
           let isInRange = false;
           if (level === "Fresher" && expYears === 0) isInRange = true;
           else if (level === "1-5" && expYears >= 1 && expYears <= 5) isInRange = true;
           else if (level === "6-10" && expYears > 5 && expYears <= 10) isInRange = true;
           else if (level === "11-15" && expYears > 10 && expYears <= 15) isInRange = true;
           else if (level === "16-20+" && expYears > 15) isInRange = true;
-          
+
           if (isInRange) count++;
         });
-        
+
         row[monthLabel] = count;
       });
-      
+
       return row;
     });
+
+
+
+
   }, [applications, currentEmployer, months]);
 
   const TriangleDot = (props) => {
@@ -219,7 +242,7 @@ export const AnalyticsPage = () => {
       <div className="title-banner">
         <h1 className="page-title">Analytics</h1>
       </div>
-      
+
       <div className="analytics-content">
         {/* Dynamic Area Chart */}
         <div className="card line-card">

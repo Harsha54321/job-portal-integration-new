@@ -227,17 +227,15 @@ export const Elogin = () => {
           <span className="logo-text">Job portal</span>
           <span className="subtext">For Employers</span>
         </Link>
-        <div className="header-links">
+        <div className="login-header-actions">
           <span className="no-account">Don’t have an account?</span>
+
           <Link to="/Job-portal/employer/signup" className="signup-btn">
             Create
           </Link>
-          <div className="separator"></div>
-          <Link
-            to="/Job-portal/jobseeker/login"
-            className="employer-redirect-link"
-          >
-            Job seekers Login
+
+          <Link to="/Job-portal/role-selection" className="login-header-back-btn">
+            ← Back
           </Link>
         </div>
       </header>

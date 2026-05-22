@@ -549,7 +549,8 @@ export const Jsignup = () => {
           </Link>
 
           <div className="j-sign-up-header-links">
-            <span className='no-account'>Already have an account?</span>
+            <span className="no-account">Already have an account?</span>
+
             <Link
               to="/Job-portal/jobseeker/login"
               state={{
@@ -563,9 +564,8 @@ export const Jsignup = () => {
             >
               Login
             </Link>
-            <div className="separator"></div>
-            <Link to='/Job-portal/employer/login' className="employer-redirect-link">
-              Employers Login
+            <Link to="/Job-portal/role-selection" className="header-back-btn">
+              ← Back
             </Link>
           </div>
         </header>
@@ -577,7 +577,6 @@ export const Jsignup = () => {
 
           <form onSubmit={handleSubmit} className="j-sign-up-form">
             <h2>Sign up for Jobseeker</h2>
-
             <label>User name</label>
             <input
               type="text"

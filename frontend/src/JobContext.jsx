@@ -583,6 +583,18 @@ export const JobProvider = ({ children }) => {
         load();
     }, []);
 
+    useEffect(() => {
+        const token = sessionStorage.getItem("access");
+ 
+        if (!token) return;
+ 
+        const interval = setInterval(() => {
+            fetchChats();
+        }, 3000);
+ 
+        return () => clearInterval(interval);
+    }, [fetchChats]);
+
     // ================= PROVIDER =================
     return (
         <JobContext.Provider value={{
