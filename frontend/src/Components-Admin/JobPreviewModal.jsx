@@ -15,7 +15,7 @@ export const JobPreviewModal = ({ job, onClose }) => {
     const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
     const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
     if (diffInHours < 24) return `${diffInHours} hours ago`;
@@ -47,10 +47,10 @@ export const JobPreviewModal = ({ job, onClose }) => {
                   <span className="job-preview-rating">4.3 ★</span>
                   <span className="job-preview-reviews">55k+ reviews</span>
                 </div>
-                
+
                 <div className="job-preview-meta-grid">
                   <div className="meta-item"><img src={time} className='card-icons' alt="time" /> {job.experience || ''}</div>
-                  <div className="meta-item"> {job.salary }LPA</div>
+                  <div className="meta-item"> {job.salary}LPA</div>
                   <div className="meta-item"><img src={place} className='card-icons' alt="loc" /> {job.location || ''}</div>
                 </div>
 
@@ -61,14 +61,28 @@ export const JobPreviewModal = ({ job, onClose }) => {
                 </div>
               </div>
               <div className="job-preview-logo-box">
-                {job.company?.charAt(0) || 'J'}
+                {job.logo || job.company_logo || job.logo_url ? (
+                  <img
+                    src={job.logo || job.company_logo || job.logo_url}
+                    className="job-preview-logo-img"
+                    alt={`${job.company || 'Company'} logo`}
+                    onError={(e) => {
+                      // Fallback placeholder fallback behavior if the image link breaks
+                      e.target.style.display = 'none';
+                      e.target.parentNode.classList.add('use-fallback-text');
+                    }}
+                  />
+                ) : null}
+                <span className="job-logo-fallback-text">
+                  {job.company?.charAt(0).toUpperCase() || 'J'}
+                </span>
               </div>
             </div>
-            
+
             <div className="job-preview-header-footer">
-               <span>Posted: {getTimeAgo(job.created_at || job.date)}</span>
-               <span>Openings: {job.openings || 2}</span>
-               <span>Applicants: {job.applicants || '100+'}</span>
+              <span>Posted: {getTimeAgo(job.created_at || job.date)}</span>
+              <span>Openings: {job.openings || 2}</span>
+              <span>Applicants: {job.applicants || '100+'}</span>
             </div>
           </div>
 

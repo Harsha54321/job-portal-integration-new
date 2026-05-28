@@ -70,16 +70,28 @@
 
 
 .company-info-card {
-    background-color: #E9F3FC;
+    background-color: #e9f3fc;
     width: 300px;
     border-radius: 60px;
-    padding: 5px 30px;
+    padding: 15px 30px;        /* increased vertical padding for better spacing */
     margin: 20px 50px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    height: 100px;
+    /* height: auto; — use auto, not a fixed height */
+    min-height: 100px;         /* minimum height to avoid squishing, but allows growth */
+    box-sizing: border-box;    /* ensures padding doesn't cause overflow */
+}
+
+.cards-container {
+    display: flex;
+    align-items: stretch;   /* makes all cards same height */
+    flex-wrap: wrap;
+}
+
+.company-info-card {
+    flex: 1 0 auto;         /* allows growing/shrinking while keeping base width */
 }
 
 .company-name {

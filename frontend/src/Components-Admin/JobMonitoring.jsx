@@ -82,6 +82,8 @@ export const JobMonitoring = () => {
                 is_highlighted: job.is_highlighted ?? false,
                 plan_type: job.plan_type || '',  // 'premium' | 'gold' | ''
 
+                company_logo: job.company?.logo || job.company_logo || null,
+
             }));
             console.log(normalized)
             setJobs(normalized);

@@ -31,11 +31,29 @@ export const ActivityMonitor = () => {
 
   // Status update state
   const [updatingId, setUpdatingId] = useState(null);
+  // Company details modal state
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
 
   useEffect(() => {
     fetchDashboardStats();
     fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setOpenDropdownId(null);
+    };
+
+    if (openDropdownId !== null) {
+      document.addEventListener("click", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, [openDropdownId]);
 
   const fetchDashboardStats = async () => {
     setStatsLoading(true);
@@ -54,14 +72,62 @@ export const ActivityMonitor = () => {
   const fetchCompanies = async () => {
     setCompanyLoading(true);
     setCompanyError(null);
+
     try {
       const res = await api.get('/company/');
+      console.log("Company approval list data:", res.data);
       setCompanyData(res.data);
     } catch (err) {
       console.error('Company fetch error:', err);
       setCompanyError('Failed to load company data.');
     } finally {
       setCompanyLoading(false);
+    }
+  };
+
+  const handleCompanyNameClick = async (company) => {
+    setSelectedCompany(company);
+    setDetailsError("");
+    setDetailsLoading(false);
+
+    const hasFullDetails =
+      company.company_profile ||
+      company.verification_details ||
+      company.company_moto ||
+      company.contact_person ||
+      company.contact_number ||
+      company.company_email ||
+      company.website ||
+      company.company_size ||
+      company.address1 ||
+      company.address2 ||
+      company.about ||
+      company.legal_name ||
+      company.registration_number ||
+      company.tax_id ||
+      company.website_url ||
+      company.official_email ||
+      company.phone_number ||
+      company.incorporation_certificate ||
+      company.company_logo ||
+      company.logo_url ||
+      company.logo_absolute_url;
+
+    if (hasFullDetails) {
+      return;
+    }
+
+    try {
+      setDetailsLoading(true);
+
+      const res = await api.get(`/company/${company.id}/`);
+      console.log("Single company details:", res.data);
+      setSelectedCompany(res.data);
+    } catch (err) {
+      console.error("Company details fetch error:", err);
+      setDetailsError("Full company details are not available from API yet.");
+    } finally {
+      setDetailsLoading(false);
     }
   };
 
@@ -289,13 +355,21 @@ export const ActivityMonitor = () => {
                     </div>
 
                     {/* Application Status */}
-                    <div style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.08)", borderRadius: "10px", flex: "2" }}>
+                    <div style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.08)", borderRadius: "10px", flex: "1.5" }}>
                       <h4 style={{ textAlign: "center", background: "#ADCEED", padding: "15px", marginTop: "0px", borderTopLeftRadius: "10px", borderTopRightRadius: "10px" }}>Application Status</h4>
-                      <div style={{ margin: "15px 12px", padding: "0px 50px" }}>
-                        <p style={{ padding: "5px 20px", marginTop: "15px", fontWeight: "500" }}>
-                          Total Application : {s('platform_activity_overview', 'application_status', 'total_application')}
-                        </p>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 20px" }}>
+
+                      {/* Standardized inner container padding to match adjacent cards ("0px 12px") */}
+                      <div style={{ padding: "0px 12px", marginBottom: "15px" }}>
+
+                        {/* Clean left-aligned baseline matching row height structure */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderBottom: "1px solid #f3f4f6" }}>
+                          <p style={{ margin: "0px", fontWeight: "600", fontSize: "14px", color: "#032240" }}>
+                            Total Application : {s('platform_activity_overview', 'application_status', 'total_application')}
+                          </p>
+                        </div>
+
+                        {/* All rows standardized to padding: "12px 20px" */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px" }}>
                           <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
                             <img src={BlueProfile} width={20} height={20} alt="" />
                             <p style={{ margin: "0px 5px" }}>Shortlisted</p>
@@ -304,7 +378,7 @@ export const ActivityMonitor = () => {
                             {s('platform_activity_overview', 'application_status', 'shortlisted')}
                           </span>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 20px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px" }}>
                           <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
                             <img src={Interview} width={20} height={20} alt="" />
                             <p style={{ margin: "0px 5px" }}>Interviews</p>
@@ -313,7 +387,7 @@ export const ActivityMonitor = () => {
                             {s('platform_activity_overview', 'application_status', 'interviews')}
                           </span>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 20px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px" }}>
                           <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
                             <img src={Rejection} width={20} height={20} alt="" />
                             <p style={{ margin: "0px 5px" }}>Rejections</p>
@@ -480,15 +554,17 @@ export const ActivityMonitor = () => {
                     <div className="C-Approval-col">Submitted By</div>
                     <div className="C-Approval-col">Date of submission</div>
                     <div className="C-Approval-col">Certificate</div>
-                    <div className="C-Approval-col">Verification</div>
                     <div className="C-Approval-col">Status</div>
+                    <div className="C-Approval-col">Actions</div>
                   </div>
                   {companyData.length === 0 && (
                     <p style={{ textAlign: 'center', padding: '20px', color: 'gray' }}>No companies found.</p>
                   )}
                   {companyData.map((company) => (
                     <div className="C-Approval-data-row" key={company.id}>
-                      <div className="C-Approval-col C-Approval-name">{company.name}</div>
+                      <div className="C-Approval-col C-Approval-name">
+                        {company.name || company.company_name}
+                      </div>
                       <div className="C-Approval-col">
                         <div className="C-Approval-user-info">
                           <div className="C-Approval-avatar"></div>
@@ -512,13 +588,28 @@ export const ActivityMonitor = () => {
                         ) : (
                           <>
                             <span
-                              onClick={() => setOpenDropdownId(openDropdownId === company.id ? null : company.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdownId(openDropdownId === company.id ? null : company.id);
+                              }}
                               style={{ cursor: 'pointer', padding: '5px' }}
                             >
                               ...
                             </span>
                             {openDropdownId === company.id && (
-                              <div className="C-Approval-dropdown">
+                              <div
+                                className="C-Approval-dropdown"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div
+                                  onClick={() => {
+                                    setOpenDropdownId(null);
+                                    handleCompanyNameClick(company);
+                                  }}
+                                >
+                                  Quick View
+                                </div>
+
                                 {["Pending", "Hold", "Reject", "Verified"]
                                   .filter((status) => status !== company.verification)
                                   .map((status) => (
@@ -542,6 +633,298 @@ export const ActivityMonitor = () => {
           )}
         </div>
       </div>
+
+      {selectedCompany && (
+        <div
+          className="company-details-overlay"
+          onClick={() => setSelectedCompany(null)}
+        >
+          <div
+            className="company-details-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="company-details-header">
+              <h3>
+                {selectedCompany.company_name ||
+                  selectedCompany.name ||
+                  "Company Details"}
+              </h3>
+
+              <button
+                type="button"
+                onClick={() => setSelectedCompany(null)}
+                aria-label="Close company details"
+              >
+                ×
+              </button>
+            </div>
+
+            {detailsLoading && (
+              <p className="company-details-loading">
+                Loading company details...
+              </p>
+            )}
+
+            {/* {detailsError && (
+              <p className="company-details-error">{detailsError}</p>
+            )} */}
+
+            {!detailsLoading && (
+              <>
+                <h4 className="company-details-section-title">
+                  Company Profile Details
+                </h4>
+
+                <div className="company-details-grid">
+                  <div>
+                    <span>Company Name</span>
+                    <p>
+                      {selectedCompany.company_profile?.company_name ||
+                        selectedCompany.company_name ||
+                        selectedCompany.name ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Company Moto</span>
+                    <p>
+                      {selectedCompany.company_profile?.company_moto ||
+                        selectedCompany.company_moto ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Contact Person</span>
+                    <p>
+                      {selectedCompany.company_profile?.contact_person ||
+                        selectedCompany.contact_person ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Contact Number</span>
+                    <p>
+                      {selectedCompany.company_profile?.contact_number ||
+                        selectedCompany.contact_number ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Company Email</span>
+                    <p>
+                      {selectedCompany.company_profile?.company_email ||
+                        selectedCompany.company_email ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Website</span>
+                    <p>
+                      {selectedCompany.company_profile?.website ||
+                        selectedCompany.website ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Company Size</span>
+                    <p>
+                      {selectedCompany.company_profile?.company_size ||
+                        selectedCompany.company_size ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div className="company-details-full">
+                    <span>Address 1</span>
+                    <p>
+                      {selectedCompany.company_profile?.address1 ||
+                        selectedCompany.address1 ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div className="company-details-full">
+                    <span>Address 2</span>
+                    <p>
+                      {selectedCompany.company_profile?.address2 ||
+                        selectedCompany.address2 ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div className="company-details-full">
+                    <span>About Company</span>
+                    <p>
+                      {selectedCompany.company_profile?.about ||
+                        selectedCompany.about ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  {(selectedCompany.company_profile?.company_logo ||
+                    selectedCompany.logo_absolute_url ||
+                    selectedCompany.logo_url ||
+                    selectedCompany.company_logo) && (
+                      <div className="company-details-full">
+                        <span>Company Logo</span>
+                        <img
+                          className="company-details-logo"
+                          src={
+                            selectedCompany.company_profile?.company_logo ||
+                            selectedCompany.logo_absolute_url ||
+                            selectedCompany.logo_url ||
+                            selectedCompany.company_logo
+                          }
+                          alt="Company Logo"
+                        />
+                      </div>
+                    )}
+                </div>
+
+                <h4 className="company-details-section-title">
+                  Company Verification Details
+                </h4>
+
+                <div className="company-details-grid">
+                  <div>
+                    <span>Legal Name</span>
+                    <p>
+                      {selectedCompany.verification_details?.legal_name ||
+                        selectedCompany.legal_name ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Registration Number</span>
+                    <p>
+                      {selectedCompany.verification_details?.registration_number ||
+                        selectedCompany.registration_number ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Tax ID / GST</span>
+                    <p>
+                      {selectedCompany.verification_details?.tax_id ||
+                        selectedCompany.tax_id ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Website URL</span>
+                    <p>
+                      {selectedCompany.verification_details?.website_url ||
+                        selectedCompany.website_url ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Official Email</span>
+                    <p>
+                      {selectedCompany.verification_details?.official_email ||
+                        selectedCompany.official_email ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Phone Number</span>
+                    <p>
+                      {selectedCompany.verification_details?.phone_number ||
+                        selectedCompany.phone_number ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Submitted By</span>
+                    <p>
+                      {selectedCompany.verification_details?.submitted_by ||
+                        selectedCompany.user ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Date of Submission</span>
+                    <p>
+                      {selectedCompany.verification_details?.date ||
+                        selectedCompany.date ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Certificate</span>
+                    <p>
+                      {selectedCompany.verification_details?.certificate ||
+                        selectedCompany.certificate ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Verification Status</span>
+                    <p>
+                      {selectedCompany.verification_details?.verification ||
+                        selectedCompany.verification ||
+                        "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Email Verified</span>
+                    <p>
+                      {selectedCompany.verification_details?.email_verified === true ||
+                        selectedCompany.email_verified === true
+                        ? "Yes"
+                        : "Not provided"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span>Mobile Verified</span>
+                    <p>
+                      {selectedCompany.verification_details?.mobile_verified === true ||
+                        selectedCompany.mobile_verified === true
+                        ? "Yes"
+                        : "Not provided"}
+                    </p>
+                  </div>
+
+                  {(selectedCompany.verification_details?.incorporation_certificate ||
+                    selectedCompany.incorporation_certificate) && (
+                      <div className="company-details-full">
+                        <span>Incorporation Certificate</span>
+                        <a
+                          href={
+                            selectedCompany.verification_details?.incorporation_certificate ||
+                            selectedCompany.incorporation_certificate
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="company-details-link"
+                        >
+                          View Certificate
+                        </a>
+                      </div>
+                    )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };

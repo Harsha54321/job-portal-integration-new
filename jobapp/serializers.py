@@ -1616,6 +1616,81 @@ class AdminCompanySerializer(serializers.ModelSerializer):
         return obj.legal_name
 
 
+class AdminCompanyDetailSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    user = serializers.CharField(source="employer.username", read_only=True)
+    date = serializers.SerializerMethodField()
+    certificate = serializers.SerializerMethodField()
+    verification = serializers.CharField(source="get_status_display", read_only=True)
+    company_profile = serializers.SerializerMethodField()
+    verification_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CompanyVerification
+        fields = [
+            "id",
+            "name",
+            "user",
+            "date",
+            "certificate",
+            "verification",
+            "company_profile",
+            "verification_details",
+        ]
+
+    def get_date(self, obj):
+        return obj.created_at.strftime("%d %B %Y") if obj.created_at else None
+
+    def get_certificate(self, obj):
+        return "Yes" if obj.incorporation_certificate else "No"
+
+    def get_name(self, obj):
+        return obj.legal_name
+
+    def get_company_profile(self, obj):
+        request = self.context.get("request")
+        company = None
+
+        if hasattr(obj.employer, "employer_profile"):
+            company = obj.employer.employer_profile.company
+
+        if not company:
+            company = CompanyProfile.objects.filter(
+                company_name__iexact=obj.legal_name
+            ).first()
+
+        if not company:
+            return None
+
+        return CompanyProfileSerializer(
+            company,
+            context={"request": request}
+        ).data
+
+    def get_verification_details(self, obj):
+        request = self.context.get("request")
+
+        certificate_url = None
+        if obj.incorporation_certificate:
+            certificate_url = obj.incorporation_certificate.url
+            if request:
+                certificate_url = request.build_absolute_uri(certificate_url)
+
+        return {
+            "legal_name": obj.legal_name,
+            "registration_number": obj.registration_number,
+            "tax_id": obj.tax_id,
+            "website_url": obj.website_url,
+            "official_email": obj.official_email,
+            "phone_number": obj.phone_number,
+            "incorporation_certificate": certificate_url,
+            "email_verified": True,
+            "mobile_verified": True,
+            "submitted_by": obj.employer.username if obj.employer else None,
+            "date": self.get_date(obj),
+            "certificate": self.get_certificate(obj),
+            "verification": obj.get_status_display(),
+        }
 
 #UserManagement Serializers
 

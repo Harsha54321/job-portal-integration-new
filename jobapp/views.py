@@ -57,6 +57,7 @@ from .serializers import (
     InvoiceSerializer,
     PaymentMethodSerializer,
     AdminCompanySerializer,
+    AdminCompanyDetailSerializer,
 
 )
 
@@ -3010,12 +3011,33 @@ class DashboardView(APIView):
         })
 
 class AdminCompanyListView(APIView):
-    #permission_classes = [IsAuthenticated, IsAdminUserType] enable in prod
+    # permission_classes = [IsAuthenticated, IsAdminUserType]  # enable in prod
+
     def get(self, request):
-        queryset = CompanyVerification.objects.select_related('employer')
+        queryset = CompanyVerification.objects.select_related("employer")
         serializer = AdminCompanySerializer(queryset, many=True)
         return Response(serializer.data)
- 
+
+
+class AdminCompanyDetailView(APIView):
+    # permission_classes = [IsAuthenticated, IsAdminUserType]  # enable in prod
+
+    def get(self, request, pk):
+        company_verification = get_object_or_404(
+            CompanyVerification.objects.select_related(
+                "employer",
+                "employer__employer_profile",
+                "employer__employer_profile__company",
+            ),
+            pk=pk
+        )
+
+        serializer = AdminCompanyDetailSerializer(
+            company_verification,
+            context={"request": request}
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
  
 class UpdateCompanyStatusView(APIView):
  
@@ -3232,12 +3254,18 @@ class AdminJobListView(APIView):
         job_data = []
  
         for job in jobs:
- 
-            # Safe company name
+            # Safe company name and logo
             company_name = "N/A"
+            company_logo = None  # ← Initialize here
+            
             if hasattr(job.employer, "employer_profile") and job.employer.employer_profile.company:
-                company_name = job.employer.employer_profile.company.company_name
- 
+                company_obj = job.employer.employer_profile.company  # ← Use different variable name
+                company_name = company_obj.company_name
+                
+                # Get logo URL safely
+                if company_obj.company_logo:
+                    company_logo = request.build_absolute_uri(company_obj.company_logo.url)
+            
             # Get company verification status safely
             verification = CompanyVerification.objects.filter(
                 employer=job.employer
@@ -3249,14 +3277,11 @@ class AdminJobListView(APIView):
                 "id": job.id,
                 "job_title": job.job_title,
                 "company_name": company_name,
- 
-                # NEW IMPORTANT FIELD
+                "company_logo": company_logo,  # ADD THIS LINE
                 "approval_status": job.approval_status,
- 
                 "job_status": job.job_status,
                 "is_published": job.is_published,
                 "flagged": job.flagged,
- 
                 "created_at": job.created_at,
                 "location": job.location,
                 "experience": job.experience,
@@ -3264,16 +3289,13 @@ class AdminJobListView(APIView):
                 "work_type": job.work_type,
                 "openings": job.openings,
                 "key_skills": job.key_skills,
- 
                 "applicants_count": job.applications.count(),
- 
                 "company_verification_status": verification_status,
- 
                 "employer_email": job.employer.email,
                 "employer_username": job.employer.username,
-                "job_highlights":job.job_highlights,
-                "job_description":job.job_description,
-                "responsibilities":job.responsibilities,
+                "job_highlights": job.job_highlights,
+                "job_description": job.job_description,
+                "responsibilities": job.responsibilities,
                 "is_highlighted": job.is_highlighted,          
                 "highlighted_at": job.highlighted_at,
             })

@@ -544,6 +544,47 @@
   background-color: #fffbeb;
   border-left: 4px solid #f59e0b;
 }
+/* Container Box for Logo or Fallback Letter */
+.job-preview-logo-box {
+  width: 60px;
+  height: 60px;
+  min-width: 60px; /* Prevents compression inside flex containers */
+  min-height: 60px;
+  background-color: #f0f4f8; /* Soft background tint for fallback letter text */
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* Clips breaking image borders */
+  position: relative;
+}
+
+/* Fallback Typography Character Settings */
+.job-logo-fallback-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e88e5; /* Primary brand blue coloring accent */
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* Fits fetched image properties gracefully */
+.job-preview-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Preserves brand icon structural aspect ratio */
+  background-color: #ffffff; /* Ensures contrast backgrounds behind custom logos */
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+/* Auto-reveals text string beneath if fallback trigger engages via error block */
+.job-preview-logo-box.use-fallback-text .job-logo-fallback-text {
+  display: block;
+}
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {

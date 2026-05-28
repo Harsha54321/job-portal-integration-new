@@ -23,9 +23,6 @@ export const BlogPage = () => {
 
   // 1. Data arrays to avoid repetition
   const featuredBlogs = [
-    { img: blogimg, title: "Lorem ipsum dolor sit amet...", desc: "Lorem ipsum dolor sit amet..." },
-    { img: bloggimg, title: "Lorem ipsum, dolor sit amet...", desc: "Lorem ipsum dolor sit amet..." },
-    { img: blggimg, title: "Lorem ipsum, dolor sit amet...", desc: "Lorem ipsum dolor sit amet..." },
   ];
 
   const categories = [
@@ -38,12 +35,8 @@ export const BlogPage = () => {
   ];
 
   const techBlogs = [
-    { img: bloggimgg, title: "Lorem ipsum dolor sit amet..." },
-    { img: blooggimgg, title: "Lorem ipsum, dolor sit amet..." },
-    { img: blggimg, title: "Lorem ipsum, dolor sit amet..." },
-    { img: blogimg, title: "Lorem ipsum dolor sit amet..." },
-    { img: bloggimg, title: "Lorem ipsum dolor sit amet..." },
-    { img: blggimg, title: "Lorem ipsum dolor sit amet..." },
+    { img: blooggimgg, title: "Hook readers instantly: Start with a bold stat, question, or story" },
+    { img: blggimg, title: "Hook readers instantly: Start with a bold stat, question, or story" },
   ];
 
   // 2. Reusable Card Component
@@ -51,10 +44,8 @@ export const BlogPage = () => {
     <div className='content'>
       <img src={img} alt="blog" width="300" />
       <h3 className={isCategory ? 'card-title' : ''}>{title}</h3>
-      <p>{desc || "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Repellendus, quibusdam."}</p>
+      <p>{desc || "Hook readers instantly: Start with a bold stat, question, or story"}</p>
       <button>Read more</button>
-      <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-      <p className="extra-content">Lorem ipsum dolor sit amet...</p>
     </div>
   );
 

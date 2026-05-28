@@ -29,31 +29,31 @@ export const TechnologyBlog = () => {
        
         <div className='content'>
         <img src={blogimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum dolor sit amet consectetur adipisicing elit. Id voluptas sunt aspernatur excepturi? Iusto, vero.</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Repellendus, quibusdam.</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         
         </div>
       
         <div className='content' >
         <img src={bloggimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         <div  className='content'>
         <img src={blggimg} alt="blog" width="300"/>
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         </div>
@@ -63,32 +63,32 @@ export const TechnologyBlog = () => {
        
         <div className='content'>
         <img src={blogcimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum dolor sit amet consectetur adipisicing elit. Id voluptas sunt aspernatur excepturi? Iusto, vero.</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Repellendus, quibusdam.</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         
         
         </div>
       
         <div className='content' >
         <img src={bloggcimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         <div  className='content'>
         <img src={blogccimg} alt="blog" width="300"/>
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         </div>
@@ -98,31 +98,31 @@ export const TechnologyBlog = () => {
        
         <div className='content'>
         <img src={bloggccimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum dolor sit amet consectetur adipisicing elit. Id voluptas sunt aspernatur excepturi? Iusto, vero.</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Repellendus, quibusdam.</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         
         </div>
       
         <div className='content' >
         <img src={blggcimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         <div  className='content'>
         <img src={blggimg} alt="blog" width="300"/>
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         </div>
@@ -132,31 +132,31 @@ export const TechnologyBlog = () => {
        
         <div className='content'>
         <img src={blogimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum dolor sit amet consectetur adipisicing elit. Id voluptas sunt aspernatur excepturi? Iusto, vero.</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Repellendus, quibusdam.</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         
         </div>
       
         <div className='content' >
         <img src={bloggimg} alt="blog" width="300"/>  
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         <div  className='content'>
         <img src={blggimg} alt="blog" width="300"/>
-        <h3>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eveniet, nesciunt ea deleniti esse quo laborum!</h3>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Deleniti, dolores!</p>
+        <h3>Hook readers instantly: Start with a bold stat, question, or story</h3>
+        <p>Start strong: Your first sentence determines if a reader stays</p>
         <button>Read more</button>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
-        <p className="extra-content">Lorem ipsum dolor sit amet...</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
+        <p className="extra-content">Start strong: Your first sentence determines if a reader stays or leaves. Use formulas: Open with an unexpected statistic, a relatable question, or a brief narrative. Deliver intent: Signal to the reader right away exactly what problem your post will solve</p>
         </div>
       
         </div>

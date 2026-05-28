@@ -19,7 +19,6 @@ import Settings from '../assets/AdminAssets/Settings.png'
 import SettingsAct from '../assets/AdminAssets/SettingsActive.png'
 import Memberships from '../assets/AdminAssets/Membership.png'
 import MembershipsAct from '../assets/AdminAssets/MembershipActive.png'
-import { EHeader } from '../Components-Employer/EHeader'
 import TotalJobs from '../assets/AdminAssets/TotalJobs.png'
 import TotalEmployers from '../assets/AdminAssets/TotalEmployers.png'
 import TotalJobseekers from '../assets/AdminAssets/TotalJobseeker.png'
@@ -36,6 +35,7 @@ import { Membership } from './Membership'
 import api from '../api/axios'
 import Logout from '../assets/Employer/Elogout.png'
 import { LogoutModal } from '../Components-Jobseeker/LogoutModal'
+import { AdminHeader } from './AdminHeader'
 
 export const AdminDashboard = () => {
     const { jobs, Alluser, currentEmployer } = useJobs();
@@ -258,7 +258,7 @@ export const AdminDashboard = () => {
     if (loading || isAuthorized === null) {
         return (
             <>
-                <EHeader />
+                <AdminHeader/>
                 <div className='loading-container'>
                     <div className='loading-card'>
                         <div className='spinner'></div>
@@ -272,7 +272,7 @@ export const AdminDashboard = () => {
     if (!isAuthorized) {
         return (
             <>
-                <EHeader />
+                <AdminHeader />
                 <div className='unauthorized-container'>
                     <div className='unauthorized-card unauthorized-card-premium'>
                         <div className='unauthorized-icon'>
@@ -309,8 +309,9 @@ export const AdminDashboard = () => {
 
     return (
         <>
-            <EHeader />
+            <AdminHeader />
             <div className='AdminContainer'>
+                <AdminHeader onLogoutClick={() => setShowLogoutModal(true)} />
                 <div className='Admin-Sidebar'>
                     <h2 style={{ textAlign: "center", marginTop: "35px" }}>Administrator</h2>
                     <div className='Admin-Sidebar-list'>

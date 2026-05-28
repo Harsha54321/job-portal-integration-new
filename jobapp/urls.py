@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     AJobListView,
     AdminCompanyListView,
+    AdminCompanyDetailView,
     AdminDashboardOverviewView,
     AdminDashboardStats,
     AdminLoginView,
@@ -247,6 +248,7 @@ urlpatterns = [
     #ActivityMonitor
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('company/', AdminCompanyListView.as_view(), name='dashboardlist'),
+    path('company/<int:pk>/', AdminCompanyDetailView.as_view(), name='admin-company-detail'),
     path('company/<int:pk>/status/', UpdateCompanyStatusView.as_view(), name='update-company-status'),
     #UserManagement
     path('users/', UserListView.as_view(), name='user-list'),

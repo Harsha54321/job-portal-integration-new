@@ -240,7 +240,7 @@ export const AdminLogin = () => {
                             className={errors.password ? "input-error" : ""}
                         />
                         <span className="eye-icon" onClick={togglePasswordView}>
-                            <img src={passwordShow ? eye : eyeHide} className='show-icon' alt='toggle' />
+                            <img src={passwordShow ? eyeHide : eye} className='show-icon' alt='toggle' />
                         </span>
                     </div>
                     {errors.password && <span className="error-msg">{errors.password}</span>}
