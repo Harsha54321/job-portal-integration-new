@@ -25,6 +25,8 @@ class User(AbstractUser):
         choices=AccountStatus.choices,
         default=AccountStatus.ACTIVE
     )
+    password_changed_at = models.DateTimeField(null=True,blank=True)
+    password_expiry_days = models.IntegerField(default=30)
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'user_type']
@@ -97,12 +99,12 @@ class JobSeekerProfile(models.Model):
     state = models.CharField(max_length=100, blank=True)
     pincode = models.CharField(max_length=10, blank=True)
     country = models.CharField(max_length=100, blank=True)
- 
+
     # Resume & Portfolio
     resume_file = models.FileField(upload_to='resumes/', null=True, blank=True)
     portfolio_link = models.URLField(blank=True, null=True)
- 
-    # Career Preferences (existing duplicate kept as-is)
+
+    # Career Preferences (FIXED DECIMALS)
     total_experience_years = models.DecimalField(
         max_digits=4,
         decimal_places=1,
@@ -110,7 +112,7 @@ class JobSeekerProfile(models.Model):
         blank=True,
         default=None
     )
- 
+
     current_ctc = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -118,7 +120,7 @@ class JobSeekerProfile(models.Model):
         blank=True,
         default=None
     )
- 
+
     expected_ctc = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -126,7 +128,7 @@ class JobSeekerProfile(models.Model):
         blank=True,
         default=None
     )
- 
+
     preferred_job_type = models.CharField(
         max_length=50,
         choices=(
@@ -140,10 +142,10 @@ class JobSeekerProfile(models.Model):
     preferred_role_industry = models.CharField(max_length=200, blank=True)
     ready_to_start_immediately = models.BooleanField(default=False)
     willing_to_relocate = models.BooleanField(default=False)
- 
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
- 
+
     # =====================================================
     # HELPERS (UNCHANGED)
     # =====================================================
@@ -155,6 +157,89 @@ class JobSeekerProfile(models.Model):
  
     class Meta:
         db_table = 'JobSeekerProfile'
+    
+    @property
+    def profile_completion(self):
+
+        fields_to_check = [
+
+            self.full_name,
+
+            self.gender,
+
+            self.dob,
+
+            self.marital_status,
+
+            self.nationality,
+
+            self.profile_photo,
+
+            self.current_job_title,
+
+            self.current_company,
+
+            self.total_experience_years,
+
+            self.notice_period,
+
+            self.current_location,
+
+            self.preferred_locations,
+
+            self.alternate_phone,
+
+            self.alternate_email,
+
+            self.full_address,
+
+            self.street,
+
+            self.city,
+
+            self.state,
+
+            self.pincode,
+
+            self.country,
+
+            self.resume_file,
+
+            self.portfolio_link,
+
+            self.current_ctc,
+
+            self.expected_ctc,
+
+            self.preferred_job_type,
+
+            self.preferred_role_industry,
+        ]
+
+        completed_fields = sum(
+            1
+            for field in fields_to_check
+            if field not in [None, "", []]
+        )
+
+        total_fields = len(fields_to_check)
+
+        percentage = int(
+            (
+                completed_fields
+                /
+                total_fields
+            ) * 100
+        )
+
+        return percentage
+
+    def __str__(self):
+
+        return (
+            f"Job Seeker: "
+            f"{self.user.email}"
+        )
 
     def __str__(self):
         return f"Job Seeker: {self.user.email}"
@@ -169,6 +254,16 @@ class AdminProfile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    two_factor_enabled = models.BooleanField(default=False)   
+    two_factor_method = models.CharField(            
+        max_length=10,
+        choices=[
+            ("email", "Email"),
+            ("sms", "SMS")
+        ],
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = 'AdminProfile'
@@ -398,17 +493,17 @@ class PostAJob(models.Model):
         HYBRID = "Hybrid", "Hybrid"
         REMOTE = "Remote", "Remote"
         ON_SITE = "On-site", "On-site"
-
+ 
     class Shift(models.TextChoices):
         GENERAL = "General", "General"
         NIGHT = "Night", "Night"
         ROTATIONAL = "Rotational", "Rotational"
-
+ 
     class JobStatus(models.TextChoices):
         HIRING_IN_PROGRESS = "Hiring in Progress", "Hiring in Progress"
         REVIEWING_APPLICATION = "Reviewing Application", "Reviewing Application"
         HIRING_DONE = "Hiring Done", "Hiring Done"
-
+ 
     # NEW: Approval Status (CRITICAL)
     class ApprovalStatus(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -420,7 +515,7 @@ class PostAJob(models.Model):
         on_delete=models.CASCADE,
         related_name='post_a_jobs'
     )
-
+ 
     job_title = models.CharField(max_length=255)
     industry_type = models.JSONField(default=list, blank=True)
     department = models.JSONField(default=list, blank=True)
@@ -437,8 +532,28 @@ class PostAJob(models.Model):
     job_highlights = models.JSONField(default=list, blank=True)
     job_description = models.TextField()
     responsibilities = models.JSONField(default=list, blank=True)
-    # last_date_to_apply = models.DateField(null=True, blank=True)
+    last_date_to_apply = models.DateField(null=True, blank=True)
 
+    expiry_days = models.PositiveIntegerField(
+    default=30
+    )
+ 
+    expiry_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True
+    )
+ 
+    is_expired = models.BooleanField(
+        default=False,
+        db_index=True
+    )
+ 
+    expiry_notified = models.BooleanField(
+        default=False
+    )
+ 
+ 
     job_status = models.CharField(
         max_length=50,
         choices=JobStatus.choices,
@@ -505,13 +620,13 @@ class PostAJob(models.Model):
             self.approved_at = timezone.now()
  
         super().save(*args, **kwargs)
-
+ 
     def delete(self, *args, **kwargs):
         from .models import JobHistory
         from django.forms.models import model_to_dict
         from django.core.serializers.json import DjangoJSONEncoder
         import json
-
+ 
         try:
             job_data = model_to_dict(self)
            
@@ -521,14 +636,14 @@ class PostAJob(models.Model):
                     cls=DjangoJSONEncoder
                 )
             )
-
+ 
             job_data["id"] = self.id
             job_data["created_at"] = (
                 self.created_at.isoformat()
                 if self.created_at
                 else None
             )
-
+ 
             JobHistory.objects.create(
                 job_id=self.id,
                 employer=self.employer,
@@ -542,7 +657,7 @@ class PostAJob(models.Model):
           pass
         super().delete(*args, **kwargs)
        
-    
+
  
     # ================= HELPER METHODS =================
     def is_visible_to_jobseekers(self):
@@ -550,8 +665,7 @@ class PostAJob(models.Model):
  
     def __str__(self):
         return f"{self.job_title} ({self.approval_status})"
- 
- 
+
 
 class JobApplication(models.Model):
     class Status(models.TextChoices):
@@ -571,15 +685,51 @@ class JobApplication(models.Model):
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.APPLIED)
     cover_letter = models.TextField(blank=True, null=True)
     resume_version = models.FileField(upload_to='application_resumes/', null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)  
+    resume_hash = models.CharField(max_length=64, null=True, blank=True) 
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True
+    ) 
 
     class Meta:
         db_table = 'JobApplication'
         indexes = [
             models.Index(fields=['user', 'job']),
         ]
+    
 
     def __str__(self):
         return f"{self.user.email} → {self.job.job_title}"
+    
+class ApplicationFlag(models.Model):
+ 
+    class Reason(models.TextChoices):
+        IP_CONFLICT = "IP_CONFLICT", "IP Conflict"
+        RESUME_BOT = "RESUME_BOT", "Resume Bot"
+        FRAUDULENT_CREDS = "FRAUDULENT_CREDS", "Fraudulent Credentials"
+ 
+    class Risk(models.TextChoices):
+        CRITICAL = "CRITICAL", "Critical"
+        HIGH = "HIGH", "High"
+        MODERATE = "MODERATE", "Moderate"
+ 
+    application = models.ForeignKey(
+        JobApplication,
+        on_delete=models.CASCADE,
+        related_name="flags"
+    )
+ 
+    flag_reason = models.CharField(max_length=50, choices=Reason.choices)
+    detected_method = models.TextField()
+    risk_level = models.CharField(max_length=20, choices=Risk.choices)
+ 
+    is_reviewed = models.BooleanField(default=False)
+ 
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    def __str__(self):
+        return f"{self.flag_reason} - {self.application.id}"
 
 
 class SavedJob(models.Model):
@@ -616,25 +766,85 @@ class Notification(models.Model):
         ('job_alert', 'Job Alert'),
         ('application', 'Application Update'),
         ('system', 'System Notification'),
- 
-        # NEW TYPES (ADDED — existing untouched)
         ('job_approved', 'Job Approved'),
         ('job_rejected', 'Job Rejected'),
+
+        ('complaint', 'Complaint'),
+
+        ('announcement', 'Announcement'),
     )
-   
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+
+    # =====================================================
+    # FIXED CATEGORY CHOICES
+    # =====================================================
+
+    CATEGORY_CHOICES = (
+
+        # Notification routing/config categories
+
+        ('user_mgmt', 'User Management'),
+
+        ('job_mgmt', 'Job Management'),
+
+        ('apps', 'Applications'),
+
+        ('companies', 'Companies'),
+
+        ('reports', 'Reports'),
+
+        ('general', 'General'),
+
+        # Employer plan categories
+
+        ('new_signup', 'New Signup'),
+
+        ('alert', 'Alert'),
+
+        ('announcement', 'Announcement'),
+
+        ('weekly_summary', 'Weekly Summary'),
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+
+    title = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True
+    )
+
     message = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
-       
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    is_read = models.BooleanField(
+        default=False
+    )
+
     notification_type = models.CharField(
         max_length=50,
         choices=NOTIFICATION_TYPES,
         default='system'
     )
- 
-    related_object_id = models.PositiveIntegerField(null=True, blank=True)
- 
+
+    category = models.CharField(
+        max_length=50,
+        choices=CATEGORY_CHOICES,
+        null=True,
+        blank=True
+    )
+
+    related_object_id = models.PositiveIntegerField(
+        null=True,
+        blank=True
+    )
+    
     # OPTIONAL (SAFE ADDITION - no impact on existing)
     job = models.ForeignKey(
         'PostAJob',
@@ -643,7 +853,13 @@ class Notification(models.Model):
         blank=True,
         related_name='notifications'
     )
- 
+
+    event_type = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+
     class Meta:
         db_table = 'Notification'
         ordering = ['-created_at']
@@ -855,6 +1071,11 @@ class CompanyVerification(models.Model):
     incorporation_certificate = models.FileField(
         upload_to="company_certificates/"
     )
+    gst_certificate = models.FileField(
+        upload_to='company/gst/',
+        null=True,
+        blank=True
+    )
  
     status = models.CharField(
         max_length=10,
@@ -879,7 +1100,7 @@ class CompanyVerification(models.Model):
  
         super().save(*args, **kwargs)
  
-        if self.status == "approved" and previous_status != "approved":
+        if self.status == "Verified" and previous_status != "Verified":
             employer_profile = self.employer.employer_profile
            
             # Find or create company profile
@@ -929,14 +1150,175 @@ class CompanyProfile(models.Model):
     about = models.TextField()
     company_logo = models.ImageField(upload_to='company_logos/')
     created_at = models.DateTimeField(auto_now_add=True)
-       
+    average_rating = models.DecimalField(  # newly added 
+        max_digits=3,
+        decimal_places=1,
+        default=0.0
+    )
+    
+    total_reviews = models.PositiveIntegerField(
+        default=0                                      # newly added 
+    )
+
+    banner_image = models.ImageField(
+        upload_to='company/banner/',
+        null=True,
+        blank=True
+    )
+
+    brand_color = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True
+    )
+
+    linkedin_url = models.URLField(
+        blank=True,
+        null=True
+    )
+
+    facebook_url = models.URLField(
+        blank=True,
+        null=True
+    )
+
+    twitter_url = models.URLField(
+        blank=True,
+        null=True
+    )
+
+    
+    
     created_by = models.ForeignKey(User,on_delete=models.SET_NULL,null=True, blank=True,related_name='companies_created')
-   
     class Meta:
         db_table = 'CompanyProfile'
 
     def __str__(self):
         return self.company_name
+
+
+from django.db import models
+from django.db.models import Avg
+
+
+class CompanyReview(models.Model):  #newly added 
+
+    RATING_CHOICES = [
+        (1, "1 Star"),
+        (2, "2 Stars"),
+        (3, "3 Stars"),
+        (4, "4 Stars"),
+        (5, "5 Stars"),
+    ]
+
+    company = models.ForeignKey(
+        CompanyProfile,
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
+
+    reviewer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="company_reviews"
+    )
+
+    rating = models.PositiveIntegerField(
+        choices=RATING_CHOICES
+    )
+
+    review = models.TextField()
+
+    is_anonymous = models.BooleanField(
+        default=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = ['-created_at']
+
+        unique_together = ['company', 'reviewer']
+
+    # ─────────────────────────────────────────
+    # UPDATE COMPANY RATING
+    # ─────────────────────────────────────────
+
+    def update_company_rating(self):
+
+        avg_rating = self.company.reviews.aggregate(
+            avg=Avg("rating")
+        )["avg"] or 0
+
+        total_reviews = self.company.reviews.count()
+
+        self.company.average_rating = round(
+            avg_rating,
+            1
+        )
+
+        self.company.total_reviews = total_reviews
+
+        self.company.save(
+            update_fields=[
+                "average_rating",
+                "total_reviews"
+            ]
+        )
+
+    # ─────────────────────────────────────────
+    # SAVE
+    # ─────────────────────────────────────────
+
+    def save(self, *args, **kwargs):
+
+        super().save(*args, **kwargs)
+
+        self.update_company_rating()
+
+    # ─────────────────────────────────────────
+    # DELETE
+    # ─────────────────────────────────────────
+
+    def delete(self, *args, **kwargs):
+
+        company = self.company
+
+        super().delete(*args, **kwargs)
+
+        avg_rating = company.reviews.aggregate(
+            avg=Avg("rating")
+        )["avg"] or 0
+
+        total_reviews = company.reviews.count()
+
+        company.average_rating = round(
+            avg_rating,
+            1
+        )
+
+        company.total_reviews = total_reviews
+
+        company.save(
+            update_fields=[
+                "average_rating",
+                "total_reviews"
+            ]
+        )
+
+    def __str__(self):
+
+        return (
+            f"{self.company.company_name} "
+            f"- {self.rating}"
+        )
 
 
 # OTP
@@ -1053,13 +1435,12 @@ class Complaint(models.Model):
         super().save(*args, **kwargs)
 
 # Billing
- 
+
 from django.contrib.auth import get_user_model
- 
+
 User = get_user_model()
 from django.utils.timezone import now
- 
-# models.py - Add discount fields
+
 class Plan(models.Model):
     name = models.CharField(max_length=50)
     monthly_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Add default=0
@@ -1087,7 +1468,7 @@ class Subscription(models.Model):
         ('cancelled', 'Cancelled'),
         ('expired', 'Expired'),
     ]
- 
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS, default='active')
@@ -1121,22 +1502,22 @@ class Payment(models.Model):
         ('failed', 'Failed'),
         ('refunded', 'Refunded'),
     )
- 
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True)
- 
+
     razorpay_order_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     razorpay_payment_id = models.CharField(max_length=255, blank=True, null=True)
     razorpay_signature = models.TextField(blank=True, null=True)
- 
+
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=10, default='INR')
- 
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
- 
+
     payment_method = models.CharField(max_length=50, blank=True)
     failure_reason = models.TextField(blank=True)
- 
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     razorpay_response = models.JSONField(blank=True, null=True)
@@ -1147,10 +1528,10 @@ class Payment(models.Model):
 
 class Invoice(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
- 
+
     invoice_number = models.CharField(max_length=100, unique=True)
     invoice_date = models.DateTimeField(auto_now_add=True)
- 
+
     company_name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=20, blank=True, null=True)  
@@ -1158,16 +1539,16 @@ class Invoice(models.Model):
     payment_method = models.CharField(max_length=50)
     transaction_id = models.CharField(max_length=100)
     payment_status = models.CharField(max_length=50)
- 
+
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     gst = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
- 
+
     plan_name = models.CharField(max_length=100)
     duration = models.CharField(max_length=50)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
- 
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1180,16 +1561,16 @@ class PaymentMethod(models.Model):
         ('upi', 'UPI'),
         ('netbanking', 'Net Banking'),
     ]
- 
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     method_type = models.CharField(max_length=20, choices=TYPE)
- 
+
     card_last4 = models.CharField(max_length=4, blank=True)
     card_holder_name = models.CharField(max_length=100, blank=True)
- 
+
     upi_id = models.CharField(max_length=100, blank=True)
     bank_name = models.CharField(max_length=100, blank=True)
- 
+
     is_default = models.BooleanField(default=False)
  
     expiry_date = models.CharField(max_length=7, blank=True, null=True)
@@ -1227,8 +1608,8 @@ class CompanyEmailOTP(models.Model):
         db_table = 'CompanyEmailOTP'
 
     def __str__(self):
-        return f"OTP for {self.email} - {self.purpose}"        
-    
+        return f"OTP for {self.email} - {self.purpose}"
+ 
 
 
 from django.db import models
@@ -1329,6 +1710,688 @@ class Permission(models.Model):
         return f"{self.role.name} → {self.module.name}"
 
 
-# NOTE: Do NOT create a separate Employer model.
-# Use the existing User + EmployerProfile + CompanyProfile + Subscription models.
-# The employer list in RoleManagement reads from those real tables.
+class NotificationConfig(models.Model):  #newly added 08/05
+ 
+    CATEGORY_CHOICES = [
+        ('user_mgmt', 'User Management'),
+        ('job_mgmt', 'Job Management'),
+        ('apps', 'Applications'),
+        ('companies', 'Companies'),
+        ('reports', 'Reports'),
+        ('general', 'General'),
+    ]
+ 
+    category = models.CharField(
+        max_length=30,
+        choices=CATEGORY_CHOICES,
+        unique=True
+    )
+ 
+    # Channels
+    in_app = models.BooleanField(default=True)
+ 
+    email = models.BooleanField(default=True)
+ 
+    sms = models.BooleanField(default=False)
+ 
+    push = models.BooleanField(default=False)
+ 
+    updated_at = models.DateTimeField(auto_now=True)
+ 
+    def __str__(self):
+        return self.category
+   
+ 
+class AdminQuietHours(models.Model):  #newly added 08/05
+    TIMEZONE_CHOICES = [
+        ("Asia/Kolkata", "(UTC +05:30) Asia/Kolkata"),
+        ("America/Los_Angeles", "(UTC -08:00) America/Los_Angeles"),
+        ("UTC", "(UTC +00:00) UTC"),
+        ("Europe/London", "(UTC +01:00) Europe/London"),
+        ("Europe/Berlin", "(UTC +02:00) Europe/Berlin"),
+    ]
+    admin = models.OneToOneField(
+    User,
+    on_delete=models.CASCADE
+)
+ 
+    enabled = models.BooleanField(default=False)
+ 
+    start_time = models.TimeField(
+        default="22:00"
+    )
+ 
+    end_time = models.TimeField(
+        default="07:00"
+    )
+ 
+    timezone = models.CharField(
+        max_length=100,
+        choices=TIMEZONE_CHOICES,
+        default="Asia/Kolkata"
+    )
+ 
+    active_days = models.JSONField(
+        default=list
+    )
+ 
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+ 
+    def __str__(self):
+        return self.admin.email
+   
+ 
+class NotificationChannelSettings(models.Model): #newly added 08/05
+ 
+    email_notif = models.BooleanField(default=True)
+ 
+    inapp_notif = models.BooleanField(default=True)
+ 
+    sms_notif = models.BooleanField(default=False)
+ 
+    push_notif = models.BooleanField(default=False)
+ 
+    updated_at = models.DateTimeField(auto_now=True)
+ 
+    def __str__(self):
+        return "Notification Channel Settings"
+ 
+
+class UserDevice(models.Model):#newly added 11/05
+
+    PLATFORM_CHOICES = [
+        ("web", "Web Browser"),
+        ("android", "Android"),
+        ("ios", "iOS"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="devices"
+    )
+
+    fcm_token = models.TextField(
+        unique=True
+    )
+
+    platform = models.CharField(
+        max_length=10,
+        choices=PLATFORM_CHOICES,
+        default="web"
+    )
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+
+        return (
+            f"{self.user.email} "
+            f"[{self.platform}]"
+        )
+
+
+ 
+class SMSOTP(models.Model):           
+ 
+    PURPOSE_CHOICES = [
+        ("admin_2fa", "Admin 2FA"),
+        ("login", "Login"),
+    ]
+ 
+    phone = models.CharField(max_length=15)
+ 
+    otp = models.CharField(max_length=6)
+ 
+    purpose = models.CharField(
+        max_length=50,
+        choices=PURPOSE_CHOICES
+    )
+ 
+    is_verified = models.BooleanField(default=False)
+ 
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    expires_at = models.DateTimeField()
+ 
+    def is_valid(self):
+        return timezone.now() < self.expires_at
+ 
+    def __str__(self):
+        return f"{self.phone} - {self.purpose}"
+   
+ 
+ 
+class AdminAccessLog(models.Model):  
+ 
+    ACTION_CHOICES = [
+        ("LOGIN_SUCCESS", "Login Success"),
+        ("LOGIN_FAILED", "Login Failed"),
+        ("LOGOUT", "Logout"),
+        ("PASSWORD_CHANGE", "Password Change"),
+        ("2FA_ENABLED", "2FA Enabled"),
+        ("2FA_DISABLED", "2FA Disabled"),
+        ("OTP_FAILED", "OTP Failed"),
+        ("DEVICE_REVOKED", "Device Revoked"),
+        ("DEVICE_ADDED", "Device Added"),
+    ]
+ 
+    STATUS_CHOICES = [
+        ("SUCCESS", "Success"),
+        ("FAILED", "Failed"),
+    ]
+ 
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="admin_access_logs"
+    )
+ 
+    action = models.CharField(
+        max_length=50,
+        choices=ACTION_CHOICES
+    )
+ 
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES
+    )
+ 
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True
+    )
+ 
+    location = models.CharField(
+        max_length=255,
+        blank=True
+    )
+ 
+    user_agent = models.TextField(
+        blank=True
+    )
+ 
+    extra_data = models.JSONField(
+        default=dict,
+        blank=True
+    )
+ 
+    timestamp = models.DateTimeField(
+        auto_now_add=True
+    )
+ 
+    class Meta:
+        ordering = ["-timestamp"]
+ 
+    def __str__(self):
+        return f"{self.user} - {self.action}"
+ 
+ 
+class AdminTrustedDevice(models.Model): #changed on 11/05
+ 
+    PLATFORM_CHOICES = [
+        ("web", "Web"),
+        ("android", "Android"),
+        ("ios", "iOS"),
+    ]
+ 
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="trusted_devices"
+    )
+ 
+    device_name = models.CharField(
+        max_length=200
+    )
+ 
+    device_fingerprint = models.CharField(
+        max_length=255,
+        blank=True
+    )
+ 
+    platform = models.CharField(
+        max_length=20,
+        choices=PLATFORM_CHOICES,
+        default="web"
+    )
+ 
+    refresh_token_jti = models.CharField(
+        max_length=255,
+        blank=True
+    )
+ 
+    is_trusted = models.BooleanField(
+        default=True
+    )
+ 
+    last_used_at = models.DateTimeField(
+        auto_now=True
+    )
+ 
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+ 
+    class Meta:
+        ordering = ["-last_used_at"]
+ 
+    def __str__(self):
+        return f"{self.user.email} - {self.device_name}"
+    
+# employer setting 
+
+
+class EmployerPlatformSettings(models.Model):
+ 
+    plan = models.ForeignKey(
+ 
+        Plan,
+ 
+        on_delete=models.CASCADE,
+ 
+        related_name="employer_settings"
+    )
+ 
+    # ─────────────────────────────
+    # ACCOUNT STATUS MAPPING
+    # ─────────────────────────────
+ 
+    account_status = models.CharField(
+ 
+        max_length=15,
+ 
+        choices=User.AccountStatus.choices,
+ 
+        default=User.AccountStatus.HOLD
+    )
+ 
+    # ─────────────────────────────
+    # REGISTRATION SETTINGS
+    # ─────────────────────────────
+ 
+    employer_registration = models.BooleanField(
+        default=True
+    )
+ 
+    email_verification = models.BooleanField(
+        default=True
+    )
+ 
+    mobile_verification = models.BooleanField(
+        default=False
+    )
+ 
+    # ─────────────────────────────
+    # APPROVAL SETTINGS
+    # ─────────────────────────────
+ 
+    APPROVAL_CHOICES = [
+ 
+        ('Manual Type', 'Manual Type'),
+ 
+        ('Automatic', 'Automatic'),
+    ]
+ 
+    approval_type = models.CharField(
+ 
+        max_length=20,
+ 
+        choices=APPROVAL_CHOICES,
+ 
+        default='Manual Type'
+    )
+ 
+    # ─────────────────────────────
+    # REQUIRED DOCUMENTS
+    # ─────────────────────────────
+ 
+    req_company_cert = models.BooleanField(
+        default=False
+    )
+ 
+    req_gst_cert = models.BooleanField(
+        default=False
+    )
+ 
+    req_business_email = models.BooleanField(
+        default=False
+    )
+ 
+    req_company_website = models.BooleanField(
+        default=False
+    )
+ 
+    # ─────────────────────────────
+    # PREFERENCES
+    # ─────────────────────────────
+ 
+    allow_multiple_company = models.BooleanField(
+        default=False
+    )
+ 
+    allow_multiple_users = models.BooleanField(
+        default=False
+    )
+ 
+    show_company_reviews = models.BooleanField(
+        default=False
+    )
+ 
+    enable_company_branding = models.BooleanField(
+        default=False
+    )
+ 
+    featured_employer_option = models.BooleanField(
+        default=False
+    )
+ 
+    # ─────────────────────────────
+    # NOTIFICATIONS
+    # ─────────────────────────────
+ 
+    notif_email = models.BooleanField(
+        default=False
+    )
+ 
+    notif_new_signups = models.BooleanField(
+        default=False
+    )
+ 
+    notif_alerts = models.BooleanField(
+        default=False
+    )
+ 
+    notif_announcements = models.BooleanField(
+        default=False
+    )
+ 
+    notif_weekly_summary = models.BooleanField(
+        default=False
+    )
+ 
+    # ─────────────────────────────
+    # JOB SETTINGS
+    # ─────────────────────────────
+ 
+    job_expire_days = models.PositiveIntegerField(
+        default=30
+    )
+ 
+    max_job_posts = models.PositiveIntegerField(
+        default=10
+    )
+ 
+    featured_job_limit = models.PositiveIntegerField(
+        default=3
+    )
+ 
+    allow_edit_after_approval = models.BooleanField(
+        default=False
+    )
+ 
+    # ─────────────────────────────
+    # TIMESTAMPS
+    # ─────────────────────────────
+ 
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+ 
+    class Meta:
+ 
+        unique_together = (
+            'plan',
+            'account_status'
+        )
+ 
+        ordering = ['plan']
+ 
+    def __str__(self):
+ 
+        return (
+ 
+            f"{self.plan.name} - "
+ 
+            f"{self.account_status}"
+        )
+
+class NotificationDeliveryLog(models.Model):
+
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+        ('skipped', 'Skipped'),
+    )
+
+    CHANNEL_CHOICES = (
+        ('inapp', 'In App'),
+        ('push', 'Push'),
+        ('email', 'Email'),
+        ('sms', 'SMS'),
+    )
+
+    notification = models.ForeignKey(
+        'Notification',
+        on_delete=models.CASCADE,
+        related_name='delivery_logs'
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notification_delivery_logs'
+    )
+
+    channel = models.CharField(
+        max_length=20,
+        choices=CHANNEL_CHOICES
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+
+    reason = models.TextField(
+        null=True,
+        blank=True
+    )
+
+    provider_response = models.TextField(
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    sent_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return (
+            f"{self.user.email} - "
+            f"{self.channel} - "
+            f"{self.status}"
+        )
+    
+#for jobseekersetting
+
+class JobseekerPlatformSettings(models.Model):
+
+    def default_allowed_domains():
+
+        return [
+
+            "gmail.com",
+
+            "outlook.com",
+
+            "yahoo.com"
+        ]
+
+    PROFILE_VISIBILITY_CHOICES = [
+
+        ("Public", "Public"),
+
+        ("Employers Only", "Employers Only"),
+
+        ("Private", "Private"),
+    ]
+
+    ACCOUNT_STATUS_CHOICES = [
+
+        ("Active", "Active"),
+
+        ("Pending", "Pending"),
+
+        ("Blocked", "Blocked"),
+    ]
+
+    # ─────────────────────────────────────
+    # REGISTRATION
+    # ─────────────────────────────────────
+
+    registration = models.BooleanField(
+        default=True
+    )
+
+    email_verification = models.BooleanField(
+        default=True
+    )
+
+    phone_verification = models.BooleanField(
+        default=False
+    )
+
+    domain_restriction = models.BooleanField(
+        default=False
+    )
+
+    allowed_domains = models.JSONField(
+
+    default=default_allowed_domains,
+
+    blank=True
+)
+
+    default_role = models.CharField(
+        max_length=100,
+        default="Job Seeker"
+    )
+
+    account_status = models.CharField(
+        max_length=50,
+        choices=ACCOUNT_STATUS_CHOICES,
+        default="Active"
+    )
+
+    # ─────────────────────────────────────
+    # PROFILE SETTINGS
+    # ─────────────────────────────────────
+
+    profile_visibility = models.CharField(
+        max_length=50,
+        choices=PROFILE_VISIBILITY_CHOICES,
+        default="Employers Only"
+    )
+
+    resume_visibility = models.CharField(
+        max_length=50,
+        choices=PROFILE_VISIBILITY_CHOICES,
+        default="Employers Only"
+    )
+
+    anonymous_profile = models.BooleanField(
+        default=False
+    )
+
+    profile_completion_required = models.CharField(
+        max_length=20,
+        default="0 %"
+    )
+
+    # ─────────────────────────────────────
+    # JOB FEATURES
+    # ─────────────────────────────────────
+
+    salary_visibility = models.BooleanField(
+        default=True
+    )
+
+    company_reviews = models.BooleanField(
+        default=True
+    )
+
+    application_status_tracking = models.BooleanField(
+        default=True
+    )
+
+    similar_jobs = models.BooleanField(
+        default=True
+    )
+
+    career_advice = models.BooleanField(
+        default=True
+    )
+
+    easy_apply = models.BooleanField(
+        default=True
+    )
+
+    save_jobs = models.BooleanField(
+        default=True
+    )
+
+    max_applications = models.PositiveIntegerField(
+        default=30
+    )
+
+    application_expiry_days = models.PositiveIntegerField(
+        default=60
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    # ─────────────────────────────────────
+    # SINGLETON SETTINGS
+    # ─────────────────────────────────────
+
+    def save(self, *args, **kwargs):
+
+        self.pk = 1
+
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_settings(cls):
+
+        obj, created = cls.objects.get_or_create(
+            pk=1
+        )
+
+        return obj

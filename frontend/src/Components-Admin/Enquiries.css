@@ -1,0 +1,106 @@
+.Enquiries-container{
+    width: 100%;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    box-sizing: border-box;
+}
+ 
+.Enquiries-header{
+    margin-bottom: 24px;
+}
+ 
+.Enquiries-header h2{
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 6px;
+}
+ 
+.Enquiries-header p{
+    font-size: 15px;
+    color: #6b7280;
+}
+ 
+.Enquiries-table-wrapper{
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+}
+ 
+.Enquiries-table{
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 950px;
+}
+ 
+.Enquiries-table thead{
+    background: #f3f6fb;
+}
+ 
+.Enquiries-table th{
+    padding: 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+ 
+.Enquiries-table td{
+    padding: 16px;
+    font-size: 14px;
+    color: #111827;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+ 
+.Enquiries-table tbody tr{
+    transition: 0.2s ease;
+}
+ 
+.Enquiries-table tbody tr:hover{
+    background: #fafafa;
+}
+ 
+.Enquiries-table td:nth-child(5){
+    max-width: 250px;
+    word-break: break-word;
+    line-height: 1.5;
+    color: #374151;
+}
+ 
+.Enquiries-status{
+    padding: 8px 14px;
+    border-radius: 30px;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+ 
+.Enquiries-status option{
+    background: #ffffff;
+    color: #1e3a8a;
+}
+ 
+.Enquiries-status.Pending{
+    background: #fef3c7;
+    color: #92400e;
+}
+ 
+.Enquiries-status.Contacted{
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+ 
+.Enquiries-table td[colspan="7"]{
+    font-size: 15px;
+    color: #6b7280;
+    background: #fff;
+}
+ 

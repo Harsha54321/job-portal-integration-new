@@ -72,3 +72,4 @@ reportlab
 razorpay
 google
 google_auth
+celery

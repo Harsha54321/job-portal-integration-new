@@ -22,12 +22,12 @@
 .Admin-Sidebar-list {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    padding: 8px 0 25px;
+    justify-content: center;
+    padding: 20px 0;
 }
 
 .Admin-Navbar {
-    margin: 1px 7px;
+    margin: 2px 7px;
     padding-left: 15px;
     width: 215px;
     border-radius: 10px;

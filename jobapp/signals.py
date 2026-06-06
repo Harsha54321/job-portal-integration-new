@@ -4,20 +4,19 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import Notification, Message
 
-# Signal for sending email when notification is created
-@receiver(post_save, sender=Notification)
-def send_email_when_notification_created(sender, instance, created, **kwargs):
-    if created:
-        user = instance.user
-
-        if user.email:
-            send_mail(
-                subject="New Notification",
-                message=instance.message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+# Signal for sending email when notification is created (commented out)
+# @receiver(post_save, sender=Notification)
+# def send_email_when_notification_created(sender, instance, created, **kwargs):
+#     if created:
+#         user = instance.user
+#         if user.email:
+#             send_mail(
+#                 subject="New Notification",
+#                 message=instance.message,
+#                 from_email=settings.DEFAULT_FROM_EMAIL,
+#                 recipient_list=[user.email],
+#                 fail_silently=True,
+#             )
 
 
 # Signal for creating notification when a new message is sent
@@ -30,8 +29,11 @@ def create_message_notification(sender, instance, created, **kwargs):
         # Create notification for the message receiver
         Notification.objects.create(
             user=instance.receiver,
-            message=f"New message from {instance.sender.username}",
+            title=f"New message from {instance.sender.username}",
+            message=f"You have a new message from {instance.sender.username}",
             notification_type='message',
+            category='message',  # Add category if needed
+            event_type='new_message',  # Add event_type if needed
             related_object_id=instance.conversation.id,
             is_read=False
         )

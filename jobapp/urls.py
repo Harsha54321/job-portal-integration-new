@@ -4,14 +4,18 @@ from .views import (
     AJobListView,
     AdminCompanyListView,
     AdminCompanyDetailView,
-    AdminDashboardOverviewView,
+    # AdminDashboardOverviewView,
     AdminDashboardStats,
     AdminLoginView,
     AdminUpdateComplaintView,
     CompanyProfileCreateView,
     DashboardView,
+    DisableAdmin2FAView,
+    EmployerPlatformSettingsView,
+    EmployerWeeklySummaryView,
     JobSeekerRegistrationView,
     EmployerRegistrationView,
+    JobseekerPlatformSettingsView,
     LoginView,
     LogoutView,
     JobSeekerProfileView,
@@ -38,6 +42,7 @@ from .views import (
     EmployerInitiateChatView,
     UserStatsView,
     UserStatusUpdateView,
+    VerifyAdmin2FAOTPView,
     VerifyEmailOTPView,
     chat_api,
     ForgotPasswordView,
@@ -88,7 +93,23 @@ from .views import (
     AdminJobRejectView,
     AdminJobFlagView,
     AdminJobListView,
-    JobHighlightLimitView
+    JobHighlightLimitView,
+    # HighlightedJobsView,
+    AdminDashboardOverviewNewView,
+    AdminChangePasswordView,
+    AdminTrustedDeviceListView,
+    RevokeTrustedDeviceView,
+    AdminAccessLogListView,
+    Admin2FAStatusView,
+    VerifyAdminLoginOTPView,
+    SendAdmin2FAOTPView,
+    NotificationPreferenceUpdateView,
+    AdminQuietHoursView,
+    AdminQuietHoursUpdateView,
+    NotificationChannelSettingsView,
+    NotificationChannelSettingsUpdateView,
+    NotificationPreferenceListView
+    
     
 
     # REMOVED: Company-related view imports (CompanyListView, CompanyDetailView, etc.)
@@ -267,7 +288,62 @@ urlpatterns = [
     path('jobs/highlight-limit/', JobHighlightLimitView.as_view(), name='job-highlight-limit'),
 
     #admin dashboard
-    path('admin/dashboard/', AdminDashboardStats.as_view()),
-    path('admin/jobs/ajoblist/', AJobListView.as_view()),
-    path('admin/dashboard/overview/', AdminDashboardOverviewView.as_view(), name='admin-dashboard-overview'),
+    # path('admin/dashboard/', AdminDashboardStats.as_view()),
+    # path('admin/jobs/ajoblist/', AJobListView.as_view()),
+    # path('admin/dashboard/overview/', AdminDashboardOverviewView.as_view(), name='admin-dashboard-overview'),
+    # path("highlighted-jobs/", HighlightedJobsView.as_view(), name="highlighted-jobs" ),
+
+    path('admin/dashboard/',AdminDashboardOverviewNewView.as_view(),name='admin-dashboard-view'),
+
+         #for notification catogory prefer
+ 
+    path("notification-preferences/update/",NotificationPreferenceUpdateView.as_view(),),
+    path("notification-preferences/",NotificationPreferenceListView.as_view(),),
+ 
+    # quiet hours
+    path("quiet-hours/",AdminQuietHoursView.as_view(),),
+    path("quiet-hours/update/", AdminQuietHoursUpdateView.as_view(),),
+ 
+     # Notification Channel Settings
+ 
+ 
+    path("notification-channels/",NotificationChannelSettingsView.as_view(),name="notification-channels"),
+    path("notification-channels/update/",NotificationChannelSettingsUpdateView.as_view(),name="notification-channels-update"),
+
+
+
+ 
+    #admin security settings
+ 
+    #for cat -1 password
+    path("admin-change-password/",AdminChangePasswordView.as_view(),name="admin-change-password"),
+ 
+
+    # for cat-2 device log
+    path("admin-trusted-devices/", AdminTrustedDeviceListView.as_view(),),
+    path("admin-trusted-devices/<int:device_id>/",RevokeTrustedDeviceView.as_view(),),
+    path("admin-access-log/",AdminAccessLogListView.as_view(),),
+ 
+   
+    # for cat - 3Admin 2FA
+ 
+    path("admin/2fa/status/", Admin2FAStatusView.as_view(), name="admin-2fa-status"),
+    path("admin-2fa/login/verify-otp/",VerifyAdminLoginOTPView.as_view(),name="admin-login-verify-otp"),
+ 
+    path("admin/2fa/send-otp/",SendAdmin2FAOTPView.as_view(),name="admin-2fa-send-otp"),
+ 
+    path("admin/2fa/verify-otp/",VerifyAdmin2FAOTPView.as_view(),name="admin-2fa-verify-otp"),
+ 
+    path("admin/2fa/disable/", DisableAdmin2FAView.as_view(),name="admin-2fa-disable"),
+
+
+    #for employer setting 
+
+    path("employer-settings/<int:plan_id>/<str:account_status>/",EmployerPlatformSettingsView.as_view()),
+    path('employer/weekly-summary/',EmployerWeeklySummaryView.as_view(),name='employer-weekly-summary'),
+
+    # jobseekersetting
+
+    path('jobseeker/settings/',JobseekerPlatformSettingsView.as_view(),name='jobseeker-platform-settings'),
+
 ]
