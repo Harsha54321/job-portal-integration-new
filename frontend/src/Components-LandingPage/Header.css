@@ -11,6 +11,15 @@
   z-index: 1000;
   box-sizing: border-box;
 }
+.nav-item:hover {
+  color: #1a73e8;
+  transform: translateY(-1px);
+  font-weight: 600;
+}
+.nav-active {
+  background-color: rgba(26, 115, 232, 0.12);
+  border-radius: 15px;
+}
  
 .logo-container {
   display: flex;

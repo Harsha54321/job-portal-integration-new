@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import './Chatbox.css';
 import { useJobs } from '../JobContext';
 import home from "../assets/home_icon.png";
@@ -7,8 +8,9 @@ import api from '../api/axios';
 
 export const EMessenger = () => {
   const context = useJobs();
+  const location = useLocation();
+  const userId = location.state?.userId;
 
-  // Safety check
   if (!context) {
     console.error("JobContext is not available");
     return <div style={{ padding: '20px', textAlign: 'center' }}>Loading chat...</div>;
@@ -28,7 +30,8 @@ export const EMessenger = () => {
     startConversation,
     currentUserId,
     isChatEnded,
-    setIsChatEnded
+    setIsChatEnded,
+    fetchAllUsers
   } = context;
 
   const [input, setInput] = useState("");
@@ -40,6 +43,9 @@ export const EMessenger = () => {
   const pollingRef = useRef(null);
   const isComponentMounted = useRef(true);
 
+  // 1. ADD: State to track other user's online status
+  const [otherUserStatus, setOtherUserStatus] = useState({ is_online: false, last_seen: null });
+
   // Cleanup
   useEffect(() => {
     isComponentMounted.current = true;
@@ -49,6 +55,13 @@ export const EMessenger = () => {
         clearInterval(pollingRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    fetchAllUsers();
+    if (userId) {
+      setSelectedUserId(userId);
+    }
   }, []);
 
   const markAsRead = async (messageId) => {
@@ -83,13 +96,63 @@ export const EMessenger = () => {
 
   const activeConversation = getConversationForUser(selectedUserId);
   const activeUser = Alluser?.find(u => parseInt(u.user?.id) === selectedUserId);
+  console.log(selectedUserId)
 
-  const sidebarDisplayUsers = Alluser?.filter(user => {
-    const hasConversation = chats.some(chat =>
-      chat.participants?.some(p => p.id === parseInt(user.user?.id))
-    );
-    return hasConversation || activeSidebarUsers?.includes(parseInt(user.user?.id));
-  }) || [];
+  // 2. ADD: Function to fetch live status for the active conversation
+  const fetchOtherUserStatus = useCallback(async () => {
+    if (!selectedUserId || !activeConversation?.id) return;
+    try {
+      const res = await api.get(`/chat/conversations/${activeConversation.id}/`);
+      const conversation = res.data;
+      const other = conversation.participants?.find(p => p.id !== parseInt(currentUserId));
+      if (other) {
+        setOtherUserStatus({
+          is_online: other.is_online || false,
+          last_seen: other.last_seen || null
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch user status:', err);
+    }
+  }, [selectedUserId, activeConversation?.id, currentUserId]);
+
+  // 3. ADD: Effect hooks to poll and update the online status
+  useEffect(() => {
+    if (selectedUserId && activeConversation?.id) {
+      fetchOtherUserStatus();
+    }
+  }, [selectedUserId, activeConversation?.id, fetchOtherUserStatus]);
+
+  useEffect(() => {
+    if (!activeConversation?.id) return;
+    const interval = setInterval(() => {
+      fetchOtherUserStatus();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [activeConversation?.id, fetchOtherUserStatus]);
+
+  const sidebarDisplayUsers =
+    Alluser?.filter(user => {
+      const hasConversation = chats.some(chat =>
+        chat.participants?.some(
+          p => p.id === parseInt(user.user?.id)
+        )
+      );
+
+      return (
+        user.user?.user_type === "jobseeker" &&
+        (
+          hasConversation ||
+          activeSidebarUsers?.includes(parseInt(user.user?.id))
+        )
+      );
+    }).sort((a, b) => {
+      const convA = chats.find(c => c.participants?.some(p => p.id === parseInt(a.user?.id)));
+      const convB = chats.find(c => c.participants?.some(p => p.id === parseInt(b.user?.id)));
+      const timeA = new Date(convA?.updated_at || 0);
+      const timeB = new Date(convB?.updated_at || 0);
+      return timeB - timeA;
+    }) || [];
 
   // Fetch messages when conversation is selected
   const fetchMsg = useCallback(async () => {
@@ -256,7 +319,7 @@ export const EMessenger = () => {
           <div className="web-sidebar">
             <div className="sidebar-header">
               <Link to="/Job-portal/Employer/Dashboard">
-                <img src={home} style={{ height: "20px" }} alt="home" />
+                <img src={home} style={{ height: "20px" }} alt="home" title="Home" />
               </Link>
               <h3 style={{ color: "#007bff", textAlign: "center" }}>Active Chats</h3>
             </div>
@@ -311,8 +374,17 @@ export const EMessenger = () => {
         <div className="web-main-chat">
           {selectedUserId ? (
             <>
+              {/* 4. UPDATE: Web Chat Header with status indicator */}
               <header className="web-chat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong>{activeUser?.profile?.fullName || activeUser?.full_name || 'Job Seeker'}</strong>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <strong style={{ marginRight: '10px' }}>
+                    {activeUser?.profile?.fullName || activeUser?.full_name || 'Job Seeker'}
+                  </strong>
+                  <span className={`status-dot ${otherUserStatus.is_online ? 'online' : 'offline'}`}></span>
+                  <span className="status-text">
+                    {otherUserStatus.is_online ? 'Online' : 'Offline'}
+                  </span>
+                </div>
                 {!activeConversation && (
                   <button
                     onClick={() => handleStartConversation(input)}

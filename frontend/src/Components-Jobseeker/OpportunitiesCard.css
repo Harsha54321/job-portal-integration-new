@@ -7,50 +7,58 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   text-decoration: none;
 }
 
 .Opportunities-job-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 60px;
+  column-gap: 16px;
   align-items: center;
+}
+
+.Opportunities-job-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Left align children */
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .Opportunities-job-title {
-  font-size: 22px;
-  font-weight: 600;
   margin: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.Opportunities-job-title,
+.Opportunities-job-company {
+  width: 100%;
   text-align: left;
-  color: #032240;
+  margin-left: 0;
 }
 
 .Opportunities-job-company {
-  font-size: 16px;
-  color: #83858B;
-  text-align: left;
+  margin-top: 6px;
+  opacity: 0.7;
 }
 
-.Opportunities-job-logo {
-  width: 60px;
-  height: 60px;
-  border-radius: 1px;
-  object-fit: contain;
-}
-
+.Opportunities-job-logo,
 .Opportunities-job-logo-placeholder {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  /* occupies both rows */
+  align-self: center;
+  justify-self: end;
+
   width: 60px;
   height: 60px;
-  font-size: 20px;
-  border: 1px solid #1E88E5;
-  border-radius: 5px;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  color: #1E88E5;
 }
 
 .Opportunities-job-details {
@@ -121,6 +129,18 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.Opportunities-save-btn:hover {
+  opacity: 0.8;
+  background-color: #1E88E5;
+  color: white;
+  transform: scale(1.05);
+}
+
+.Opportunities-save-btn:focus {
+  transform: scale(1.06);
 }
 
 .Opportunities-apply-btn {
@@ -131,6 +151,16 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.Opportunities-apply-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.Opportunities-apply-btn:focus {
+  transform: scale(1.06);
 }
 
 .Opportunities-separator {
@@ -144,14 +174,30 @@
   font-weight: 600;
   color: #1E88E5;
   text-decoration: none;
-  margin-bottom: 10px;
 }
 
 .Opportunities-details-bottom {
   display: flex;
   justify-content: space-between;
-  align-items:center;
+  align-items: center;
   margin-top: 10px;
+}
+
+.Opportunities-left-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.highlighted-job-label {
+  color: #B8860B;
+  background: #FFF8E1;
+  border: 1px solid #FFD700;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .Opportunities-job-footer {
@@ -160,4 +206,207 @@
   justify-content: space-between;
   align-items: center;
   color: #83858B;
+}
+
+/* ============================================
+   HIGHLIGHTED JOB - PREMIUM GOLD STYLING
+   ============================================ */
+.Opportunities-job-card.highlighted-job {
+  border: 2px solid #FFD700;
+  background: linear-gradient(145deg, #FFFDF5, #FFF8E1);
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* .Opportunities-job-card.highlighted-job::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #FFD700, #FFA000, #FFD700);
+  background-size: 200% 100%;
+  animation: gold-shimmer 2s ease-in-out infinite;
+} */
+
+@keyframes gold-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.Opportunities-job-card.highlighted-job .Opportunities-job-title {
+  color: #B8860B;
+}
+
+.Opportunities-job-card.highlighted-job .Opportunities-apply-btn {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  color: #5D4037;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+}
+
+.Opportunities-job-card.highlighted-job .Opportunities-apply-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+}
+
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn {
+  border-color: #FFD700;
+  color: #B8860B;
+}
+
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn:hover {
+  background: #FFD700;
+  color: #5D4037;
+}
+
+/* ============================================
+   FIX: HIGHLIGHTED JOB SAVE BUTTON - ALL STATES
+   ============================================ */
+
+/* Normal state */
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn {
+  border: 1.5px solid #FFD700;
+  background: white;
+  color: #B8860B;
+  transition: all 0.3s ease;
+}
+
+/* Hover state */
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn:hover {
+  background: #FFD700;
+  color: #5D4037;
+  transform: scale(1.05);
+  box-shadow: 0 2px 12px rgba(255, 215, 0, 0.3);
+}
+
+/* Focus state */
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn:focus {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+}
+
+/* Saved state */
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn.saved {
+  background: linear-gradient(135deg, #FFD700, #FFC107);
+  color: #5D4037;
+  border-color: #FFD700;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+/* Saved + Hover state */
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn.saved:hover {
+  background: linear-gradient(135deg, #FFC107, #FFB300);
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+}
+
+/* Saved + Focus state */
+.Opportunities-job-card.highlighted-job .Opportunities-save-btn.saved:focus {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.4);
+}
+
+/* ============================================
+   RECENT JOB (within 2 days) - LIGHT BLUE
+   ============================================ */
+.Opportunities-job-card.recent-job {
+  border: 1.5px solid #90CAF9;
+  background: linear-gradient(145deg, #F5FAFF, #E3F2FD);
+  box-shadow: 0 2px 12px rgba(30, 136, 229, 0.12);
+}
+
+.Opportunities-job-card.recent-job .Opportunities-job-title {
+  color: #0D47A1;
+}
+
+.Opportunities-job-card.recent-job .Opportunities-apply-btn {
+  background: #42A5F5;
+  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
+}
+
+.Opportunities-job-card.recent-job .Opportunities-apply-btn:hover {
+  background: #1E88E5;
+  transform: scale(1.05);
+}
+
+.Opportunities-job-card.recent-job .Opportunities-save-btn {
+  border-color: #42A5F5;
+  color: #0D47A1;
+}
+
+.Opportunities-job-card.recent-job .Opportunities-save-btn:hover {
+  background: #42A5F5;
+  color: white;
+}
+
+/* ============================================
+   BADGE STYLES
+   ============================================ */
+.job-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  z-index: 2;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  color: #5D4037;
+  box-shadow: 0 2px 12px rgba(255, 215, 0, 0.4);
+}
+
+.recent-badge {
+  background: linear-gradient(135deg, #64B5F6, #1E88E5);
+  color: white;
+  box-shadow: 0 2px 10px rgba(30, 136, 229, 0.3);
+}
+
+/* Make the card position relative for absolute badge positioning */
+.Opportunities-job-card {
+  position: relative;
+
+}
+
+/* ============================================
+   APPLY BUTTON - DEFAULT (for regular jobs)
+   ============================================ */
+.Opportunities-apply-btn {
+  background: #1E88E5;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
 }

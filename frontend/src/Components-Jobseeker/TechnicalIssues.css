@@ -1,82 +1,273 @@
-
 .technicalhelp-page {
     margin-top: 102px;
-
+    padding-bottom: 50px;
 }
 
 .technicalhelp-container {
-
     background: #ffffff;
     padding: 40px 100px 100px;
-
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .technicalhelp-title {
-    color: #0f172a;
-    margin-bottom: 28px;
+   color: #0f172a;
+    margin: 0 auto 40px auto; /* Centers the container while keeping the bottom margin */
     display: flex;
     justify-content: center;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
+    text-align: center;
+    padding-bottom: 12px; 
+    border-bottom: 2px solid #e2e8f0; 
+    width: 100%; 
+    max-width: 900px; /* Constrains the underline to exactly match the other sections */
 }
 
 .technicalhelp-updated {
-    font-size: 13px;
+     font-size: 13px;
     color: #64748b;
-    margin-bottom: 20px;
+    text-align: left;
+    width: 100%;
+    padding: 15px 0 0 30px;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 .technicalhelp-intro {
     font-size: 15px;
     line-height: 1.7;
     color: #334155;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
 }
 
+/* Centered Hero Image Section */
 .technicalhelp-hero {
     display: flex;
     justify-content: center;
-    margin-bottom: 40px;
+    margin-bottom: 100px;
 }
 
 .technicalhelp-hero-img {
-    max-width: 500px;
+    max-width: 80%;
     height: auto;
     border-radius: 8px;
 }
 
-.technicalhelp-section h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: #0f172a;
-    margin: 32px 0 12px;
+/* Summary Section - Moved down */
+.technicalhelp-summary-section {
+   margin-bottom: 100px; /* Increased from 60px to add more space */
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.technicalissue-grid {
+.technicalhelp-summary-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 30px;
+    text-align: center;
+    padding-bottom: 12px; 
+    border-bottom: 2px solid #e2e8f0; 
+    width: 100%; 
+}
+
+.technicalhelp-summary-list {
+    padding-left: 24px;
+    list-style-type: disc;
+}
+
+.technicalhelp-summary-list li {
+    font-size: 16px;
+    color: #334155;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.technicalhelp-summary-list li strong {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+/* Detailed Issues List - One by One */
+.technicalhelp-content {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.technicalhelp-issues-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 30px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: center;
+    width: 100%;
+}
+
+.technicalissue-list {
     display: flex;
     flex-direction: column;
+    gap: 16px;
+}
+
+.technicalissue-item {
+    display: flex;
     gap: 20px;
+    align-items: flex-start;
+    background: #f8fafc;
+    padding: 20px 24px;
+    border-radius: 10px;
+    border-left: 4px solid #0f172a;
+    transition: all 0.2s ease;
 }
 
-.technicalissue-card {
-    border-left: 4px solid #3b82f6;
-    padding-left: 20px;
-    margin-bottom: 15px;
+.technicalissue-item:hover {
+   background: #f1f5f9;
 }
 
-.technicalissue-card h3 {
+.technicalissue-number {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    /* Changed to 0 so it aligns perfectly flat with the updated heading */
+    margin-top: 0; 
+}
+
+.technicalissue-details {
+    flex: 1;
+}
+
+.technicalissue-details h3 {
     font-size: 17px;
-    color: #1e293b;
-    margin-bottom: 5px;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 6px;
+    margin-top: 6px; /* Pushes the text down to perfectly middle-align with the circle */
+    line-height: 1.2; /* Keeps the text height consistent */
 }
 
-.technicalissue-card p {
+.technicalissue-details p {
     font-size: 15px;
-    color: #475569;
+    color: #334155;
     line-height: 1.6;
     margin: 4px 0;
 }
 
-.technicalissue-card strong {
+.technicalissue-details p strong {
     color: #0f172a;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .technicalhelp-container {
+        padding: 40px 50px 60px;
+    }
+}
+
+@media (max-width: 1000px) {
+    .technicalhelp-container {
+        padding: 40px 30px 60px;
+    }
+
+    .technicalhelp-hero-img {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    .technicalhelp-container {
+        padding: 30px 20px 50px;
+    }
+
+    .technicalhelp-title {
+        font-size: 26px;
+    }
+
+    .technicalhelp-intro {
+        font-size: 14px;
+        padding: 0 10px;
+    }
+
+    .technicalhelp-hero-img {
+        max-width: 100%;
+    }
+
+    .technicalhelp-summary-title {
+        font-size: 20px;
+    }
+
+    .technicalhelp-summary-list li {
+        font-size: 14px;
+    }
+
+    .technicalhelp-issues-title {
+        font-size: 22px;
+    }
+
+    .technicalissue-item {
+        padding: 16px 18px;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .technicalissue-number {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .technicalissue-details h3 {
+        font-size: 16px;
+    }
+
+    .technicalissue-details p {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .technicalhelp-title {
+        font-size: 22px;
+    }
+
+    .technicalhelp-intro {
+        font-size: 13px;
+    }
+
+    .technicalhelp-issues-title {
+        font-size: 19px;
+    }
+
+    .technicalissue-item {
+        padding: 14px 16px;
+    }
+
+    .technicalissue-details h3 {
+        font-size: 15px;
+    }
+
+    .technicalhelp-summary-list {
+        padding-left: 18px;
+    }
+
+    .technicalhelp-summary-list li {
+        font-size: 13px;
+    }
 }

@@ -7,8 +7,24 @@ import uploadIcon from "../assets/UploadIcon.png";
 import deleteIcon from "../assets/DeleteIcon.png";
 import resumeIcon from "../assets/resume_icon.png";
 import { Header } from "../Components-LandingPage/Header";
+import welcomeImg from "../assets/welcome.png";
 import { useEffect } from "react";
 import api from "../api/axios";
+import EducationDegreeDropdown, { degreeOptions } from "./EducationDegreeDropdown";
+
+const preloadImages = [
+    addPhoto,
+    editIcon,
+    uploadIcon,
+    deleteIcon,
+    resumeIcon
+];
+
+preloadImages.forEach(src => {
+    const img = new Image();
+    img.src = src;
+});
+
 
 const isValidValue = (value) => {
     if (!value) return false;
@@ -32,66 +48,400 @@ const isValidValue = (value) => {
 
 // --- REUSABLE COMPONENTS ---
 
+const TypewriterText = ({ text, speed = 35 }) => {
+    const [displayedText, setDisplayedText] = useState("");
+
+    useEffect(() => {
+        let i = 0;
+        setDisplayedText("");
+        const timer = setInterval(() => {
+            setDisplayedText(text.substring(0, i + 1));
+            i++;
+            if (i === text.length) clearInterval(timer);
+        }, speed);
+
+        return () => clearInterval(timer);
+    }, [text, speed]);
+
+    return <span>{displayedText}</span>;
+};
+
 const EditableListItem = ({ title, onEdit }) => (
     <div className="skill-item">
         <span>{title}</span>
         <button type="button" onClick={onEdit} className="edit-skill-btn">
-            <img className="edit-icon-btn" src={editIcon} alt="edit" title="Edit" />
+            <img className="edit-icon-btn" src={editIcon} alt="edit" loading="eager" title="Edit" />
         </button>
     </div>
 );
 
 // Filter drop down skills and languages
 
-const FilterableDropdown = ({ options, selectedValue, onSelect, placeholder }) => {
+const FilterableDropdown = ({ options, selectedValue, onSelect, placeholder, className = "" }) => {
     const [searchTerm, setSearchTerm] = useState("");
     const [isOpen, setIsOpen] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const triggerRef = useRef(null);
+    const panelRef = useRef(null);
+    const inputRef = useRef(null);
 
     const filteredOptions = options.filter(opt =>
         opt.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const closeDropdown = (refocusTrigger = false) => {
+        setIsOpen(false);
+        setSearchTerm("");
+        setHighlightedIndex(-1);
+        if (refocusTrigger && triggerRef.current) {
+            setTimeout(() => triggerRef.current.focus(), 10);
+        }
+    };
+
+    const handleOptionSelect = (opt) => {
+        onSelect(opt);
+        closeDropdown(true);
+    };
+
+
+    // Keyboard navigation
+    const handleKeyDown = (e) => {
+        if (!isOpen) {
+            if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+                e.preventDefault();
+                setIsOpen(true);
+                setTimeout(() => {
+                    if (inputRef.current) {
+                        inputRef.current.focus();
+                    }
+                }, 50);
+            }
+            return;
+        }
+
+        switch (e.key) {
+            case "Escape":
+                e.preventDefault();
+                closeDropdown(true);
+                break;
+
+            case "ArrowDown":
+                e.preventDefault();
+                setHighlightedIndex(prev =>
+                    prev < filteredOptions.length - 1 ? prev + 1 : prev
+                );
+                break;
+
+            case "ArrowUp":
+                e.preventDefault();
+                setHighlightedIndex(prev => prev > 0 ? prev - 1 : -1);
+                break;
+
+            case "Enter":
+                e.preventDefault();
+                if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
+                    handleOptionSelect(filteredOptions[highlightedIndex]);
+                }
+                else if (filteredOptions.length > 0) {
+                    handleOptionSelect(filteredOptions[0]);
+                }
+
+                break;
+
+            case "Tab":
+                closeDropdown();
+                break;
+
+
+            default:
+                break;
+        }
+    };
+
+    // Handle click outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                panelRef.current &&
+                !panelRef.current.contains(event.target) &&
+                triggerRef.current &&
+                !triggerRef.current.contains(event.target)
+            ) {
+                closeDropdown();
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    // Handle scroll outside
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleScroll = (e) => {
+            // Check if scroll is outside the dropdown panel
+            if (panelRef.current && !panelRef.current.contains(e.target)) {
+                closeDropdown();
+            }
+        };
+
+        document.addEventListener("scroll", handleScroll, true);
+        return () => {
+            document.removeEventListener("scroll", handleScroll, true);
+        };
+    }, [isOpen]);
+
+    // Scroll highlighted option into view
+    useEffect(() => {
+        if (highlightedIndex >= 0 && panelRef.current) {
+            const optionElements = panelRef.current.querySelectorAll('.jobpost-option-item');
+            if (optionElements[highlightedIndex]) {
+                optionElements[highlightedIndex].scrollIntoView({
+                    block: 'nearest',
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }, [highlightedIndex]);
+
+
+
     return (
-        <div className="jobpost-dropdown" style={{ position: 'relative', width: '100%' }}>
-            <div
+        <div className="jobpost-dropdown"
+            style={{ position: 'relative', width: '100%' }}
+            onKeyDown={handleKeyDown}>
+
+
+            {/* <div
+                // className="jobpost-dropdown-trigger"
+                // onClick={() => setIsOpen(!isOpen)}
+                ref={triggerRef}
+
                 className="jobpost-dropdown-trigger"
+                role="button"
+                tabIndex={0}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
                 onClick={() => setIsOpen(!isOpen)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setIsOpen(!isOpen);
+                    } else if (e.key === "Escape") {
+                        closeDropdown();
+                    } else if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setIsOpen(true);
+                    }
+                }}
+                onBlur={(e) => {
+                    if (!e.currentTarget.parentElement.contains(e.relatedTarget)) {
+                        closeDropdown();
+                    }
+                }}
                 style={{ height: '44px', border: '1px solid #E5E7EB', borderRadius: '6px', padding: '0 16px', display: 'flex', alignItems: 'center', cursor: 'pointer', background: '#fff' }}
             >
                 {selectedValue || placeholder}
                 <i className={`fas fa-angle-down jobpost-arrow ${isOpen ? 'open' : ''}`} style={{ marginLeft: 'auto' }}></i>
+            </div> */}
+            <div
+                ref={triggerRef}
+                className={`jobpost-dropdown-trigger ${className}`}
+                role="combobox"
+                tabIndex={0}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-controls="dropdown-listbox"
+                onClick={() => {
+                    if (!isOpen) {
+                        setIsOpen(true);
+                        setTimeout(() => {
+                            if (inputRef.current) {
+                                inputRef.current.focus();
+                            }
+                        }, 50);
+                    } else {
+                        closeDropdown(true);
+                    }
+                }}
+                onKeyDown={handleKeyDown}
+                style={{
+                    height: '44px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '6px',
+                    padding: '0 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    background: '#fff',
+                    justifyContent: 'space-between',
+                    ...(className?.includes('input-error') && {
+                        borderColor: '#FF6F61',
+                        backgroundColor: '#fff8f8'
+                    })
+                }}
+            >
+                <span style={{
+                    color: selectedValue ? '#032240' : '#999',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {selectedValue || placeholder || "Select..."}
+                </span>
+                <i
+                    className={`fas fa-angle-down jobpost-arrow ${isOpen ? 'open' : ''}`}
+                    style={{
+                        marginLeft: 'auto',
+                        transition: 'transform 0.2s',
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                    }}
+                />
             </div>
 
+
             {isOpen && (
-                <div className="jobpost-dropdown-panel" style={{ display: 'block', position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 1000, background: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <div
+                    ref={panelRef}
+                    id="dropdown-listbox"
+                    role="listbox"
+                    className="jobpost-dropdown-panel"
+                    style={{
+                        display: 'block',
+                        position: 'absolute',
+                        top: 'calc(100% + 4px)',
+                        left: 0,
+                        width: '100%',
+                        zIndex: 1000,
+                        background: '#fff',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        maxHeight: '250px',
+                        overflow: 'hidden',
+                        // display: 'flex',
+                        flexDirection: 'column'
+                    }}
+                >
+                    {/* Search Input */}
                     <input
+                        ref={inputRef}
                         type="text"
                         className="jobpost-input"
                         placeholder="Search..."
-                        autoFocus
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ marginBottom: '10px', height: '36px' }}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setHighlightedIndex(-1);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === "Escape") {
+                                closeDropdown(true);
+                            }
+                            e.stopPropagation();
+                        }}
+                        style={{
+                            marginBottom: '10px',
+                            height: '36px',
+                            padding: '0 12px',
+                            border: '1px solid #E5E7EB',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            flexShrink: 0
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                     />
-                    <div className="jobpost-options-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '150px', overflowY: 'auto' }}>
+
+                    {/* Options List */}
+                    <div
+                        className="jobpost-options-grid"
+                        style={{
+                            gridTemplateColumns: '1fr',
+                            maxHeight: '170px',
+                            overflowY: 'auto',
+                            flex: 1
+                        }}
+                        onWheel={(e) => e.stopPropagation()}
+                    >
                         {filteredOptions.length > 0 ? (
-                            filteredOptions.map(opt => (
+                            filteredOptions.map((opt, index) => (
                                 <div
                                     key={opt}
                                     className="jobpost-option-item"
-                                    onClick={() => { onSelect(opt); setIsOpen(false); setSearchTerm(""); }}
-                                    style={{ padding: '8px', cursor: 'pointer' }}
+                                    role="option"
+                                    aria-selected={opt === selectedValue}
+                                    tabIndex={-1}
+                                    onClick={() => handleOptionSelect(opt)}
+                                    onMouseEnter={() => setHighlightedIndex(index)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        cursor: 'pointer',
+                                        borderRadius: '4px',
+                                        backgroundColor: highlightedIndex === index ? '#e7f3ff' : 'transparent',
+                                        color: highlightedIndex === index ? '#007bff' : '#032240',
+                                        transition: 'background 0.15s'
+                                    }}
                                 >
                                     {opt}
                                 </div>
                             ))
                         ) : (
-                            <div style={{ padding: '8px', color: '#999' }}>No results found</div>
+                            <div style={{ padding: '8px', color: '#999', textAlign: 'center' }}>
+                                No results found
+                            </div>
                         )}
                     </div>
                 </div>
             )}
         </div>
+        //         <div className="jobpost-dropdown-panel" onWheel={(e) => e.stopPropagation()} style={{ display: 'block', position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 1000, background: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        //             <input
+        //                 type="text"
+        //                 className="jobpost-input"
+        //                 onWheel={(e) => e.stopPropagation()}
+        //                 placeholder="Search..."
+        //                 autoFocus
+        //                 value={searchTerm}
+        //                 onChange={(e) => setSearchTerm(e.target.value)}
+        //                 style={{ marginBottom: '10px', height: '36px' }}
+        //             />
+        //             <div className="jobpost-options-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '150px', overflowY: 'auto' }}>
+        //                 {filteredOptions.length > 0 ? (
+        //                     filteredOptions.map(opt => (
+        //                         // <div
+        //                         //     key={opt}
+        //                         //     className="jobpost-option-item"
+        //                         //     onClick={() => { onSelect(opt); setIsOpen(false); setSearchTerm(""); }}
+        //                         //     style={{ padding: '8px', cursor: 'pointer' }}
+        //                         // >
+        //                         <div
+        //                             className="jobpost-option-item"
+        //                             role="option"
+        //                             aria-selected={opt === selectedValue}
+        //                             tabIndex={0}
+        //                             onClick={() => handleOptionSelect(opt)}
+        //                             onKeyDown={(e) => {
+        //                                 if (e.key === "Enter" || e.key === " ") {
+        //                                     e.preventDefault();
+        //                                     handleOptionSelect(opt);
+        //                                 }
+        //                             }}
+        //                         >
+        //                             {opt}
+        //                         </div>
+        //                     ))
+        //                 ) : (
+        //                     <div style={{ padding: '8px', color: '#999' }}>No results found</div>
+        //                 )}
+        //             </div>
+        //         </div>
+        //     )}
+        // </div>
     );
 };
 
@@ -155,17 +505,149 @@ const PopupModal = ({
 // --- FORM SECTIONS ---
 
 
-const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePhotoFlag }) => {
+const Profile = ({
+    data,
+    onChange,
+    onReset,
+    onNext,
+    setProfilePhoto,
+    setRemovePhotoFlag,
+    videoFile,
+    setVideoFile,
+    removeVideoFlag,
+    setRemoveVideoFlag
+}) => {
     const [errors, setErrors] = useState({});
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
     const [imageError, setImageError] = useState("");
     const [imageLoading, setImageLoading] = useState(false);
+    const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+    // const [videoFile, setVideoFile] = useState(null);
+    const [videoError, setVideoError] = useState("");
+    // --- NEW: Video & Recording States ---
+    const [isRecordingMode, setIsRecordingMode] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
 
+    // --- NEW: Refs for WebRTC Camera Access ---
+    const liveVideoRef = useRef(null);
+    const mediaRecorderRef = useRef(null);
+    const streamRef = useRef(null);
+    const chunksRef = useRef([]);
+
+    useEffect(() => {
+        const preloadAddPhoto = new Image();
+        preloadAddPhoto.src = addPhoto;
+        preloadAddPhoto.loading = "eager";
+        preloadAddPhoto.fetchPriority = "high";
+    }, []);
+
+    // --- NEW: Cleanup camera if component unmounts ---
+    useEffect(() => {
+        return () => stopCamera();
+    }, []);
+
+    // --- Camera, Recording & Preview Functions ---
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.onstop = null; // Prevent saving if forced stopped
+            mediaRecorderRef.current.stop();
+        }
+        setIsRecording(false);
+    };
+
+    const openCamera = async () => {
+        setIsRecordingMode(true);
+        setVideoFile(null); // Clear any existing file
+        try {
+            setVideoError("");
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            streamRef.current = stream;
+
+            if (liveVideoRef.current) {
+                liveVideoRef.current.srcObject = stream;
+                liveVideoRef.current.muted = true; // Mute live feed to prevent echo
+            }
+        } catch (err) {
+            console.error("Camera error:", err);
+            setVideoError("❌ Camera or microphone access denied. Please check browser permissions.");
+            setIsRecordingMode(false);
+        }
+    };
+
+    const startRecording = () => {
+        if (!streamRef.current) return;
+        setVideoError("");
+        chunksRef.current = [];
+
+        const mediaRecorder = new MediaRecorder(streamRef.current);
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunksRef.current, { type: "video/webm" });
+            const file = new File([blob], "recorded_intro.webm", { type: "video/webm" });
+            setVideoFile(file);
+            setRemoveVideoFlag(false);
+
+            // Switch video tag from Live Stream to Playback Preview
+            if (liveVideoRef.current) {
+                liveVideoRef.current.srcObject = null;
+                liveVideoRef.current.src = URL.createObjectURL(file);
+                liveVideoRef.current.muted = false; // Unmute so they can hear playback
+                liveVideoRef.current.controls = true; // Show play/pause controls
+            }
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop(); // This triggers the onstop event above to save the file
+            setIsRecording(false);
+        }
+    };
+
+    const retakeVideo = () => {
+        setVideoFile(null);
+        if (liveVideoRef.current) {
+            liveVideoRef.current.src = ""; // Clear recorded video
+            liveVideoRef.current.controls = false; // Hide controls
+            liveVideoRef.current.srcObject = streamRef.current; // Reattach live stream
+            liveVideoRef.current.muted = true; // Remute live feed
+            liveVideoRef.current.play();
+        }
+    };
+
+    const cancelRecording = () => {
+        // Fix: Explicitly remove the onstop listener so it doesn't save the video
+        if (mediaRecorderRef.current) {
+            mediaRecorderRef.current.onstop = null;
+            if (isRecording) {
+                mediaRecorderRef.current.stop();
+            }
+        }
+        stopCamera();
+        setVideoFile(null);
+        setIsRecordingMode(false);
+    };
     useEffect(() => {
         if (data.profile_photo && !photoPreview) {
             if (typeof data.profile_photo === 'string') {
                 setPhotoPreview(data.profile_photo);
+                const preloadImg = new Image();
+                preloadImg.src = data.profile_photo;
+                preloadImg.loading = "eager";
+                preloadImg.fetchPriority = "high";
             } else if (data.profile_photo instanceof File) {
                 const objectUrl = URL.createObjectURL(data.profile_photo);
                 setPhotoPreview(objectUrl);
@@ -331,6 +813,11 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePh
         else if (!AlphaOnlyreg.test(data.nationality))
             newErrors.nationality = "*Please use letters only";
 
+        // // --- NEW: Mandatory Video Validation ---
+        // if (!videoFile && !data.intro_video) {
+        //     newErrors.videoFile = "*Introduction video is required to continue";
+        // }
+
         setErrors(newErrors);
 
         if (Object.keys(newErrors).length === 0) {
@@ -357,130 +844,181 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePh
                 </button>
             </div>
             <div className="profile-layout">
-                <div className="photo-uploader">
-                    <div className="photo-placeholder">
-                        {photoPreview ? (
-                            <img
-                                src={photoPreview}
-                                alt="Profile"
-                                style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                    borderRadius: "8px",
-                                }}
-                                onError={(e) => {
-                                    console.error("Failed to load image preview:", photoPreview);
-                                    setImageError("❌ Failed to load image preview. The file may be corrupted or in an unsupported format.");
-                                    setPhotoPreview(null);
-                                    e.target.style.display = "none";
-                                }}
-                                onLoad={() => {
-                                    console.log("✅ Image preview loaded successfully");
-                                    setImageError("");
-                                }}
-                            />
-                        ) : (
-
-                            <>
+                <div className="photo-uploader-column">
+                    <div className="photo-uploader">
+                        <div className="photo-placeholder">
+                            {photoPreview ? (
                                 <img
-                                    className="photo-placeholder-icon"
-                                    src={addPhoto}
-                                    alt="upload"
+                                    src={photoPreview}
+                                    alt="Profile"
+                                    loading="eager"
+                                    fetchpriority="high"
+                                    style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                        borderRadius: "8px",
+                                    }}
+                                    onError={(e) => {
+                                        console.error("Failed to load image preview:", photoPreview);
+                                        setImageError("❌ Failed to load image preview. The file may be corrupted or in an unsupported format.");
+                                        setPhotoPreview(null);
+                                        e.target.style.display = "none";
+                                    }}
+                                    onLoad={() => {
+                                        console.log("✅ Image preview loaded successfully");
+                                        setImageError("");
+                                    }}
                                 />
-                                <p>Upload photo</p>
-                            </>
-                        )}
-
-                        <input
-                            type="file"
-                            accept="image/png, image/jpeg, image/jpg"
-                            id="photoUpload"
-                            hidden
-                            onChange={handlePhotoChange}
-                        />
-                    </div>
-
-                    <small>Allowed format: </small>
-                    <span style={{ fontWeight: "600", fontSize: "0.9rem" }}>
-                        JPG, JPEG, PNG
-                    </span>
-
-                    <div className="photo-actions">
-                        <button
-                            type="button"
-                            className="photo-btn remove"
-                            onClick={removePhoto}
-                            disabled={!photoPreview && !data.profile_photo}
-                        >
-                            <div className="remove-action-wrapper">
-                                <img
-                                    className="upload-icon-btn"
-                                    src={deleteIcon}
-                                    alt="delete"
-                                />{" "}
-                                Remove Photo
-                            </div>
-                        </button>
-                        <button
-                            type="button"
-                            className="photo-btn upload"
-                            onClick={() => document.getElementById("photoUpload").click()}
-                        >
-                            {!photoPreview ? (
-                                <div className="remove-action-wrapper">
-                                    <img
-                                        className="upload-icon-btn"
-                                        src={uploadIcon}
-                                        alt="upload"
-                                    />{" "}
-                                    Upload Photo{" "}
-                                </div>
                             ) : (
+
+                                <>
+                                    <img
+                                        className="photo-placeholder-icon"
+                                        src={addPhoto}
+                                        alt="upload"
+                                        loading="eager"
+                                        fetchPriority="high"
+                                    />
+                                    <p>Upload photo</p>
+                                </>
+                            )}
+
+                            <input
+                                type="file"
+                                accept="image/png, image/jpeg, image/jpg"
+                                id="photoUpload"
+                                hidden
+                                onChange={handlePhotoChange}
+                            />
+                        </div>
+
+                        <small>Allowed format: </small>
+                        <span style={{ fontWeight: "600", fontSize: "0.9rem" }}>
+                            JPG, JPEG, PNG
+                        </span>
+
+                        <div className="photo-actions">
+                            <button
+                                type="button"
+                                className="photo-btn remove"
+                                onClick={removePhoto}
+                                disabled={!photoPreview && !data.profile_photo}
+                            >
                                 <div className="remove-action-wrapper">
                                     <img
                                         className="upload-icon-btn"
-                                        src={uploadIcon}
-                                        alt="upload"
+                                        src={deleteIcon}
+                                        alt="delete"
                                     />{" "}
-                                    Change Photo{" "}
+                                    Remove Photo
                                 </div>
-                            )}
-                        </button>
+                            </button>
+                            <button
+                                type="button"
+                                className="photo-btn upload"
+                                onClick={() => document.getElementById("photoUpload").click()}
+                            >
+                                {!photoPreview ? (
+                                    <div className="remove-action-wrapper">
+                                        <img
+                                            className="upload-icon-btn"
+                                            src={uploadIcon}
+                                            alt="upload"
+                                            loading="eager"
+                                            fetchPriority="high"
+                                        />{" "}
+                                        Upload Photo{" "}
+                                    </div>
+                                ) : (
+                                    <div className="remove-action-wrapper">
+                                        <img
+                                            className="upload-icon-btn"
+                                            src={uploadIcon}
+                                            alt="upload"
+                                            loading="eager"
+                                            fetchPriority="high"
+                                        />{" "}
+                                        Change Photo{" "}
+                                    </div>
+                                )}
+                            </button>
+                        </div>
+
+                        {imageError && (
+                            <div style={{
+                                color: '#dc3545',
+                                fontSize: '13px',
+                                marginTop: '12px',
+                                padding: '10px',
+                                backgroundColor: '#ffe6e6',
+                                borderRadius: '6px',
+                                textAlign: 'center',
+                                border: '1px solid #ffcccc'
+                            }}>
+                                {imageError}
+                            </div>
+                        )}
+                        {imageLoading && (
+                            <div style={{
+                                color: '#007bff',
+                                fontSize: '12px',
+                                marginTop: '10px',
+                                textAlign: 'center'
+                            }}>
+                                Uploading image...
+                            </div>
+                        )}
                     </div>
 
-                    {imageError && (
-                        <div style={{
-                            color: '#dc3545',
-                            fontSize: '13px',
-                            marginTop: '12px',
-                            padding: '10px',
-                            backgroundColor: '#ffe6e6',
-                            borderRadius: '6px',
-                            textAlign: 'center',
-                            border: '1px solid #ffcccc'
-                        }}>
-                            {imageError}
-                        </div>
-                    )}
-                    {imageLoading && (
-                        <div style={{
-                            color: '#007bff',
-                            fontSize: '12px',
-                            marginTop: '10px',
-                            textAlign: 'center'
-                        }}>
-                            Uploading image...
-                        </div>
-                    )}
+                    {/* OPTIONAL VIDEO BUTTON AREA WITH REMOVE BUTTON */}
+                    <div style={{ width: "100%" }}>
+                        {(videoFile || data.intro_video) && !removeVideoFlag ? (
+                            <div style={{ display: "flex", gap: "1rem" }}>
+                                <button
+                                    type="button"
+                                    className="intro-video-btn uploaded"
+                                    onClick={() => setIsVideoModalOpen(true)}
+                                    style={{ flex: 1, flexDirection: "row", gap: "10px" }}
+                                >
+                                    <i className="fas fa-video" style={{ display: "inline-block", color: "#FF6F61", fontSize: "20px" }}></i>
+                                    <span>Change Video</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="intro-video-btn"
+                                    onClick={() => {
+                                        setVideoFile(null);
+                                        setRemoveVideoFlag(true);
+                                    }}
+                                    style={{ flex: 1, borderColor: "#6c757d", color: "#6c757d", flexDirection: "row", gap: "10px" }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#fff"}
+                                >
+                                    <i className="fas fa-trash-alt" style={{ fontSize: "20px" }}></i>
+                                    <span>Remove Video</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                className="intro-video-btn"
+                                onClick={() => setIsVideoModalOpen(true)}
+                            >
+                                <i className="fas fa-video"></i>
+                                <span>Upload Introduction Video</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="profile-form">
                     {/* Form fields remain the same */}
                     <div className="form-group">
-                        <label>Full name</label>
+                        <label>Full Name*</label>
                         <input
                             type="text"
                             name="fullName"
+                            maxLength={30}
                             value={data.fullName || ""}
                             onChange={handleChange}
                             className={errors.fullName ? "input-error" : ""}
@@ -491,7 +1029,7 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePh
                         )}
                     </div>
                     <div className="form-group">
-                        <label>Gender</label>
+                        <label>Gender*</label>
                         <select
                             name="gender"
                             value={data.gender || "Select"}
@@ -508,7 +1046,7 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePh
                         )}
                     </div>
                     <div className="form-group">
-                        <label>Date of Birth</label>
+                        <label>Date of Birth*</label>
                         <input
                             type="date"
                             name="dob"
@@ -521,7 +1059,7 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePh
                         {errors.dob && <span className="error-message">{errors.dob}</span>}
                     </div>
                     <div className="form-group">
-                        <label>Marital Status</label>
+                        <label>Marital Status*</label>
                         <select
                             name="maritalStatus"
                             value={data.maritalStatus || "Select"}
@@ -537,24 +1075,13 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePh
                         )}
                     </div>
                     <div className="form-group">
-                        <label>Nationality</label>
-                        {/* <input
-                            type="text"
-                            name="nationality"
-                            value={data.nationality || ""}
-                            onChange={(e) => {
-                                if (/^[A-Za-z\s]*$/.test(e.target.value)) {
-                                    handleChange(e);
-                                }
-                            }}
-                            className={errors.nationality ? "input-error" : ""}
-                            placeholder="Enter nationality"
-                        /> */}
+                        <label>Nationality*</label>
                         <FilterableDropdown
                             options={nationalityOptions}
                             selectedValue={data.nationality}
                             onSelect={handleNationalitySelect}
                             placeholder="Select Nationality"
+                            className={errors.nationality ? "input-error" : ""}
                         />
                         {errors.nationality && (
                             <span className="error-message">{errors.nationality}</span>
@@ -562,6 +1089,193 @@ const Profile = ({ data, onChange, onReset, onNext, setProfilePhoto, setRemovePh
                     </div>
                 </div>
             </div>
+
+
+            {/* --- VIDEO UPLOAD MODAL --- */}
+            {isVideoModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content video-modal-content">
+                        <div className="modal-header" style={{ borderBottom: "none", paddingBottom: "0" }}>
+                            <h3 style={{ margin: "0", color: "#032240" }}>Hi buddy, welcome to Job Portal!</h3>
+                            <button
+                                type="button"
+                                className="close-modal"
+                                onClick={() => {
+                                    if (isRecordingMode) cancelRecording();
+                                    setIsVideoModalOpen(false);
+                                    setVideoError("");
+                                }}
+                            >
+                                &times;
+                            </button>
+                        </div>
+
+                        <div className="welcome-modal-body">
+                            {/* Left Side: Image with Slide Up Animation */}
+                            <div className="welcome-image-container">
+                                <img src={welcomeImg} alt="Welcome" className="welcome-image slide-up-animation" loading="eager" />
+                            </div>
+
+                            {/* Right Side: Chat Bubble & Upload Box */}
+                            <div className="welcome-text-container">
+                                <div className="welcome-message-box">
+                                    <p className="welcome-text">
+                                        <TypewriterText text="Please upload your introduction video in MP4, WebM, or AVI (Max size: 50MB), so that employers know you well." />
+                                    </p>
+                                </div>
+
+                                <div className="video-upload-wrapper">
+                                    {!isRecordingMode ? (
+                                        // --- START STATE: UPLOAD OR RECORD UI ---
+                                        <>
+                                            <input
+                                                type="file"
+                                                accept="video/mp4,video/webm,video/avi"
+                                                id="videoUploadInput"
+                                                hidden
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (!file) return;
+
+                                                    const allowedTypes = ["video/mp4", "video/webm", "video/avi", "video/x-msvideo"];
+                                                    if (!allowedTypes.includes(file.type)) {
+                                                        setVideoError("❌ Invalid format. Please select an MP4, WebM, or AVI video.");
+                                                        e.target.value = "";
+                                                        return;
+                                                    }
+                                                    if (file.size > 50 * 1024 * 1024) {
+                                                        setVideoError("❌ File is too large. Maximum size is 50MB.");
+                                                        e.target.value = "";
+                                                        return;
+                                                    }
+                                                    setVideoError("");
+                                                    setVideoFile(file);
+                                                    setRemoveVideoFlag(false);
+                                                }}
+                                            />
+
+                                            {/* If a video IS selected or exists */}
+                                            {(videoFile || (!removeVideoFlag && data.intro_video)) ? (
+                                                <div className="upload-box video-upload-label" style={{ padding: "1.5rem" }}>
+                                                    <div className="upload-text" style={{ color: "#28a745" }}>
+                                                        <i className="fas fa-check-circle" style={{ fontSize: "24px", marginBottom: "8px" }}></i>
+                                                        {videoFile ? videoFile.name : data.intro_video.split("/").pop()}
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: "10px", marginTop: "15px", justifyContent: "center", width: "100%" }}>
+                                                        <label htmlFor="videoUploadInput" className="btn btn-outline" style={{ margin: 0, padding: "8px 16px", cursor: "pointer", width: "auto" }}>
+                                                            Change File
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-danger"
+                                                            style={{ width: "auto", padding: "8px 16px" }}
+                                                            onClick={() => {
+                                                                setVideoFile(null);
+                                                                setRemoveVideoFlag(true);
+                                                            }}
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                /* If NO video is selected: Show Side-by-Side Choice */
+                                                <div className="video-choice-container">
+                                                    {/* Choice 1: Upload */}
+                                                    <label htmlFor="videoUploadInput" className="upload-box video-choice-btn">
+                                                        <div className="upload-text video-choice-text">
+                                                            <i className="fas fa-cloud-upload-alt"></i>
+                                                            Upload Video
+                                                        </div>
+                                                        <small>MP4, WebM (Max 50MB)</small>
+                                                    </label>
+
+                                                    {/* Choice 2: Record */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={openCamera}
+                                                        className="upload-box video-choice-btn"
+                                                    >
+                                                        <div className="upload-text video-choice-text" style={{ color: "#FF6F61" }}>
+                                                            <i className="fas fa-video"></i>
+                                                            Record Camera
+                                                        </div>
+                                                        <small>Record directly here</small>
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {videoError && (
+                                                <span className="error-message" style={{ display: "block", marginTop: "8px", textAlign: "center" }}>
+                                                    {videoError}
+                                                </span>
+                                            )}
+                                        </>
+                                    ) : (
+                                        // --- RECORDING & PREVIEW UI ---
+                                        <div className="recording-ui" style={{ textAlign: "center", width: "100%" }}>
+                                            <video
+                                                ref={liveVideoRef}
+                                                autoPlay
+                                                playsInline
+                                                className="live-video-preview"
+                                            />
+
+                                            {videoFile ? (
+                                                // --- PREVIEW MODE (After clicking Stop) ---
+                                                <div style={{ display: "flex", gap: "10px" }}>
+                                                    <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={retakeVideo}>
+                                                        <i className="fas fa-redo"></i> Re-record
+                                                    </button>
+                                                    <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={() => {
+                                                        stopCamera(); // Turn off webcam
+                                                        setIsRecordingMode(false); // Move to the green success block
+                                                    }}>
+                                                        <i className="fas fa-check"></i> Confirm Video
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                // --- LIVE CAMERA MODE (Before/During recording) ---
+                                                <div style={{ display: "flex", gap: "10px" }}>
+                                                    {isRecording ? (
+                                                        <button type="button" className="btn btn-danger" style={{ flex: 1 }} onClick={stopRecording}>
+                                                            <i className="fas fa-stop-circle"></i> Stop Recording
+                                                        </button>
+                                                    ) : (
+                                                        <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={startRecording}>
+                                                            <i className="fas fa-circle"></i> Start Recording
+                                                        </button>
+                                                    )}
+                                                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={cancelRecording}>
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+
+                                <div className="modal-actions" style={{ marginTop: "1rem" }}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary btn-full"
+                                        disabled={isRecording}
+                                        onClick={() => {
+                                            if (isRecordingMode) cancelRecording();
+                                            setIsVideoModalOpen(false);
+                                            setVideoError("");
+                                        }}
+                                    >
+                                        {(videoFile instanceof File) ? "Confirm Upload" : "Close"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="form-actions">
                 <button type="submit" className="btn btn-primary">
                     Save & Continue
@@ -582,10 +1296,15 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
     const handleChange = (e) => {
         const { name, value } = e.target;
 
+
         // Validation RegEx rules for live typing
         if (name === "jobTitle" && !AlphaOnlyWithSpace.test(value)) return;
         if (name === "company" && value !== "" && !/^(?=.*[A-Za-z])[A-Za-z0-9\s\.\-\'\,\&\(\)@#\$]*$/.test(value)) return;
         if ((name === "currentLocation" || name === "prefLocation") && !/^[A-Za-z\s,]*$/.test(value)) return;
+
+        if (name === "currentLocation" && value.length > 30) return;
+        if (name === "prefLocation" && value.length > 30) return;
+
 
         // Reset experience fields when switching to fresher
         if (name === "experienceType") {
@@ -616,22 +1335,26 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
             // 2. Validate locations (Required for BOTH Freshers and Experienced users)
             if (!data.currentLocation?.trim()) {
                 newErrors.currentLocation = "*Current location is required";
+            } else if (data.currentLocation.trim().length > 15) {
+                newErrors.currentLocation = "*Current location cannot exceed 15 characters";
             }
             if (!data.prefLocation?.trim()) {
                 newErrors.prefLocation = "*Preferred location is required";
+            } else if (data.prefLocation.trim().length > 30) {
+                newErrors.prefLocation = "*Preferred location cannot exceed 30 characters";
             }
 
             // 3. Separate Validation block strictly for Experienced users
             if (!isFresher) {
                 if (!data.jobTitle?.trim()) newErrors.jobTitle = "*Job Title is required";
                 if (!data.company?.trim()) newErrors.company = "*Company name is required";
-                
+
                 if (!data.experience) {
                     newErrors.experience = "*Experience is required";
                 } else if (isNaN(data.experience)) {
                     newErrors.experience = "*Please enter a valid number";
                 }
-                
+
                 if (!data.noticePeriod || data.noticePeriod === "Select") {
                     newErrors.noticePeriod = "*Please select a notice period";
                 }
@@ -667,7 +1390,7 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
             <div className="form-grid">
                 {/* Experience Status */}
                 <div className="form-group">
-                    <label>Experience Status *</label>
+                    <label>Experience Status*</label>
                     <select
                         name="experienceType"
                         value={data.experienceType || ""}
@@ -685,7 +1408,7 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                 {!isFresher && data.experienceType === "experienced" && (
                     <>
                         <div className="form-group">
-                            <label>Total Experience (Years) *</label>
+                            <label>Total Experience (Years)*</label>
                             <input
                                 type="text"
                                 name="experience"
@@ -701,10 +1424,11 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                         </div>
 
                         <div className="form-group">
-                            <label>Current Job Title *</label>
+                            <label>Current Job Title*</label>
                             <input
                                 type="text"
                                 name="jobTitle"
+                                maxLength={40}
                                 value={data.jobTitle || ""}
                                 onChange={handleChange}
                                 className={errors.jobTitle ? "input-error" : ""}
@@ -714,10 +1438,11 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                         </div>
 
                         <div className="form-group">
-                            <label>Current Company *</label>
+                            <label>Current Company*</label>
                             <input
                                 type="text"
                                 name="company"
+                                maxLength={40}
                                 value={data.company || ""}
                                 onChange={handleChange}
                                 className={errors.company ? "input-error" : ""}
@@ -727,7 +1452,7 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                         </div>
 
                         <div className="form-group">
-                            <label>Notice Period *</label>
+                            <label>Notice Period*</label>
                             <select
                                 name="noticePeriod"
                                 value={data.noticePeriod || "Select"}
@@ -747,28 +1472,33 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
 
                 {/* Location Fields: Rendered cleanly for both statuses */}
                 <div className="form-group full-width">
-                    <label>Current Location *</label>
+                    <label>Current Location*</label>
                     <input
                         type="text"
                         name="currentLocation"
+                        maxLength="30"
                         value={data.currentLocation || ""}
                         onChange={handleChange}
                         className={errors.currentLocation ? "input-error" : ""}
-                        placeholder="e.g., Bangalore"
+                        placeholder="e.g., Bangalore(max 30 characters)"
                     />
+
                     {errors.currentLocation && <span className="error-message">{errors.currentLocation}</span>}
                 </div>
 
                 <div className="form-group full-width">
-                    <label>Preferred Location(s) *</label>
+                    <label>Preferred Location(s)*</label>
                     <input
                         type="text"
                         name="prefLocation"
+                        maxLength="100"
                         value={data.prefLocation || ""}
                         onChange={handleChange}
                         className={errors.prefLocation ? "input-error" : ""}
-                        placeholder="e.g., Bangalore, Chennai, Coimbatore"
+                        placeholder="e.g., Bangalore, Chennai, Coimbatore(max 100 characters)"
                     />
+
+
                     {errors.prefLocation && <span className="error-message">{errors.prefLocation}</span>}
                 </div>
             </div>
@@ -785,12 +1515,16 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
 const ContactDetails = ({ data, onChange, onReset, onNext }) => {
     const [errors, setErrors] = useState({});
     const handleChange = (e) => {
+        if (name === "address" && value.length > 100) return;
+        if (name === "street" && value.length > 25) return;
+        if (name === "city" && value.length > 25) return;
+        if (name === "state" && value.length > 50) return;
         onChange(e);
         if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: "" });
     };
     const mobileRegex = /^[6-9]\d{9}$/;
     const Pincode = /^[1-9][0-9]{5}$/;
-    const gmailAlphaRegex = /^[a-zA-Z][a-zA-Z0-9]*@(gmail|yahoo|outlook|hotmail)\.[a-zA-Z]{2,}$/;
+    const gmailAlphaRegex = /^[a-zA-Z][a-zA-Z0-9.]*@(gmail|yahoo|outlook|hotmail|thestackly)\.[a-zA-Z]{2,}$/;
     const addressRegex = /^(?=.*[A-Za-z])[A-Za-z0-9\s,./#-]+$/;
 
 
@@ -827,12 +1561,23 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
             newErrors.address = "*Full address is required";
         } else if (!addressRegex.test(data.address)) {
             newErrors.address = "*Enter a valid address";
+        } else if (data.address.trim().length > 100) {
+            newErrors.address = "*Address cannot exceed 100 characters";
         }
         if (!data.country) newErrors.country = "*Country is required";
         if (!data.state) newErrors.state = "*State is required";
+        else if (data.state.trim().length > 50) {
+            newErrors.state = "*State cannot exceed 50 characters";
+        }
         if (!data.street) newErrors.street = "*Street/Area is required";
+        else if (data.street.trim().length > 25) {
+            newErrors.street = "*Street/Area cannot exceed 25 characters";
+        }
         if (!data.pincode) newErrors.pincode = "*Pincode is required";
         if (!data.city) newErrors.city = "*City is required";
+        else if (data.city.trim().length > 25) {
+            newErrors.city = "*City cannot exceed 25 characters";
+        }
         else if (!Pincode.test(data.pincode))
             newErrors.pincode = "*Enter a valid 6-digit pincode";
 
@@ -861,7 +1606,7 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
             </div>
             <div className="form-grid">
                 <div className="form-group">
-                    <label>Mobile Number</label>
+                    <label>Mobile Number*</label>
                     <input
                         type="tel"
                         name="mobile"
@@ -894,10 +1639,11 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                 </div>
 
                 <div className="form-group">
-                    <label>Email ID</label>
+                    <label>Email ID*</label>
                     <input
                         type="email"
                         name="email"
+                        maxLength={60}
                         value={data.email || ""}
                         onChange={handleChange}
                         className={errors.email ? "input-error" : ""}
@@ -911,6 +1657,7 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                     <input
                         type="email"
                         name="altEmail"
+                        maxLength={60}
                         value={data.altEmail || ""}
                         onChange={handleChange}
                         className={errors.altEmail ? "input-error" : ""}
@@ -922,10 +1669,11 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                 </div>
 
                 <div className="form-group full-width">
-                    <label>Address</label>
+                    <label>Address*</label>
                     <input
                         type="text"
                         name="address"
+                        maxLength="50"
                         value={data.address || ""}
                         onChange={onChange}
                         className={errors.address ? "input-error" : ""}
@@ -937,10 +1685,11 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                 </div>
 
                 <div className="form-group">
-                    <label>Street</label>
+                    <label>Street*</label>
                     <input
                         type="text"
                         name="street"
+                        maxLength="30"
                         value={data.street || ""}
                         onChange={handleChange}
                         placeholder="e.g., Flat 402"
@@ -950,10 +1699,11 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                 </div>
 
                 <div className="form-group">
-                    <label>City</label>
+                    <label>City*</label>
                     <input
                         type="text"
                         name="city"
+                        maxLength="30"
                         value={data.city || ""}
                         onChange={(e) => {
                             if (/^[A-Za-z\s]*$/.test(e.target.value)) handleChange(e);
@@ -965,10 +1715,11 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                 </div>
 
                 <div className="form-group">
-                    <label>State</label>
+                    <label>State*</label>
                     <input
                         type="text"
                         name="state"
+                        maxLength="50"
                         value={data.state || ""}
                         onChange={(e) => {
                             if (/^[A-Za-z\s]*$/.test(e.target.value)) handleChange(e);
@@ -980,7 +1731,7 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                 </div>
 
                 <div className="form-group">
-                    <label>Pincode</label>
+                    <label>Pincode*</label>
                     <input
                         type="text"
                         name="pincode"
@@ -997,10 +1748,11 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                 </div>
 
                 <div className="form-group">
-                    <label>Country</label>
+                    <label>Country*</label>
                     <input
                         type="text"
                         name="country"
+                        maxLength={30}
                         value={data.country || ""}
                         onChange={(e) => {
                             if (/^[A-Za-z\s]*$/.test(e.target.value)) handleChange(e);
@@ -1032,6 +1784,7 @@ const ResumeSection = ({
 }) => {
     const [errors, setErrors] = useState({});
     const [existingResume, setExistingResume] = useState(null);
+    const fileInputRef = useRef(null); // Add ref for file input
 
     useEffect(() => {
         if (data.resume_file) {
@@ -1059,9 +1812,26 @@ const ResumeSection = ({
             return;
         }
 
+        // Check file size (optional - 5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            alert("File size must be less than 5MB");
+            e.target.value = "";
+            return;
+        }
+
+        // if (name==="portfolio_link"&& value.length>50) return;
+
         setResumeFile(file);
         setExistingResume(null); // Clear existing resume when new file is uploaded
         setErrors((prev) => ({ ...prev, resumeFile: "" }));
+
+        // Update parent state
+        onChange({
+            target: {
+                name: "resume_file",
+                value: file,
+            },
+        });
     };
 
     const handleDeleteFile = (e) => {
@@ -1079,9 +1849,9 @@ const ResumeSection = ({
             setExistingResume(null);
             setErrors({ ...errors, resumeFile: "" });
 
-            const fileInput = document.getElementById("resumeInput");
-            if (fileInput) {
-                fileInput.value = "";
+            // Clear the file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
             }
         }
     };
@@ -1099,6 +1869,13 @@ const ResumeSection = ({
             setTimeout(() => URL.revokeObjectURL(fileURL), 100);
         } else if (typeof fileToView === "string" && fileToView) {
             window.open(fileToView, "_blank");
+        }
+    };
+
+    const handleUploadClick = (e) => {
+        e.stopPropagation();
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
         }
     };
 
@@ -1124,6 +1901,16 @@ const ResumeSection = ({
         }
     };
 
+    // Helper to get file name
+    const getFileName = () => {
+        if (existingResume instanceof File) {
+            return existingResume.name;
+        } else if (typeof existingResume === 'string') {
+            return existingResume.split('/').pop() || existingResume;
+        }
+        return "Resume";
+    };
+
     return (
         <form className="content-card" onSubmit={handleSubmit}>
             <div className="profile-header">
@@ -1136,9 +1923,8 @@ const ResumeSection = ({
                         setErrors({});
                         setResumeFile(null);
                         setExistingResume(null);
-                        const fileInput = document.getElementById("resumeInput");
-                        if (fileInput) {
-                            fileInput.value = "";
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
                         }
                     }}
                 >
@@ -1150,30 +1936,26 @@ const ResumeSection = ({
                 <input
                     type="file"
                     id="resumeInput"
+                    ref={fileInputRef}
                     hidden
                     accept=".pdf,.doc,.docx"
                     onChange={handleResumeChange}
+                    aria-label="Upload resume file"
                 />
 
                 <div>
                     {existingResume ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                             <div className="ResumeName">
-                                <img src={resumeIcon} className="resume-icon" alt="resume" />
-                                <h4>
-                                    {existingResume instanceof File
-                                        ? existingResume.name
-                                        : typeof existingResume === "string"
-                                            ? existingResume.split('/').pop() || existingResume
-                                            : "Resume"}
-                                </h4>
+                                <img src={resumeIcon} className="resume-icon" alt="resume" loading="eager" />
+                                <h4>{getFileName()}</h4>
                             </div>
-
                             <div className="ActionButtons">
                                 <button
                                     className="btn btn-primary btn-mini"
                                     type="button"
                                     onClick={handleViewResume}
+                                    aria-label="View resume"
                                 >
                                     View
                                 </button>
@@ -1181,6 +1963,7 @@ const ResumeSection = ({
                                     className="btn btn-danger btn-mini"
                                     type="button"
                                     onClick={handleDeleteFile}
+                                    aria-label="Remove resume"
                                 >
                                     Remove
                                 </button>
@@ -1189,39 +1972,57 @@ const ResumeSection = ({
                     ) : (
                         <div>
                             <div
-                                onClick={() => document.getElementById("resumeInput").click()}
+                                onClick={handleUploadClick}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        handleUploadClick(e);
+                                    }
+                                }}
                                 className="upload-text"
+                                role="button"
+                                tabIndex={0}
+                                aria-label="Upload resume"
                             >
                                 <img
                                     className="upload-icon-btn"
                                     src={uploadIcon}
                                     alt="upload"
+                                    loading="eager"
+                                    fetchpriority="high"
                                 />{" "}
-                                Upload Resume
+                                Upload Resume*
                             </div>
                             <div>
-                                <small>Allowed formats: PDF, DOC, DOCX</small>
+                                <small>Allowed formats: PDF, DOC, DOCX (Max 5MB)</small>
                             </div>
                         </div>
                     )}
                     {errors.resumeFile && (
-                        <span className="error-message">{errors.resumeFile}</span>
+                        <span className="error-message" role="alert">
+                            {errors.resumeFile}
+                        </span>
                     )}
                 </div>
             </div>
 
             <div className="form-group full-width">
-                <label>Portfolio/Website Link</label>
+                <label htmlFor="portfolioLink">Portfolio/Website Link (optional)</label>
                 <input
+                    id="portfolioLink"
                     type="url"
                     name="portfolio_link"
+                    maxLength="100"
                     value={data.portfolio_link || ""}
                     onChange={onChange}
-                    placeholder="e.g., https://yourportfolio.com"
+                    placeholder="e.g., https://yourportfolio.com   (max 100 characters)"
                     className={errors.portfolio_link ? "input-error" : ""}
+                    aria-label="Portfolio website link"
                 />
                 {errors.portfolio_link && (
-                    <span className="error-message">{errors.portfolio_link}</span>
+                    <span className="error-message" role="alert">
+                        {errors.portfolio_link}
+                    </span>
                 )}
             </div>
 
@@ -1246,40 +2047,556 @@ const EducationDetails = ({
     onNext,
 }) => {
     const [openSection, setOpenSection] = useState("sslc");
+    const prevGradCountRef = useRef(data.graduations.length);
+    useEffect(() => {
+        if (data.graduations.length > prevGradCountRef.current) {
+            const lastGrad = data.graduations[data.graduations.length - 1];
+            setOpenSection(`grad-${lastGrad.id}`);
+        }
+        prevGradCountRef.current = data.graduations.length;
+    }, [data.graduations.length]);
     const currentYear = new Date().getFullYear();
     const percentageReg = /^(\d{1,2}(\.\d{0,2})?|100(\.0{0,2})?)$/;
+
+    const degreeMinYears = {
+        // ================= ENGINEERING / TECHNOLOGY =================
+        "BE": 4, "B.E": 4, "BTECH": 4, "B.TECH": 4,
+        "ME": 2, "M.E": 2, "MTECH": 2, "M.TECH": 2,
+        "BARCH": 5, "B.ARCH": 5, "MARCH": 2, "M.ARCH": 2,
+        "BPLAN": 4, "B.PLAN": 4, "MPLAN": 2, "M.PLAN": 2,
+
+        // ================= SCIENCE =================
+        "BSC": 3, "B.SC": 3, "MSC": 2, "M.SC": 2,
+        "BSC(HONS)": 3,
+        "BSTAT": 3, "B.STAT": 3, "MSTAT": 2, "M.STAT": 2,
+        "INTEGRATEDMSC": 5, "INTEGRATEDM.SC": 5,
+
+        // ================= ARTS / HUMANITIES / SOCIAL SCIENCE =================
+        "BA": 3, "B.A": 3, "MA": 2, "M.A": 2,
+        "BA(HONS)": 3,
+
+        // ================= COMMERCE / MANAGEMENT =================
+        "BCOM": 3, "B.COM": 3, "MCOM": 2, "M.COM": 2,
+        "BBA": 3, "MBA": 2, "PGDM": 2,
+        "BBM": 3, "BMS": 3,
+        "BCA": 3, "MCA": 2,
+        "BFIA": 3,
+
+        // ================= COMPUTER SCIENCE / IT (STANDALONE) =================
+        "BSCCS": 3, "BSCIT": 3, "MSCCS": 2, "MSCIT": 2,
+        "MSCDATASCIENCE": 2, "PGDCA": 1,
+
+        // ================= MEDICAL - ALLOPATHY =================
+        "MBBS": 5.5,
+        "MD": 3, "MS": 3, "DM": 3, "MCH": 3, "M.CH": 3,
+        "DNB": 3,
+
+        // ================= DENTAL =================
+        "BDS": 5, "MDS": 3,
+
+        // ================= AYUSH (Ayurveda / Homeopathy / Unani / Siddha / Yoga & Naturopathy) =================
+        "BAMS": 5.5, "BHMS": 5.5, "BUMS": 5.5, "BSMS": 5.5, "BYNS": 5.5, "BNYS": 5.5,
+        "MDAYURVEDA": 3, "MDHOMEOPATHY": 3,
+
+        // ================= VETERINARY / AGRICULTURE / FISHERIES / FORESTRY =================
+        "BVSC": 5, "BVSC&AH": 5, "MVSC": 2,
+        "BSCAGRICULTURE": 4, "MSCAGRICULTURE": 2,
+        "BSCFORESTRY": 4, "BSCHORTICULTURE": 4,
+        "BFSC": 4, "B.F.SC": 4,
+
+        // ================= PHARMACY =================
+        "D.PHARM": 2, "DPHARM": 2,
+        "B.PHARM": 4, "BPHARM": 4,
+        "M.PHARM": 2, "MPHARM": 2,
+        "PHARM.D": 6, "PHARMD": 6,
+
+        // ================= NURSING / ALLIED HEALTH =================
+        "ANM": 2, "GNM": 3.5,
+        "BSCNURSING": 4, "MSCNURSING": 2,
+        "BPT": 4.5, "MPT": 2,
+        "BOT": 4.5, "MOT": 2,
+        "BASLP": 4,
+        "B.SCMLT": 3, "BMLT": 3,
+        "BSCOPTOMETRY": 4,
+
+        // ================= LAW =================
+        "LLB": 3, "LL.B": 3,
+        "BALLB": 5, "BA.LLB": 5, "BBALLB": 5, "BBA.LLB": 5, "BCOMLLB": 5,
+        "LLM": 1, "LL.M": 1,
+
+        // ================= EDUCATION =================
+        "D.ED": 2, "DED": 2,
+        "B.ED": 2, "BED": 2,
+        "M.ED": 2, "MED": 2,
+        "D.EL.ED": 2, "BPED": 3, "B.P.ED": 3, "MPED": 2, "M.P.ED": 2,
+
+        // ================= DESIGN / FINE ARTS / FASHION =================
+        "B.DES": 4, "BDES": 4, "M.DES": 2, "MDES": 2,
+        "BFA": 4, "MFA": 2,
+        "BSCFASHIONDESIGN": 3, "MSCFASHIONDESIGN": 2,
+        "BID": 4,
+
+        // ================= SOCIAL WORK / JOURNALISM / MEDIA / LIBRARY SCIENCE =================
+        "BSW": 3, "MSW": 2,
+        "BJMC": 3, "MJMC": 2, "BJ": 3, "MJ": 2,
+        "BLIS": 1, "MLIS": 1,
+
+        // ================= HOTEL MANAGEMENT / AVIATION / VOCATIONAL =================
+        "BHM": 4, "BHMCT": 4, "MHM": 2,
+        "B.VOC": 3, "BVOC": 3,
+        "DIPLOMAINAVIATION": 1,
+
+        // ================= PROFESSIONAL / FINANCE COURSES =================
+        "CA": 3, "C.A": 3,
+        "CS": 3, "C.S": 3,
+        "CMA": 3, "ICWA": 3,
+        "CFA": 2,
+        "ACCA": 2,
+        "ACTUARIALSCIENCE": 3,
+
+        // ================= DIPLOMA / DOCTORATE / OTHER =================
+        "DIPLOMA": 3,
+        "POLYTECHNIC": 3,
+        "ITI": 1,
+        "PHD": 3, "PH.D": 3, "DOCTORATE": 3,
+        // ================= POST GRADUATION / PG =================
+        "P.G": 2,
+        "PG": 2,
+    };
+    const degreeAliases = {
+        // ================= ENGINEERING / TECHNOLOGY =================
+        "BACHELOROFENGINEERING": "BE",
+        "BACHELOROFTECHNOLOGY": "BTECH",
+        "MASTEROFENGINEERING": "ME",
+        "MASTEROFTECHNOLOGY": "MTECH",
+        "BACHELOROFARCHITECTURE": "BARCH",
+        "MASTEROFARCHITECTURE": "MARCH",
+        "BACHELOROFPLANNING": "BPLAN",
+        "MASTEROFPLANNING": "MPLAN",
+
+        // ================= SCIENCE =================
+        "BACHELOROFSCIENCE": "BSC",
+        "MASTEROFSCIENCE": "MSC",
+        "BACHELOROFSCIENCEHONOURS": "BSC(HONS)",
+        "BACHELOROFSCIENCEHONS": "BSC(HONS)",
+        "BACHELOROFSTATISTICS": "BSTAT",
+        "MASTEROFSTATISTICS": "MSTAT",
+        "INTEGRATEDMASTEROFSCIENCE": "INTEGRATEDMSC",
+
+        // ================= ARTS / HUMANITIES =================
+        "BACHELOROFARTS": "BA",
+        "MASTEROFARTS": "MA",
+        "BACHELOROFARTSHONOURS": "BA(HONS)",
+        "BACHELOROFARTSHONS": "BA(HONS)",
+
+        // ================= COMMERCE / MANAGEMENT =================
+        "BACHELOROFCOMMERCE": "BCOM",
+        "MASTEROFCOMMERCE": "MCOM",
+        "BACHELOROFBUSINESSADMINISTRATION": "BBA",
+        "MASTEROFBUSINESSADMINISTRATION": "MBA",
+        "POSTGRADUATEDIPLOMAINMANAGEMENT": "PGDM",
+        "BACHELOROFBUSINESSMANAGEMENT": "BBM",
+        "BACHELOROFMANAGEMENTSTUDIES": "BMS",
+        "BACHELOROFCOMPUTERAPPLICATIONS": "BCA",
+        "MASTEROFCOMPUTERAPPLICATIONS": "MCA",
+        "BACHELOROFFINANCEANDINVESTMENTANALYSIS": "BFIA",
+
+        // ================= COMPUTER SCIENCE / IT (STANDALONE) =================
+        "BACHELOROFSCIENCECOMPUTERSCIENCE": "BSCCS",
+        "BACHELOROFSCIENCEINFORMATIONTECHNOLOGY": "BSCIT",
+        "MASTEROFSCIENCECOMPUTERSCIENCE": "MSCCS",
+        "MASTEROFSCIENCEINFORMATIONTECHNOLOGY": "MSCIT",
+        "MASTEROFSCIENCEDATASCIENCE": "MSCDATASCIENCE",
+        "POSTGRADUATEDIPLOMAINCOMPUTERAPPLICATIONS": "PGDCA",
+
+        // ================= MEDICAL - ALLOPATHY =================
+        "BACHELOROFMEDICINEBACHELOROFSURGERY": "MBBS",
+        "DOCTOROFMEDICINE": "MD",
+        "MASTEROFSURGERY": "MS",
+        "DOCTORATEOFMEDICINE": "DM",
+        "MASTEROFCHIRURGIAE": "MCH",
+        "MAGISTERCHIRURGIAE": "MCH",
+        "DIPLOMATEOFNATIONALBOARD": "DNB",
+
+        // ================= DENTAL =================
+        "BACHELOROFDENTALSURGERY": "BDS",
+        "MASTEROFDENTALSURGERY": "MDS",
+
+        // ================= AYUSH =================
+        "BACHELOROFAYURVEDICMEDICINEANDSURGERY": "BAMS",
+        "BACHELOROFHOMEOPATHICMEDICINEANDSURGERY": "BHMS",
+        "BACHELOROFUNANIMEDICINEANDSURGERY": "BUMS",
+        "BACHELOROFSIDDHAMEDICINEANDSURGERY": "BSMS",
+        "BACHELOROFYOGAANDNATUROPATHYSCIENCES": "BYNS",
+        "BACHELOROFNATUROPATHYANDYOGICSCIENCES": "BNYS",
+        "DOCTOROFMEDICINEAYURVEDA": "MDAYURVEDA",
+        "DOCTOROFMEDICINEHOMEOPATHY": "MDHOMEOPATHY",
+
+        // ================= VETERINARY / AGRICULTURE / FISHERIES / FORESTRY =================
+        "BACHELOROFVETERINARYSCIENCE": "BVSC",
+        "BACHELOROFVETERINARYSCIENCEANDANIMALHUSBANDRY": "BVSC&AH",
+        "MASTEROFVETERINARYSCIENCE": "MVSC",
+        "BACHELOROFSCIENCEAGRICULTURE": "BSCAGRICULTURE",
+        "MASTEROFSCIENCEAGRICULTURE": "MSCAGRICULTURE",
+        "BACHELOROFSCIENCEFORESTRY": "BSCFORESTRY",
+        "BACHELOROFSCIENCEHORTICULTURE": "BSCHORTICULTURE",
+        "BACHELOROFFISHERIESSCIENCE": "BFSC",
+
+        // ================= PHARMACY =================
+        "DIPLOMAINPHARMACY": "DPHARM",
+        "BACHELOROFPHARMACY": "BPHARM",
+        "MASTEROFPHARMACY": "MPHARM",
+        "DOCTOROFPHARMACY": "PHARMD",
+
+        // ================= NURSING / ALLIED HEALTH =================
+        "AUXILIARYNURSEMIDWIFE": "ANM",
+        "GENERALNURSINGANDMIDWIFERY": "GNM",
+        "BACHELOROFSCIENCENURSING": "BSCNURSING",
+        "MASTEROFSCIENCENURSING": "MSCNURSING",
+        "BACHELOROFPHYSIOTHERAPY": "BPT",
+        "MASTEROFPHYSIOTHERAPY": "MPT",
+        "BACHELOROFOCCUPATIONALTHERAPY": "BOT",
+        "MASTEROFOCCUPATIONALTHERAPY": "MOT",
+        "BACHELOROFAUDIOLOGYANDSPEECHLANGUAGEPATHOLOGY": "BASLP",
+        "BACHELOROFSCIENCEMEDICALLABORATORYTECHNOLOGY": "BSCMLT",
+        "BACHELOROFMEDICALLABORATORYTECHNOLOGY": "BMLT",
+        "BACHELOROFSCIENCEOPTOMETRY": "BSCOPTOMETRY",
+
+        // ================= LAW =================
+        "BACHELOROFLAWS": "LLB",
+        "BACHELOROFARTSBACHELOROFLAWS": "BALLB",
+        "BACHELOROFBUSINESSADMINISTRATIONBACHELOROFLAWS": "BBALLB",
+        "BACHELOROFCOMMERCEBACHELOROFLAWS": "BCOMLLB",
+        "MASTEROFLAWS": "LLM",
+
+        // ================= EDUCATION =================
+        "DIPLOMAINEDUCATION": "DED",
+        "BACHELOROFEDUCATION": "BED",
+        "MASTEROFEDUCATION": "MED",
+        "DIPLOMAINELEMENTARYEDUCATION": "D.EL.ED",
+        "BACHELOROFPHYSICALEDUCATION": "BPED",
+        "MASTEROFPHYSICALEDUCATION": "MPED",
+
+        // ================= DESIGN / FINE ARTS / FASHION =================
+        "BACHELOROFDESIGN": "BDES",
+        "MASTEROFDESIGN": "MDES",
+        "BACHELOROFFINEARTS": "BFA",
+        "MASTEROFFINEARTS": "MFA",
+        "BACHELOROFSCIENCEFASHIONDESIGN": "BSCFASHIONDESIGN",
+        "MASTEROFSCIENCEFASHIONDESIGN": "MSCFASHIONDESIGN",
+        "BACHELOROFINTERIORDESIGN": "BID",
+
+        // ================= SOCIAL WORK / JOURNALISM / MEDIA / LIBRARY SCIENCE =================
+        "BACHELOROFSOCIALWORK": "BSW",
+        "MASTEROFSOCIALWORK": "MSW",
+        "BACHELOROFJOURNALISMANDMASSCOMMUNICATION": "BJMC",
+        "MASTEROFJOURNALISMANDMASSCOMMUNICATION": "MJMC",
+        "BACHELOROFJOURNALISM": "BJ",
+        "MASTEROFJOURNALISM": "MJ",
+        "BACHELOROFLIBRARYANDINFORMATIONSCIENCE": "BLIS",
+        "MASTEROFLIBRARYANDINFORMATIONSCIENCE": "MLIS",
+
+        // ================= HOTEL MANAGEMENT / AVIATION / VOCATIONAL =================
+        "BACHELOROFHOTELMANAGEMENT": "BHM",
+        "BACHELOROFHOTELMANAGEMENTANDCATERINGTECHNOLOGY": "BHMCT",
+        "MASTEROFHOTELMANAGEMENT": "MHM",
+        "BACHELOROFVOCATION": "BVOC",
+        "DIPLOMAINAVIATIONMANAGEMENT": "DIPLOMAINAVIATION",
+
+        // ================= PROFESSIONAL / FINANCE COURSES =================
+        "CHARTEREDACCOUNTANT": "CA",
+        "COMPANYSECRETARY": "CS",
+        "COSTANDMANAGEMENTACCOUNTANT": "CMA",
+        "INSTITUTEOFCOSTANDWORKSACCOUNTANTS": "ICWA",
+        "CHARTEREDFINANCIALANALYST": "CFA",
+        "ASSOCIATIONOFCHARTEREDCERTIFIEDACCOUNTANTS": "ACCA",
+        "ACTUARIALSCIENCE": "ACTUARIALSCIENCE",
+
+        // ================= DIPLOMA / DOCTORATE / OTHER =================
+        "DIPLOMA": "DIPLOMA",
+        "POLYTECHNICDIPLOMA": "POLYTECHNIC",
+        "INDUSTRIALTRAININGINSTITUTE": "ITI",
+        "DOCTOROFPHILOSOPHY": "PHD",
+        // ================= POST GRADUATION / PG =================
+        "PG": "P.G",
+        "P.G": "P.G",
+        "POSTGRADUATION": "P.G",
+        "POST GRADUATION": "P.G",
+        "POST-GRADUATION": "P.G",
+        "POSTGRADUATE": "P.G",
+        "POST GRADUATE": "P.G",
+        "POST-GRADUATE": "P.G",
+    };
+
+
+
+    // const getMinYearsForDegree = (degreeName) => {
+    //     if (!degreeName) return 1;
+    //     const normalized = degreeName.trim().toUpperCase().replace(/\s+/g, "");
+    //     return degreeMinYears[normalized] || 1;
+    // };
+
+    // const isDegreeRecognized = (degreeName) => {
+    //     if (!degreeName) return false;
+    //     const normalized = degreeName.trim().toUpperCase().replace(/\s+/g, "");
+    //     return Object.prototype.hasOwnProperty.call(degreeMinYears, normalized);
+    // };
+    const resolveDegreeKey = (degreeName) => {
+        if (!degreeName) return null;
+        const normalized = degreeName.trim().toUpperCase().replace(/\s+/g, "");
+        if (Object.prototype.hasOwnProperty.call(degreeMinYears, normalized)) return normalized;
+        if (Object.prototype.hasOwnProperty.call(degreeAliases, normalized)) return degreeAliases[normalized];
+        return null;
+    };
+
+    const getMinYearsForDegree = (degreeName) => {
+        const key = resolveDegreeKey(degreeName);
+        return key ? degreeMinYears[key] : 1;
+    };
+
+    const isDegreeRecognized = (degreeName) => {
+        return resolveDegreeKey(degreeName) !== null;
+    };
+    const getGradLabel = (index, total, highestQual) => {
+        if (total === 1) return "Graduation";
+        if (index === 0) return "Under-Graduation";
+        if (index === total - 1) return highestQual === "Doctorate" ? "Doctorate" : "Post-Graduation";
+        return "Post-Graduation";
+    };
 
     const toggleSection = (id) => setOpenSection(openSection === id ? null : id);
 
     const [errors, setErrors] = useState({});
 
-    // Local change handler to clear errors immediately when user types
+    // In EducationDetails component, update the handleInputChange function:
+
     const handleInputChange = (e, type, id = null) => {
         const { name, value } = e.target;
 
+        // ============================================================
+        // 1. DEGREE NORMALIZATION (for 'degree' field)
+        // ============================================================
+        if (name === "degree") {
+            const normalized = normalizeDegree(value);
+            if (normalized) {
+                // Create synthetic event with normalized value
+                const syntheticEvent = { target: { name, value: normalized } };
+
+                // Clear the specific error for this field
+                const errorKey = id !== null ? `graddegree${id}` : `${type}degree`;
+                if (errors[errorKey]) {
+                    setErrors(prev => ({ ...prev, [errorKey]: "" }));
+                }
+
+                // Call the parent update functions with normalized value
+                if (type === 'grad') {
+                    onUpdateGrad(id, syntheticEvent);
+                } else if (type === 'sslc') {
+                    onUpdateSSLC(syntheticEvent);
+                } else if (type === 'hsc') {
+                    onUpdateHSC(syntheticEvent);
+                }
+                return;
+            }
+        }
+
+        // ============================================================
+        // 2. PERCENTAGE VALIDATION (allow only 2 decimal places, max 100)
+        // ============================================================
         if (name === "percentage") {
             const decimalRegex = /^\d*\.?\d{0,2}$/;
-
             if (value !== "" && !decimalRegex.test(value)) return;
-
             if (parseFloat(value) > 100) return;
         }
 
-        // 2. Letters only for City/State/Location
-        if (["city", "state", "country", "location", "country", "degree", "dept"].includes(name)) {
+        // ============================================================
+        // 3. TEXT-ONLY VALIDATION (City, State, Country, Location)
+        // ============================================================
+        if (["city", "state", "country", "location"].includes(name)) {
             if (value !== "" && !/^[A-Za-z\s,]*$/.test(value)) return;
         }
 
-        // Clear the specific error for this field
+        // ============================================================
+        // 4. DEGREE/DEPARTMENT VALIDATION (allow special characters)
+        // ============================================================
+        if (["degree", "dept"].includes(name)) {
+            if (value !== "" && !/^[A-Za-z\s.,()&-]*$/.test(value)) return;
+        }
+
+        // ============================================================
+        // 5. INSTITUTION VALIDATION (allow letters, numbers, special chars)
+        // ============================================================
+        if (name === "institution" || name === "college") {
+            const val = e.target.value;
+            if (val === "" || /^[a-zA-Z0-9\s\.\,\’\'\"\&\-\/\(\)]*$/.test(val)) {
+                // Continue with normal flow
+            } else {
+                return; // Block invalid characters
+            }
+        }
+
+        // ============================================================
+        // 6. CLEAR ERROR FOR THIS FIELD
+        // ============================================================
         const errorKey = id !== null ? `grad${name}${id}` : `${type}${name}`;
         if (errors[errorKey]) {
             setErrors(prev => ({ ...prev, [errorKey]: "" }));
         }
 
-        // Call the parent update functions
-        if (type === 'sslc') onUpdateSSLC(e);
-        else if (type === 'hsc') onUpdateHSC(e);
-        else onUpdateGrad(id, e);
+        // ============================================================
+        // 7. CALL PARENT UPDATE FUNCTIONS
+        // ============================================================
+        if (type === 'sslc') {
+            onUpdateSSLC(e);
+        } else if (type === 'hsc') {
+            onUpdateHSC(e);
+        } else if (type === 'grad') {
+            onUpdateGrad(id, e);
+        }
+    };
+
+    // ============================================================
+    // HELPER: NORMALIZE DEGREE
+    // ============================================================
+    const normalizeDegree = (value) => {
+        if (!value) return null;
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        // Remove extra spaces and convert to uppercase for comparison
+        const normalized = trimmed.toUpperCase().replace(/\s+/g, "");
+
+        // Check if it's already a valid degree key in degreeMinYears
+        if (degreeMinYears[normalized]) return normalized;
+
+        // Check if it's in degreeAliases
+        if (degreeAliases[normalized]) return degreeAliases[normalized];
+
+        // Common full name to abbreviation mapping
+        const fullNameMap = {
+            // Engineering / Technology
+            "BACHELOR OF TECHNOLOGY": "B.TECH",
+            "BACHELOR OF ENGINEERING": "B.E",
+            "MASTER OF TECHNOLOGY": "M.TECH",
+            "MASTER OF ENGINEERING": "M.E",
+            "BACHELOR OF ARCHITECTURE": "B.ARCH",
+            "MASTER OF ARCHITECTURE": "M.ARCH",
+            "BACHELOR OF PLANNING": "B.PLAN",
+            "MASTER OF PLANNING": "M.PLAN",
+
+            // Science
+            "BACHELOR OF SCIENCE": "B.SC",
+            "MASTER OF SCIENCE": "M.SC",
+            "BACHELOR OF SCIENCE HONOURS": "BSC(HONS)",
+            "BACHELOR OF STATISTICS": "B.STAT",
+            "MASTER OF STATISTICS": "M.STAT",
+
+            // Arts / Humanities
+            "BACHELOR OF ARTS": "B.A",
+            "MASTER OF ARTS": "M.A",
+            "BACHELOR OF ARTS HONOURS": "BA(HONS)",
+
+            // Commerce / Management
+            "BACHELOR OF COMMERCE": "B.COM",
+            "MASTER OF COMMERCE": "M.COM",
+            "BACHELOR OF BUSINESS ADMINISTRATION": "BBA",
+            "MASTER OF BUSINESS ADMINISTRATION": "MBA",
+            "BACHELOR OF COMPUTER APPLICATIONS": "BCA",
+            "MASTER OF COMPUTER APPLICATIONS": "MCA",
+
+            // Medical
+            "BACHELOR OF MEDICINE BACHELOR OF SURGERY": "MBBS",
+            "DOCTOR OF MEDICINE": "MD",
+            "MASTER OF SURGERY": "MS",
+            "BACHELOR OF DENTAL SURGERY": "BDS",
+            "MASTER OF DENTAL SURGERY": "MDS",
+
+            // Pharmacy
+            "BACHELOR OF PHARMACY": "B.PHARM",
+            "MASTER OF PHARMACY": "M.PHARM",
+            "DOCTOR OF PHARMACY": "PHARM.D",
+
+            // Law
+            "BACHELOR OF LAWS": "LL.B",
+            "MASTER OF LAWS": "LL.M",
+
+            // Education
+            "BACHELOR OF EDUCATION": "B.ED",
+            "MASTER OF EDUCATION": "M.ED",
+
+            // Design
+            "BACHELOR OF DESIGN": "B.DES",
+            "MASTER OF DESIGN": "M.DES",
+
+            // Diploma / Doctorate
+            "DIPLOMA": "DIPLOMA",
+            "POLYTECHNIC": "POLYTECHNIC",
+            "DOCTOR OF PHILOSOPHY": "PH.D",
+            "DOCTORATE": "DOCTORATE",
+
+            // Additional common variations
+            "BTECH": "B.TECH",
+            "B TECH": "B.TECH",
+            "B-TECH": "B.TECH",
+            "BE": "B.E",
+            "B E": "B.E",
+            "B-E": "B.E",
+            "MTECH": "M.TECH",
+            "M TECH": "M.TECH",
+            "M-TECH": "M.TECH",
+            "ME": "M.E",
+            "M E": "M.E",
+            "M-E": "M.E",
+            "BSC": "B.SC",
+            "B SC": "B.SC",
+            "B-SC": "B.SC",
+            "MSC": "M.SC",
+            "M SC": "M.SC",
+            "M-SC": "M.SC",
+            "BA": "B.A",
+            "B A": "B.A",
+            "B-A": "B.A",
+            "MA": "M.A",
+            "M A": "M.A",
+            "M-A": "M.A",
+            "BCOM": "B.COM",
+            "B COM": "B.COM",
+            "B-COM": "B.COM",
+            "MCOM": "M.COM",
+            "M COM": "M.COM",
+            "M-COM": "M.COM",
+            "LLB": "LL.B",
+            "LL B": "LL.B",
+            "LL-B": "LL.B",
+            "LLM": "LL.M",
+            "LL M": "LL.M",
+            "LL-M": "LL.M",
+            "PHD": "PH.D",
+            "PH D": "PH.D",
+            "PH-D": "PH.D",
+            // Post Graduation
+            "POST GRADUATION": "P.G",
+            "POSTGRADUATION": "P.G",
+            "POST-GRADUATION": "P.G",
+            "POST GRADUATE": "P.G",
+            "POSTGRADUATE": "P.G",
+            "POST-GRADUATE": "P.G",
+            "PG": "P.G",
+        };
+
+        // Check if the exact full name exists in map
+        const trimmedUpper = trimmed.toUpperCase();
+        if (fullNameMap[trimmedUpper]) {
+            return fullNameMap[trimmedUpper];
+        }
+
+        // Check if the normalized version exists (handles "BACHELOROFSCIENCE" etc.)
+        if (fullNameMap[normalized]) {
+            return fullNameMap[normalized];
+        }
+
+        // If no mapping found, return the original trimmed value
+        return trimmed;
     };
 
     const handleBlur = (e, type, id = null) => {
@@ -1342,14 +2659,75 @@ const EducationDetails = ({
             newErrors.hscpercentage = "should not be greater than 100";
 
         if (!data.hsc.location?.trim()) newErrors.hsclocation = "*Location is required";
-        if (!data.hsc.year) newErrors.hscyear = "*Year of completion is required";
-        else if (parseInt(data.hsc.year) > currentYear) newErrors.hscyear = "*Cannot be in future";
-        else if (data.sslc.year && parseInt(data.hsc.year) <= parseInt(data.sslc.year))
-            newErrors.hscyear = "*Must be after SSLC";
+        // if (!data.hsc.year) newErrors.hscyear = "*Year of completion is required";
+        // else if (parseInt(data.hsc.year) > currentYear) newErrors.hscyear = "*Cannot be in future";
+        // else if (data.sslc.year && parseInt(data.hsc.year) <= parseInt(data.sslc.year))
+        //     newErrors.hscyear = "*Must be after SSLC";
 
-        data.graduations.forEach((grad) => {
+        // data.graduations.forEach((grad) => {
+
+        // else if (data.hsc.year && parseInt(data.hsc.year) <= parseInt(data.sslc.year))
+        //     newErrors.hscyear = "*Must be after SSLC";
+
+        // const requiresGraduation = ["Under-Graduation", "Post-Graduation", "Doctorate"].includes(data.highestQual);
+        // if (requiresGraduation && data.graduations.length === 0) {
+        //     newErrors.graduationRequired = "*Please add your graduation details";
+        // }
+        if (!data.hsc.year) {
+            newErrors.hscyear = "*Year of completion is required";
+        } else {
+            const hscDate = new Date(data.hsc.year);
+            const sslcDate = data.sslc.year ? new Date(data.sslc.year) : null;
+
+            if (hscDate > today) {
+                newErrors.hscyear = "*Cannot be in future";
+            } else if (sslcDate && hscDate <= sslcDate) {
+                newErrors.hscyear = "*HSC/Diploma date must be after SSLC completion date";
+            } else if (sslcDate) {
+                const totalMonths =
+                    (hscDate.getFullYear() - sslcDate.getFullYear()) * 12 +
+                    (hscDate.getMonth() - sslcDate.getMonth());
+
+                const minYears = data.hsc.stream === "Diploma" ? 3 : data.hsc.stream === "Intermediate" ? 2 : 1;
+
+                if (totalMonths < minYears * 12) {
+                    newErrors.hscyear = `*${data.hsc.stream || "This course"} typically takes at least ${minYears} year(s) after SSLC. Please check your dates.`;
+                }
+            }
+        }
+
+        const requiredGradCount = {
+            "Under-Graduation": 1,
+            "Post-Graduation": 2,
+            "Doctorate": 3,
+        }[data.highestQual] || 0;
+
+        // if (requiredGradCount > 0 && data.graduations.length < requiredGradCount) {
+        //     newErrors.graduationRequired =
+        //         data.highestQual === "Post-Graduation"
+        //             ? "*Please add both your Under-Graduation and Post-Graduation details"
+        //             : data.highestQual === "Doctorate"
+        //             ? "*Please add your Under-Graduation, Post-Graduation, and Doctorate details"
+        //             : "*Please add your graduation details";
+        // }
+
+        if (requiredGradCount > 0 && data.graduations.length < requiredGradCount) {
+            newErrors.graduationRequired =
+                data.highestQual === "Post-Graduation"
+                    ? "*Under-Graduation and Post-Graduation details are required"
+                    : data.highestQual === "Doctorate"
+                        ? "*Under-Graduation, Post-Graduation, and Doctorate details are required"
+                        : "*Graduation details are required";
+        }
+
+
+
+        data.graduations.forEach((grad, index) => {
             if (!grad.degree || grad.degree.trim() === "") {
                 newErrors[`graddegree${grad.id}`] = "Degree is required";
+
+            } else if (!isDegreeRecognized(grad.degree)) {
+                newErrors[`graddegree${grad.id}`] = "*Please check the spelling";
             }
             if (!grad.dept || grad.dept.trim() === "") {
                 newErrors[`graddept${grad.id}`] = "Department is required";
@@ -1376,11 +2754,42 @@ const EducationDetails = ({
             const startDate = grad.startYear ? new Date(grad.startYear) : null;
             const endDate = grad.endYear ? new Date(grad.endYear) : null;
 
+            // if (!grad.startYear) {
+            //     newErrors[`gradstartYear${grad.id}`] = "*Starting year is required";
+            // }
+            // else if (startDate > today) {
+            //     newErrors[`gradstartYear${grad.id}`] = "*Starting year cannot be in future";
+            // }
+            // Determine what date this entry must come after
+            let priorDate = null;
+            let priorLabel = "";
+
+            if (index === 0) {
+                // First graduation entry (UG) must follow HSC, or SSLC if HSC is missing
+                if (data.hsc.year) {
+                    priorDate = new Date(data.hsc.year);
+                    priorLabel = "HSC/Diploma";
+                } else if (data.sslc.year) {
+                    priorDate = new Date(data.sslc.year);
+                    priorLabel = "SSLC";
+                }
+            } else {
+                // PG must follow UG's end date, Doctorate must follow PG's end date, etc.
+                const prevGrad = data.graduations[index - 1];
+                if (prevGrad?.endYear) {
+                    priorDate = new Date(prevGrad.endYear);
+                    priorLabel = getGradLabel(index - 1, data.graduations.length, data.highestQual);
+                }
+            }
+
             if (!grad.startYear) {
                 newErrors[`gradstartYear${grad.id}`] = "*Starting year is required";
             }
             else if (startDate > today) {
                 newErrors[`gradstartYear${grad.id}`] = "*Starting year cannot be in future";
+            }
+            else if (priorDate && startDate <= priorDate) {
+                newErrors[`gradstartYear${grad.id}`] = `*Starting year must be after your ${priorLabel} completion date`;
             }
 
             if (!grad.endYear) {
@@ -1389,15 +2798,33 @@ const EducationDetails = ({
             else if (endDate > today) {
                 newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be in future";
             }
+            // else if (startDate && endDate < startDate) {
+            //     newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be before starting year";
+            // }
+            // else if (
+            //     startDate &&
+            //     endDate &&
+            //     endDate.getFullYear() - startDate.getFullYear() < 1
+            // ) {
+            //     newErrors[`gradendYear${grad.id}`] = "*Course duration must be at least 1 year";
+            // }
+            // else if (startDate && endDate < startDate) {
+            //     newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be before starting year";
+            // }
+            // else if (startDate && endDate) {
+            //     const totalMonths =
+            //         (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+            //         (endDate.getMonth() - startDate.getMonth());
+
+            //     const minYears = getMinYearsForDegree(grad.degree);
+
+            //     if (totalMonths < minYears * 12) {
+            //         newErrors[`gradendYear${grad.id}`] =
+            //             `*${grad.degree || "This degree"} typically requires at least ${minYears} year(s). Please check your dates.`;
+            //     }
+            // }
             else if (startDate && endDate < startDate) {
                 newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be before starting year";
-            }
-            else if (
-                startDate &&
-                endDate &&
-                endDate.getFullYear() - startDate.getFullYear() < 1
-            ) {
-                newErrors[`gradendYear${grad.id}`] = "*Course duration must be at least 1 year";
             }
             if (!grad.city) {
                 newErrors[`gradcity${grad.id}`] = "City is required";
@@ -1412,17 +2839,17 @@ const EducationDetails = ({
                 newErrors[`graddepartment${grad.id}`] = "department is required";
             }
 
-            else if (grad.startYear) {
-                const start = new Date(grad.startYear);
-                const end = new Date(grad.endYear);
+            // else if (grad.startYear) {
+            //     const start = new Date(grad.startYear);
+            //     const end = new Date(grad.endYear);
 
-                if (end < start) {
-                    newErrors[`gradendYear${grad.id}`] = "Ending year cannot be before starting year";
-                }
-                else if (end.getFullYear() - start.getFullYear() < 1) {
-                    newErrors[`gradendYear${grad.id}`] = "Course duration must be at least 1 year";
-                }
-            }
+            //     if (end < start) {
+            //         newErrors[`gradendYear${grad.id}`] = "Ending year cannot be before starting year";
+            //     }
+            //     else if (end.getFullYear() - start.getFullYear() < 1) {
+            //         newErrors[`gradendYear${grad.id}`] = "Course duration must be at least 1 year";
+            //     }
+            // } #delete this block
         });
 
         setErrors(newErrors);
@@ -1451,13 +2878,45 @@ const EducationDetails = ({
                 newErrors.hscyear
             ) {
                 setOpenSection("hsc");
+                // } else {
+                //     const firstGradErrorKey = Object.keys(newErrors).find((key) =>
+                //         key.startsWith("grad")
+                //     );
+
+                //     if (firstGradErrorKey && data.graduations.length > 0) {
+                //         setOpenSection(`grad-${data.graduations[0].id}`);
+                //     }
+                // }
+                //             } else {
+                //     const gradWithError = data.graduations.find((g) =>
+                //         Object.keys(newErrors).some(
+                //             (key) => key.startsWith("grad") && key.endsWith(String(g.id))
+                //         )
+                //     );
+
+                //     if (gradWithError) {
+                //         setOpenSection(`grad-${gradWithError.id}`);
+                //     }
+                // }
+
             } else {
-                const firstGradErrorKey = Object.keys(newErrors).find((key) =>
-                    key.startsWith("grad")
+                const gradWithError = data.graduations.find((g) =>
+                    Object.keys(newErrors).some(
+                        (key) => key.startsWith("grad") && key.endsWith(String(g.id))
+                    )
                 );
 
-                if (firstGradErrorKey && data.graduations.length > 0) {
-                    setOpenSection(`grad-${data.graduations[0].id}`);
+                //     if (gradWithError) {
+                //         setOpenSection(`grad-${gradWithError.id}`);
+                //     } else if (newErrors.graduationRequired && data.graduations.length > 0) {
+                //         setOpenSection(`grad-${data.graduations[0].id}`);
+                //     }
+                // }
+
+                if (gradWithError) {
+                    setOpenSection(`grad-${gradWithError.id}`);
+                } else if (newErrors.graduationRequired) {
+                    onAddGrad();
                 }
             }
 
@@ -1513,10 +2972,11 @@ const EducationDetails = ({
                         <div className="accordion-body">
                             <div className="form-grid">
                                 <div className="form-group">
-                                    <label>Name of Institution</label>
+                                    <label>Name of Institution*</label>
                                     <input
                                         type="text"
                                         name="institution"
+                                        maxLength="40"
                                         value={data.sslc.institution}
                                         onChange={(e) => {
                                             const val = e.target.value;
@@ -1531,7 +2991,7 @@ const EducationDetails = ({
                                 </div>
 
                                 <div className="form-group">
-                                    <label>Percentage</label>
+                                    <label>Percentage*</label>
                                     <input
                                         type="text"
                                         name="percentage"
@@ -1547,10 +3007,11 @@ const EducationDetails = ({
                                 </div>
 
                                 <div className="form-group">
-                                    <label>Location</label>
+                                    <label>Location*</label>
                                     <input
                                         type="text"
                                         name="location"
+                                        maxLength={40}
                                         value={data.sslc.location || ""}
                                         placeholder="e.g., Bangalore"
                                         className={errors.sslclocation ? "input-error" : ""}
@@ -1568,10 +3029,11 @@ const EducationDetails = ({
                                 </div>
 
                                 <div className="form-group">
-                                    <label>Year of completion</label>
+                                    <label>Year of Completion*</label>
                                     <input
                                         type="date"
                                         name="year"
+                                        max="9999-12-31"
                                         value={data.sslc.year || ""}
                                         onChange={(e) => handleInputChange(e, 'sslc')}
                                         className={`${errors.sslcyear ? "input-error" : ""} cursor-as-pointer`}
@@ -1616,10 +3078,11 @@ const EducationDetails = ({
                                     )}
                                 </div>
                                 <div className="form-group">
-                                    <label>Name of Institution</label>
+                                    <label>Name of Institution*</label>
                                     <input
                                         type="text"
                                         name="institution"
+                                        maxLength={40}
                                         value={data.hsc.institution || ""}
                                         onChange={(e) => {
                                             const val = e.target.value;
@@ -1635,10 +3098,11 @@ const EducationDetails = ({
                                     )}
                                 </div>
                                 <div className="form-group">
-                                    <label>Location</label>
+                                    <label>Location*</label>
                                     <input
                                         type="text"
                                         name="location"
+                                        maxLength={40}
                                         value={data.hsc.location || ""}
                                         placeholder="e.g., Bangalore"
                                         className={errors.hsclocation ? "input-error" : ""}
@@ -1656,10 +3120,11 @@ const EducationDetails = ({
                                     )}
                                 </div>
                                 <div className="form-group">
-                                    <label>Year of completion</label>
+                                    <label>Year of Completion*</label>
                                     <input
                                         type="date"
                                         name="year"
+                                        max="9999-12-31"
                                         value={data.hsc.year || ""}
                                         onChange={(e) => handleInputChange(e, 'hsc')}
                                         className={`${errors.hscyear ? "input-error" : ""} cursor-as-pointer`}
@@ -1670,7 +3135,7 @@ const EducationDetails = ({
                                     )}
                                 </div>
                                 <div className="form-group">
-                                    <label>Percentage</label>
+                                    <label>Percentage*</label>
                                     <input
                                         type="text"
                                         name="percentage"
@@ -1699,7 +3164,9 @@ const EducationDetails = ({
                             <div
                                 style={{ display: "flex", alignItems: "center", gap: "10px" }}
                             >
-                                <span>Graduation {index > 0 ? index + 1 : ""}</span>
+                                {/* <span>Graduation {index > 0 ? index + 1 : ""}</span> */}
+
+                                <span>{getGradLabel(index, data.graduations.length, data.highestQual)}</span>
                             </div>
                             <span className="accordion-icon">
                                 {openSection === `grad-${grad.id}` ? "-" : "+"}
@@ -1732,6 +3199,7 @@ const EducationDetails = ({
                                                 className="upload-icon-btn"
                                                 src={deleteIcon}
                                                 alt="delete"
+                                                loading="eager"
                                             />
                                         </button>
                                     </div>
@@ -1739,19 +3207,21 @@ const EducationDetails = ({
 
                                 <div className="form-grid">
                                     <div className="form-group">
-                                        <label>Degree</label>
-                                        <input
-                                            type="text"
-                                            name="degree"
+                                        <label>Degree*</label>
+                                        <EducationDegreeDropdown
                                             value={grad.degree}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
-                                            placeholder="e.g., B.E"
-                                            className={errors[`graddegree${grad.id}`] ? "input-error" : ""}
+                                            name="degree"
+                                            error={errors[`graddegree${grad.id}`]}
+                                            placeholder="Select or type degree"
                                         />
-                                        {errors[`graddegree${grad.id}`] && <span className="error-message">{errors[`graddegree${grad.id}`]}</span>}
+                                        {/* REMOVE this duplicate error message */}
+                                        {/* {errors[`graddegree${grad.id}`] && (
+        <span className="error-message">{errors[`graddegree${grad.id}`]}</span>
+    )} */}
                                     </div>
                                     <div className="form-group">
-                                        <label>Degree status</label>
+                                        <label>Degree Status*</label>
                                         <select
                                             name="status"
                                             value={grad.status}
@@ -1767,10 +3237,11 @@ const EducationDetails = ({
                                         )}
                                     </div>
                                     <div className="form-group">
-                                        <label>Department</label>
+                                        <label>Department*</label>
                                         <input
                                             type="text"
                                             name="dept"
+                                            maxLength={40}
                                             value={grad.dept}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
                                             placeholder="e.g., Computer Science"
@@ -1781,7 +3252,7 @@ const EducationDetails = ({
                                         )}
                                     </div>
                                     <div className="form-group">
-                                        <label>Percentage</label>
+                                        <label>Percentage*</label>
                                         <input
                                             type="text"
                                             name="percentage"
@@ -1794,10 +3265,11 @@ const EducationDetails = ({
                                         {errors[`gradpercentage${grad.id}`] && <span className="error-message">{errors[`gradpercentage${grad.id}`]}</span>}
                                     </div>
                                     <div className="form-group">
-                                        <label>Starting year</label>
+                                        <label>Starting Year*</label>
                                         <input
                                             type="date"
                                             name="startYear"
+                                            max="9999-12-31"
                                             value={grad.startYear}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
                                             className={`${errors[`gradstartYear${grad.id}`] ? "input-error" : ""} cursor-as-pointer`}
@@ -1805,10 +3277,11 @@ const EducationDetails = ({
                                         {errors[`gradstartYear${grad.id}`] && <span className="error-message">{errors[`gradstartYear${grad.id}`]}</span>}
                                     </div>
                                     <div className="form-group">
-                                        <label>Ending year</label>
+                                        <label>Ending Year*</label>
                                         <input
                                             type="date"
                                             name="endYear"
+                                            max="9999-12-31"
                                             value={grad.endYear}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
                                             className={`${errors[`gradendYear${grad.id}`] ? "input-error" : ""} cursor-as-pointer`}
@@ -1816,10 +3289,11 @@ const EducationDetails = ({
                                         {errors[`gradendYear${grad.id}`] && <span className="error-message">{errors[`gradendYear${grad.id}`]}</span>}
                                     </div>
                                     <div className="form-group full-width">
-                                        <label>Institution name</label>
+                                        <label>Institution Name*</label>
                                         <input
                                             type="text"
                                             name="college"
+                                            maxLength={40}
                                             value={grad.college}
                                             onChange={(e) => {
                                                 const val = e.target.value;
@@ -1835,10 +3309,11 @@ const EducationDetails = ({
                                         )}
                                     </div>
                                     <div className="form-group">
-                                        <label>City</label>
+                                        <label>City*</label>
                                         <input
                                             type="text"
                                             name="city"
+                                            maxLength={40}
                                             value={grad.city}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
                                             placeholder="e.g., Green park"
@@ -1847,10 +3322,11 @@ const EducationDetails = ({
                                         {errors[`gradcity${grad.id}`] && <span className="error-message">{errors[`gradcity${grad.id}`]}</span>}
                                     </div>
                                     <div className="form-group">
-                                        <label>State</label>
+                                        <label>State*</label>
                                         <input
                                             type="text"
                                             name="state"
+                                            maxLength={40}
                                             value={grad.state}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
                                             placeholder="e.g., Tamil Nadu"
@@ -1859,10 +3335,11 @@ const EducationDetails = ({
                                         {errors[`gradstate${grad.id}`] && <span className="error-message">{errors[`gradstate${grad.id}`]}</span>}
                                     </div>
                                     <div className="form-group">
-                                        <label>Country</label>
+                                        <label>Country*</label>
                                         <input
                                             type="text"
                                             name="country"
+                                            maxLength={40}
                                             value={grad.country}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
                                             placeholder="e.g., India"
@@ -2039,7 +3516,7 @@ const WorkExperience = ({
             <div className="form-grid">
                 <div className="form-group">
                     <label>Current Status (Synced with Basic Details)</label>
-                    {/* ✅ Show status but allow change with validation */}
+
                     <select
                         name="status"
                         value={data.status || "Fresher"}
@@ -2076,9 +3553,9 @@ const WorkExperience = ({
                             <div className="form-grid">
                                 {/* ... all entry fields remain same ... */}
                                 <div className="form-group">
-                                    <label>Job Title</label>
+                                    <label>Job Title*</label>
                                     <input
-                                        type="text" name="title" value={entry.title}
+                                        type="text" name="title" value={entry.title} maxLength={40}
                                         onChange={(e) => handleEntryChange(entry.id, e)}
                                         className={errors[`title_${entry.id}`] ? "input-error" : ""}
                                         placeholder="e.g. Frontend Intern"
@@ -2086,10 +3563,11 @@ const WorkExperience = ({
                                     {errors[`title_${entry.id}`] && <span className="error-message">{errors[`title_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
-                                    <label>Company Name</label>
+                                    <label>Company Name*</label>
                                     <input
                                         type="text"
                                         name="company"
+                                        maxLength={40}
                                         value={entry.company}
                                         onChange={(e) => handleEntryChange(entry.id, e)}
                                         placeholder="e.g., XYZ Company"
@@ -2098,20 +3576,22 @@ const WorkExperience = ({
                                     {errors[`company_${entry.id}`] && <span className="error-message">{errors[`company_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
-                                    <label>Start Date</label>
+                                    <label>Start Date*</label>
                                     <input
                                         type="date"
                                         name="startDate"
+                                        max="9999-12-31"
                                         value={entry.startDate || ""}
                                         onChange={(e) => handleDateChangeWithValidation(entry.id, 'startDate', e.target.value, entry)}
                                         className={`${errors[`startDate_${entry.id}`] ? "input-error" : ""} cursor-as-pointer`} />
                                     {errors[`startDate_${entry.id}`] && <span className="error-message">{errors[`startDate_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
-                                    <label>End Date</label>
+                                    <label>End Date*</label>
                                     <input
                                         type="date"
                                         name="endDate"
+                                        max="9999-12-31"
                                         value={entry.endDate || ""}
                                         onChange={(e) => handleDateChangeWithValidation(entry.id, 'endDate', e.target.value, entry)}
                                         className={`${errors[`endDate_${entry.id}`] ? "input-error" : ""} cursor-as-pointer`} />
@@ -2122,7 +3602,7 @@ const WorkExperience = ({
                                     )}
                                 </div>
                                 <div className="form-group">
-                                    <label>Industry / Domain</label>
+                                    <label>Industry / Domain*</label>
                                     <select
                                         name="industry"
                                         value={entry.industry}
@@ -2139,7 +3619,7 @@ const WorkExperience = ({
                                     {errors[`industry_${entry.id}`] && <span className="error-message">{errors[`industry_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
-                                    <label>Job Type</label>
+                                    <label>Job Type*</label>
                                     <select
                                         name="jobType"
                                         value={entry.jobType}
@@ -2155,10 +3635,11 @@ const WorkExperience = ({
                                     {errors[`jobType_${entry.id}`] && <span className="error-message">{errors[`jobType_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
-                                    <label>Location</label>
+                                    <label>Location*</label>
                                     <input
                                         type="text"
                                         name="location"
+                                        maxLength={40}
                                         value={entry.location}
                                         placeholder="e.g., Bangalore"
                                         onChange={(e) => handleEntryChange(entry.id, e)}
@@ -2167,12 +3648,13 @@ const WorkExperience = ({
                                     {errors[`location_${entry.id}`] && <span className="error-message">{errors[`location_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
-                                    <label>Key Responsibilities / Achievements</label>
+                                    <label>Key Responsibilities / Achievements*</label>
                                     <textarea
                                         name="responsibilities"
+                                        maxLength={500}
                                         value={entry.responsibilities || ""}
                                         onChange={(e) => handleEntryChange(entry.id, e)}
-                                        placeholder="Briefly describe your role, projects, or achievements..."
+                                        placeholder="Briefly describe your role, projects, or achievements...(max 500 characters)"
                                         className={errors[`responsibilities_${entry.id}`] ? "input-error" : ""}
                                         rows="3"
                                     />
@@ -2193,7 +3675,7 @@ const WorkExperience = ({
 
             {isFresher && data.hasExperience === "No" && data.entries.length === 0 && (
                 <div style={{ padding: "20px", textAlign: "center", color: "#666", backgroundColor: "#f5f5f5", borderRadius: "8px", marginTop: "20px" }}>
-                    📌 As a Fresher, work experience details are optional. You can add internship experience if you have any.
+                    As a Fresher, work experience details are optional. You can add internship experience if you have any.
                 </div>
             )}
 
@@ -2241,6 +3723,16 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
             setError("Key Skills field is Mandatory");
             return;
         }
+        if (editIndex === null && skills.length >= 20) {
+            setError("You can add a maximum of 20 skills.");
+            return;
+        }
+
+        const hasLetter = /[a-zA-Z]/.test(value);
+        if (!hasLetter) {
+            setError("Enter a valid skill name (must contain at least one letter; numbers or symbols alone are invalid)");
+            return;
+        }
         const isDuplicate = skills.some((skill, index) =>
             skill.toLowerCase() === currentSkill.toLowerCase() && index !== editIndex
         );
@@ -2251,10 +3743,10 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
         }
 
 
-        if (!isValidValue(value)) {
-            setError("Enter a valid skill (avoid special character misuse)");
-            return;
-        }
+        // if (!isValidValue(value)) {
+        //     setError("Enter a valid skill (avoid special character misuse)");
+        //     return;
+        // }
 
         if (editIndex !== null) onUpdate(editIndex, value);
         else onAdd(value);
@@ -2331,12 +3823,42 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
                 )}
                 <div className="form-group">
                     <label>Skill *</label>
-                    <FilterableDropdown
-                        options={skillOptions.filter(opt => !skills.includes(opt))}
-                        selectedValue={currentSkill}
-                        onSelect={setCurrentSkill}
-                        placeholder="Select or Search Skill"
-                    />
+                    <div
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+
+                                const nativeInput = e.target;
+                                const typedValue = nativeInput && nativeInput.value ? nativeInput.value.trim() : "";
+
+                                if (typedValue) {
+                                    if (typeof nativeInput.blur === 'function') {
+                                        nativeInput.blur();
+                                    }
+
+                                    setCurrentSkill(typedValue);
+                                    handleCustomSave(typedValue);
+
+                                    setTimeout(() => {
+                                        document.body.click();
+                                    }, 30);
+
+                                } else {
+                                    setError("Key Skills field is Mandatory");
+                                }
+                            }
+                        }}
+                    >
+                        <FilterableDropdown
+                            options={skillOptions.filter(opt => !skills.includes(opt))}
+                            selectedValue={currentSkill}
+                            onSelect={(val) => {
+                                setCurrentSkill(val);
+                                setError("");
+                            }}
+                            placeholder="Select or Search Skill"
+                        />
+                    </div>
                 </div>
             </PopupModal>
         </form>
@@ -2512,7 +4034,7 @@ const LanguagesKnown = ({
                     />
                 </div>
                 <div className="form-group">
-                    <label>Proficiency</label>
+                    <label>Proficiency*</label>
                     <select value={currentLang.proficiency} onChange={(e) => setCurrentLang({ ...currentLang, proficiency: e.target.value })}>
                         <option value="Select">Select</option>
                         <option value="Beginner">Beginner</option>
@@ -2520,7 +4042,6 @@ const LanguagesKnown = ({
                         <option value="Fluent">Fluent</option>
                         <option value="Native">Native</option>
                     </select>
-
                 </div>
             </PopupModal>
         </form>
@@ -2680,7 +4201,7 @@ const Certifications = ({
                             onClick={() => openEdit(index)}
                             className="edit-skill-btn"
                         >
-                            <img className="edit-icon-btn" title="Edit" src={editIcon} alt="edit" />
+                            <img className="edit-icon-btn" title="Edit" src={editIcon} alt="edit" loading="eager" />
                         </button>
                     </div>
                 ))}
@@ -2755,7 +4276,7 @@ const Certifications = ({
                 {previewType === "image" && (
                     <div className="preview-overlay" onClick={() => setPreviewType(null)}>
                         <div className="preview-box" onClick={(e) => e.stopPropagation()}>
-                            <img src={previewUrl || currentCert.existingFile} alt="Preview" />
+                            <img src={previewUrl || currentCert.existingFile} alt="Preview" loading="eager" fetchPriority="high" />
                         </div>
                     </div>
                 )}
@@ -2887,7 +4408,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                 )}
 
                 <div className="form-group">
-                    <label>Expected CTC</label>
+                    <label>Expected CTC*</label>
                     <input
                         type="text"
                         name="expectedCTC"
@@ -2903,7 +4424,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                 </div>
 
                 <div className="form-group">
-                    <label>Preferred Job Type</label>
+                    <label>Preferred Job Type*</label>
                     <select
                         name="jobType"
                         value={data.jobType || "Select"}
@@ -2922,10 +4443,11 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                 </div>
 
                 <div className="form-group">
-                    <label>Preferred Industry/Role</label>
+                    <label>Preferred Industry/Role*</label>
                     <input
                         type="text"
                         name="role"
+                        maxLength={30}
                         value={data.role || ""}
                         onChange={handleLocalChange}
                         placeholder="Enter preferred industry/role"
@@ -3053,12 +4575,14 @@ export const MyProfile = () => {
     const [profilePhoto, setProfilePhoto] = useState(null);
     const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
     const [resumeFile, setResumeFile] = useState(null);
+    const [videoFile, setVideoFile] = useState(null);
+    const [removeVideoFlag, setRemoveVideoFlag] = useState(false);
     const [saving, setSaving] = useState(false);
     const fetchProfile = async () => {
         try {
             const token = sessionStorage.getItem("access");
             if (!token) {
-                window.location.href = "/login";
+                window.location.href = "/";
                 return;
             }
             const res = await api.get("profile/jobseeker/");
@@ -3074,6 +4598,7 @@ export const MyProfile = () => {
                     maritalStatus: res.data.marital_status || "Select",
                     nationality: res.data.nationality || "",
                     profile_photo: res.data.profile_photo,
+                    intro_video: res.data.intro_video || null,
                 },
 
                 currentDetails: {
@@ -3378,15 +4903,38 @@ export const MyProfile = () => {
         }
     }, [allData.currentDetails.experienceType, allData.experience.entries.length]);
 
+    // const handleHighestQualChange = (e) => {
+    //     const { value } = e.target;
+    //     setAllData((prev) => ({
+    //         ...prev,
+    //         education: {
+    //             ...prev.education,
+    //             highestQual: value,
+    //         },
+    //     }));
+    // };
+
     const handleHighestQualChange = (e) => {
         const { value } = e.target;
-        setAllData((prev) => ({
-            ...prev,
-            education: {
-                ...prev.education,
-                highestQual: value,
-            },
-        }));
+        setAllData((prev) => {
+            const needsGrad = ["Under-Graduation", "Post-Graduation", "Doctorate"].includes(value);
+            const shouldAddEntry = needsGrad && prev.education.graduations.length === 0;
+
+            return {
+                ...prev,
+                education: {
+                    ...prev.education,
+                    highestQual: value,
+                    graduations: shouldAddEntry
+                        ? [{
+                            id: `temp-${Date.now()}`,
+                            degree: "", status: "Select", dept: "", percentage: "",
+                            startYear: "", endYear: "", college: "", city: "", state: "", country: "",
+                        }]
+                        : prev.education.graduations,
+                },
+            };
+        });
     };
 
     const handleUpdateSSLC = (e) => {
@@ -3710,6 +5258,7 @@ export const MyProfile = () => {
             preferred_locations: allData.currentDetails.prefLocation,
 
             phone: allData.contact.mobile,
+            email: allData.contact.email,
             alternate_phone: allData.contact.altMobile || null,
             alternate_email: allData.contact.altEmail || null,
             full_address: allData.contact.address,
@@ -3856,7 +5405,7 @@ export const MyProfile = () => {
         try {
             const token = sessionStorage.getItem("access");
             if (!token) {
-                window.location.href = "/login";
+                window.location.href = "/";
                 return;
             }
 
@@ -3896,6 +5445,15 @@ export const MyProfile = () => {
             if (resumeFile instanceof File) {
                 formData.append("resume_file", resumeFile);
                 console.log("✅ Added resume to FormData");
+            }
+
+            // Add Introduction Video
+            if (videoFile instanceof File) {
+                formData.append("intro_video", videoFile);
+                console.log("✅ Added new intro video to FormData");
+            } else if (removeVideoFlag) {
+                formData.append("delete_intro_video", "true"); // ✅ Fixed key
+                console.log("🗑️ Removing existing intro video");
             }
 
             // Add certification files with their names and IDs
@@ -3959,16 +5517,16 @@ export const MyProfile = () => {
                     }));
                 }
             }
-        }catch (err) {
+        } catch (err) {
             console.error("Profile save failed", err);
             if (err.response?.status === 401) {
                 alert("Session expired. Please login again.");
                 return;
             }
-            
+
             if (err.response && err.response.data) {
                 const backendErrors = err.response.data;
-                
+
                 // Fallback text if something generic fails
                 let alertMessage = "Could not save profile. Please fix the following:\n\n";
                 let issuesFound = false;
@@ -4002,7 +5560,7 @@ export const MyProfile = () => {
                 Object.keys(backendErrors).forEach((key) => {
                     const errorContent = backendErrors[key];
                     const msg = Array.isArray(errorContent) ? errorContent[0] : errorContent;
-                    
+
                     if (fieldMapping[key]) {
                         issuesFound = true;
                         alertMessage += `📍 Section: [${fieldMapping[key].section}] \n👉 Field: ${fieldMapping[key].field} - ${msg}\n\n`;
@@ -4174,6 +5732,10 @@ export const MyProfile = () => {
                         onNext={handleNextStep}
                         setProfilePhoto={setProfilePhoto}
                         setRemovePhotoFlag={setRemovePhotoFlag}
+                        videoFile={videoFile}
+                        setVideoFile={setVideoFile}
+                        removeVideoFlag={removeVideoFlag}
+                        setRemoveVideoFlag={setRemoveVideoFlag}
                     />
                 );
             case "Current Details":
@@ -4330,7 +5892,7 @@ export const MyProfile = () => {
                                                         handleItemClick(subItem, item.title);
                                                     }}
                                                 >
-                                                    <span className="dot">•</span> {subItem}
+                                                    {subItem}
                                                 </div>
                                             ))}
                                         </div>

@@ -6,22 +6,34 @@
 .jobemployerhelp-container {
     background: #ffffff;
     padding: 40px 100px 100px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .jobemployerhelp-title {
     color: #0f172a;
-    margin-bottom: 40px;
+    margin: 0 auto 40px auto;
+    /* Centers the container */
     display: flex;
     justify-content: center;
     font-size: 32px;
     font-weight: 700;
     text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    width: 100%;
+    max-width: 900px;
+    /* Matches the width of the other sections */
 }
 
 .jobemployerhelp-updated {
     font-size: 13px;
     color: #64748b;
-    margin-bottom: 20px;
+    text-align: left;
+    width: 100%;
+    padding: 15px 0 0 30px;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 .jobemployerhelp-intro {
@@ -29,36 +41,47 @@
     line-height: 1.7;
     color: #334155;
     margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
 }
 
-.jobemployerhelp-layout {
+/* Centered Hero Image Section */
+.jobemployerhelp-hero-section {
     display: flex;
-    gap: 60px;
+    justify-content: center;
     align-items: center;
-    margin-bottom: 60px;
-}
-
-.jobemployerhelp-left {
-    flex: 1;
-    min-width: 0;
-}
-
-.jobemployerhelp-right {
-    flex: 1.2;
+    margin-bottom: 100px;
+    /* Increased from 50px */
+    width: 100%;
 }
 
 .jobemployerhelp-hero-img {
-    max-width: 100%;
+    max-width: 80%;
     height: auto;
     border-radius: 8px;
+    display: block;
 }
 
+/* Summary Section - Moved down */
+.jobemployerhelp-summary-section {
+    margin-bottom: 100px;
+    /* Increased from 60px */
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
 
-.jobemployerhelp-steps-container h2 {
+.jobemployerhelp-summary-title {
     font-size: 24px;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    width: 100%;
 }
 
 .jobemployerhelp-steps-list {
@@ -78,9 +101,9 @@
     font-weight: 600;
 }
 
-
+/* Detailed Steps */
 .jobemployerhelp-detailed-steps {
-    margin-top: 80px;
+    margin-top: 40px;
     display: flex;
     flex-direction: column;
     max-width: 900px;
@@ -95,12 +118,22 @@
     margin-bottom: 30px;
     padding-bottom: 12px;
     border-bottom: 2px solid #e2e8f0;
+    text-align: center;
     width: 100%;
 }
 
 .jobemployerhelp-detailed-step {
     margin-bottom: 35px;
     width: 100%;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border-left: 4px solid #0f172a;
+    transition: all 0.2s ease;
+}
+
+.jobemployerhelp-detailed-step:hover {
+    background: #f1f5f9;
 }
 
 .jobemployerhelp-detailed-step h3 {
@@ -133,20 +166,93 @@
     font-weight: 600;
 }
 
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .jobemployerhelp-container {
+        padding: 40px 50px 60px;
+    }
+}
 
 @media (max-width: 1000px) {
     .jobemployerhelp-container {
         padding: 40px 30px 60px;
     }
 
-    .jobemployerhelp-layout {
-        flex-direction: column;
-        align-items: center;
-        gap: 40px;
+    .jobemployerhelp-hero-img {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    .jobemployerhelp-container {
+        padding: 30px 20px 50px;
     }
 
-    .jobemployerhelp-left,
-    .jobemployerhelp-right {
-        width: 100%;
+    .jobemployerhelp-title {
+        font-size: 26px;
+    }
+
+    .jobemployerhelp-intro {
+        font-size: 14px;
+        padding: 0 10px;
+    }
+
+    .jobemployerhelp-hero-img {
+        max-width: 100%;
+    }
+
+    .jobemployerhelp-summary-title {
+        font-size: 20px;
+    }
+
+    .jobemployerhelp-steps-list li {
+        font-size: 14px;
+    }
+
+    .jobemployerhelp-detailed-steps h2 {
+        font-size: 22px;
+    }
+
+    .jobemployerhelp-detailed-step {
+        padding: 16px;
+    }
+
+    .jobemployerhelp-detailed-step h3 {
+        font-size: 17px;
+    }
+
+    .jobemployerhelp-detailed-step p,
+    .jobemployerhelp-detailed-step ul li {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .jobemployerhelp-title {
+        font-size: 22px;
+    }
+
+    .jobemployerhelp-intro {
+        font-size: 13px;
+    }
+
+    .jobemployerhelp-detailed-steps h2 {
+        font-size: 19px;
+    }
+
+    .jobemployerhelp-detailed-step {
+        padding: 14px;
+    }
+
+    .jobemployerhelp-detailed-step h3 {
+        font-size: 16px;
+    }
+
+    .jobemployerhelp-steps-list {
+        padding-left: 18px;
+    }
+
+    .jobemployerhelp-steps-list li {
+        font-size: 13px;
     }
 }

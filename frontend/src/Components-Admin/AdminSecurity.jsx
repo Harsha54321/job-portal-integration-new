@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./Adminsecurity.css";
+import "./AdminSecurity.css";
 import Tablet from '../assets/AdminAssets/Tablet.png';
 import Mobile from '../assets/AdminAssets/Mobile.png';
 import PC from '../assets/AdminAssets/PC.png';
@@ -14,7 +14,7 @@ import UpArrow from '../assets/UpArrow.png';
 import showPassword from '../assets/show_password.png';
 import hidePassword from '../assets/eye-hide.png';
 import api from '../api/axios'
- 
+
 export const AdminSecurity = () => {
   const [status, setStatus] = useState('input');
   const [isPasswordChange, setisPasswordChange] = useState(false);
@@ -33,64 +33,64 @@ export const AdminSecurity = () => {
   const [apiError, setApiError] = useState('');
   const [is2FALoading, setIs2FALoading] = useState(false);
   const [trustedDevices, setTrustedDevices] = useState([]);
- 
+
   const handleVerifyClick = (method) => {
     setSelectedMethod(method);
     setStatus('input');
     setShowModal(true);
     sendOTP(method);
   };
- 
+
   const fetchAccessLogs = async () => {
-  try {
-    const response = await api.get('admin-access-log/');
-    console.log("Logs response:", response.data);
-   
-    if (response?.data?.success && response?.data?.results) {
-     
-      const formattedLogs = response.data.results.map(log => ({
-        date: new Date(log.timestamp).toLocaleString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        }).toUpperCase(),
-        action: log.action.replace(/_/g, ' '),
-        location: log.location || 'Unknown',
-        ip: log.ip_address || 'Unknown',
-        status: log.status
-      }));
-      setLogs(formattedLogs);
+    try {
+      const response = await api.get('admin-access-log/');
+      console.log("Logs response:", response.data);
+
+      if (response?.data?.success && response?.data?.results) {
+
+        const formattedLogs = response.data.results.map(log => ({
+          date: new Date(log.timestamp).toLocaleString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }).toUpperCase(),
+          action: log.action.replace(/_/g, ' '),
+          location: log.location || 'Unknown',
+          ip: log.ip_address || 'Unknown',
+          status: log.status
+        }));
+        setLogs(formattedLogs);
+      }
+    } catch (error) {
+      console.error("Failed to fetch access logs:", error);
     }
-  } catch (error) {
-    console.error("Failed to fetch access logs:", error);
-  }
-};
- 
- 
- 
- 
-const fetchTrustedDevices = async () => {
-  try {
-    const response = await api.get('admin-trusted-devices/');
-    console.log("Trusted devices response:", response.data);
-   
-    if (response?.data?.success && response?.data?.results) {
-      const formattedDevices = response.data.results.map(device => ({
-        id: device.id.toString(),
-        name: device.device_name,
-        platform: device.platform,
-        last_used: device.last_used_at
-      }));
-      setTrustedDevices(formattedDevices);
+  };
+
+
+
+
+  const fetchTrustedDevices = async () => {
+    try {
+      const response = await api.get('admin-trusted-devices/');
+      console.log("Trusted devices response:", response.data);
+
+      if (response?.data?.success && response?.data?.results) {
+        const formattedDevices = response.data.results.map(device => ({
+          id: device.id.toString(),
+          name: device.device_name,
+          platform: device.platform,
+          last_used: device.last_used_at
+        }));
+        setTrustedDevices(formattedDevices);
+      }
+    } catch (error) {
+      console.error("Failed to fetch trusted devices:", error);
     }
-  } catch (error) {
-    console.error("Failed to fetch trusted devices:", error);
-  }
-};
- 
+  };
+
   const handleOtpSubmit = async () => {
     try {
       setIs2FALoading(true);
@@ -98,20 +98,20 @@ const fetchTrustedDevices = async () => {
         otp: otpInput,
         method: selectedMethod
       })
- 
+
       if (response?.data?.success) {
         // After successful OTP verification, update states
         setIsVerified({ ...isVerified, [selectedMethod.toLowerCase()]: true });
-       
+
         // Fetch the updated status from backend
         await fetch2FAstatus();
-       
+
         setStatus('success');
         setOtpInput('');
-       
+
         // Add success log
         addAccessLog("Two-Factor Authentication", "ENABLED");
-       
+
         setTimeout(() => {
           setShowModal(false);
           setStatus('input');
@@ -128,7 +128,7 @@ const fetchTrustedDevices = async () => {
       setIs2FALoading(false);
     }
   };
- 
+
   const [logs, setLogs] = useState([
     { date: 'OCT 24, 14:20', action: 'LOGIN', location: 'INDIA, Chennai', ip: '192.168.1.1', status: 'SUCCESS' },
     { date: 'OCT 24, 10:05', action: '2FA ENABLED', location: 'INDIA, Coimbatore', ip: '192.168.1.1', status: 'SUCCESS' },
@@ -136,7 +136,7 @@ const fetchTrustedDevices = async () => {
     { date: 'OCT 23, 23:45', action: 'PASSWORD CHANGE', location: 'INDIA, Salem', ip: '192.168.1.1', status: 'SUCCESS' },
     { date: 'OCT 23, 23:45', action: 'PASSWORD CHANGE', location: 'INDIA, Thirunelveli', ip: '192.168.1.1', status: 'FAILED' },
   ]);
- 
+
   const addAccessLog = (action, status) => {
     const newLog = {
       date: new Date().toLocaleString('en-GB', {
@@ -150,13 +150,13 @@ const fetchTrustedDevices = async () => {
     };
     setLogs(prevLogs => [newLog, ...prevLogs]);
   };
- 
+
   useEffect(() => {
     fetch2FAstatus();
-    fetchAccessLogs();  
+    fetchAccessLogs();
     fetchTrustedDevices();
   }, []);
- 
+
   const fetch2FAstatus = async () => {
     try {
       const response = await api.get('admin/2fa/status/')
@@ -172,11 +172,11 @@ const fetchTrustedDevices = async () => {
       console.error("Failed to fetch 2FA status:", error?.response?.data || error.message)
     }
   }
- 
+
   const sendOTP = async (method) => {
     try {
       setIs2FALoading(true);
-      const response = await api.post("admin/2fa/send-otp/", {
+      const response = await api.post("admin/2fa/status/", {
         method: method
       })
       if (response?.data?.success) {
@@ -191,13 +191,13 @@ const fetchTrustedDevices = async () => {
       setIs2FALoading(false);
     }
   }
- 
+
   // Disable 2FA directly without verification
   const disable2FA = async () => {
     try {
       setIs2FALoading(true);
       const response = await api.patch("admin/2fa/disable/")
-     
+
       if (response?.data?.success) {
         // Update local state based on API response
         setIs2FAEnabled(false);
@@ -210,7 +210,7 @@ const fetchTrustedDevices = async () => {
     } catch (error) {
       console.error("Failed to disable 2FA:", error?.response?.data || error.message);
       addAccessLog("Two-Factor Authentication", "FAILED");
-     
+
       const errorMessage = error?.response?.data?.message || "Failed to disable 2FA. Please try again.";
       setApiError(errorMessage);
       alert(errorMessage);
@@ -219,7 +219,7 @@ const fetchTrustedDevices = async () => {
       setIs2FALoading(false);
     }
   }
- 
+
   // Handle 2FA toggle based on current state
   const handle2FAToggle = async () => {
     if (is2FAEnabled) {
@@ -236,36 +236,36 @@ const fetchTrustedDevices = async () => {
       document.querySelector('.Ad-2fa-content-wrapper')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
- 
+
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
     expirationInterval: '30 Days'
   });
- 
-const handleRevoke = async (id) => {
-  const isConfirm = window.confirm("Are you sure to remove this device from trusted devices?");
-  if (isConfirm) {
-    try {
-      await api.delete(`admin-trusted-devices/${id}/`);
-      setTrustedDevices(prev => prev.filter(device => device.id !== id));
-      addAccessLog("DEVICE_REVOKED", "SUCCESS");
-      alert("Device revoked successfully");
-    } catch (error) {
-      console.error("Failed to revoke device:", error);
-      addAccessLog("DEVICE_REVOKED", "FAILED");
-      alert(error?.response?.data?.message || "Failed to revoke device. Please try again.");
+
+  const handleRevoke = async (id) => {
+    const isConfirm = window.confirm("Are you sure to remove this device from trusted devices?");
+    if (isConfirm) {
+      try {
+        await api.delete(`admin-trusted-devices/${id}/`);
+        setTrustedDevices(prev => prev.filter(device => device.id !== id));
+        addAccessLog("DEVICE_REVOKED", "SUCCESS");
+        alert("Device revoked successfully");
+      } catch (error) {
+        console.error("Failed to revoke device:", error);
+        addAccessLog("DEVICE_REVOKED", "FAILED");
+        alert(error?.response?.data?.message || "Failed to revoke device. Please try again.");
+      }
     }
-  }
-};
+  };
   const handleCancel = () => {
     setShowModal(false);
     setOtpInput('');
     setStatus('input');
     setApiError('');
   }
- 
+
   const togglePasswordChange = () => {
     setisPasswordChange(!isPasswordChange);
     if (isPasswordChange) {
@@ -279,14 +279,14 @@ const handleRevoke = async (id) => {
       setApiError('');
     }
   };
- 
+
   const toggle2FA = () => {
     setis2FAOpen(!is2FAOpen);
     if (!is2FAOpen) {
       setApiError('');
     }
   };
- 
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -295,22 +295,22 @@ const handleRevoke = async (id) => {
     }
     if (apiError) setApiError('');
   };
- 
+
   const handleIntervalChange = (value) => {
     setFormData((prev) => ({ ...prev, expirationInterval: value }));
   };
- 
+
   const validateForm = () => {
     const newErrors = {};
     const regexofUppercase = /[A-Z]/;
     const regexofNumber = /[0-9]/;
     const regexofSpecialChar = /[!@#$%^&*]/;
     const regexofLowercase = /[a-z]/;
- 
+
     if (!formData.currentPassword.trim()) {
       newErrors.currentPassword = "Current password is required";
     }
- 
+
     if (!formData.newPassword.trim()) {
       newErrors.newPassword = "Password is required";
     } else if (formData.newPassword.length < 8) {
@@ -324,28 +324,28 @@ const handleRevoke = async (id) => {
     } else if (!regexofSpecialChar.test(formData.newPassword)) {
       newErrors.newPassword = "Password must contain at least one special character";
     }
- 
+
     if (!formData.confirmPassword.trim()) {
       newErrors.confirmPassword = "Confirm Password is required";
     } else if (formData.newPassword !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
- 
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
- 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
- 
+
     if (!validateForm()) {
       addAccessLog("Password Change", "FAILED");
       return;
     }
- 
+
     setIsLoading(true);
- 
+
     try {
       const passwordData = {
         current_password: formData.currentPassword,
@@ -353,39 +353,39 @@ const handleRevoke = async (id) => {
         confirm_password: formData.confirmPassword,
         expiration_interval: formData.expirationInterval
       };
- 
+
       const response = await api.patch('admin-change-password/', passwordData);
- 
+
       if (response.data.success) {
         addAccessLog("Password Change", "SUCCESS");
         alert(response.data.message || "Password updated successfully!");
- 
+
         setFormData({
           currentPassword: '',
           newPassword: '',
           confirmPassword: '',
           expirationInterval: '30 Days'
         });
- 
+
         togglePasswordChange();
- 
+
         if (response.data.expiration_interval) {
           console.log(`Password will expire in: ${response.data.expiration_interval}`);
         }
         if (response.data.password_changed_at) {
           console.log(`Password changed at: ${response.data.password_changed_at}`);
         }
-       
+
       } else {
         addAccessLog("Password Change", "FAILED");
         setApiError(response.data.message || "Failed to update password");
       }
     } catch (error) {
       console.error("Password change error:", error);
- 
+
       if (error.response) {
         const responseData = error.response.data;
- 
+
         if (responseData.errors) {
           const mappedErrors = {};
           Object.keys(responseData.errors).forEach(key => {
@@ -410,13 +410,13 @@ const handleRevoke = async (id) => {
       } else {
         setApiError("An unexpected error occurred. Please try again.");
       }
- 
+
       addAccessLog("Password Change", "FAILED");
     } finally {
       setIsLoading(false);
     }
   };
- 
+
   const handlePwdCancel = () => {
     addAccessLog("Password Change", "Cancelled");
     setFormData({
@@ -429,29 +429,29 @@ const handleRevoke = async (id) => {
     setApiError('');
     togglePasswordChange();
   };
- 
+
   const getStrength = (password) => {
     let points = 0;
     if (!password) return { width: '0%', color: '#ddd', label: '' };
- 
+
     if (password.length > 5) points++;
     if (password.length > 8) points++;
     if (/[A-Z]/.test(password)) points++;
     if (/[0-9]/.test(password)) points++;
     if (/[^A-Za-z0-9]/.test(password)) points++;
- 
+
     if (points <= 2) return { width: '33%', color: '#ff4d4d', label: 'Weak' };
     if (points <= 4) return { width: '66%', color: '#cc9b07', label: 'Medium' };
     return { width: '100%', color: '#2563eb', label: 'Strong' };
   };
- 
+
   const strength = getStrength(formData.newPassword);
- 
+
   return (
     <div style={{ border: "1px solid #d1d5db", margin: "25px 0px", borderRadius: "10px" }}>
       {/* Password Change Section */}
       <div className="Ad-security-container">
-        <div className="Ad-security-header">
+        <div className="Ad-security-header" onClick={togglePasswordChange}>
           <div className="Ad-security-title-box">
             <img src={PasswordKey} width={35} alt="" />
             <span className="Ad-security-title">Change Password</span>
@@ -461,7 +461,6 @@ const handleRevoke = async (id) => {
             alt=""
             width={10}
             className={isPasswordChange ? 'Ad-security-up' : 'Ad-security-down'}
-            onClick={togglePasswordChange}
           />
         </div>
         {isPasswordChange && (
@@ -479,7 +478,7 @@ const handleRevoke = async (id) => {
                 {apiError}
               </div>
             )}
- 
+
             <div className="Ad-security-input-group">
               <label>Current Password</label>
               <div className="password-input-wrapper">
@@ -497,7 +496,7 @@ const handleRevoke = async (id) => {
               </div>
               {errors.currentPassword && <span className="error-msg">{errors.currentPassword}</span>}
             </div>
- 
+
             <div className="Ad-security-input-group">
               <label>New Password</label>
               <div className="password-input-wrapper">
@@ -531,7 +530,7 @@ const handleRevoke = async (id) => {
                 </div>
               )}
             </div>
- 
+
             <div className="Ad-security-input-group">
               <label>Confirm Password</label>
               <div className="password-input-wrapper">
@@ -549,7 +548,7 @@ const handleRevoke = async (id) => {
               </div>
               {errors.confirmPassword && <span className="error-msg">{errors.confirmPassword}</span>}
             </div>
- 
+
             <div className="Ad-security-expiration-section">
               <label className="Ad-security-label-caps">EXPIRATION INTERVAL</label>
               <div className="Ad-security-interval-options">
@@ -566,7 +565,7 @@ const handleRevoke = async (id) => {
                 ))}
               </div>
             </div>
- 
+
             <div className="Ad-security-actions">
               <button
                 type="submit"
@@ -587,10 +586,10 @@ const handleRevoke = async (id) => {
           </form>
         )}
       </div>
- 
+
       {/* 2FA Section */}
       <div className="Ad-security-container">
-        <div className="Ad-security-header">
+        <div className="Ad-security-header" onClick={toggle2FA}>
           <div className="Ad-security-title-box">
             <img src={Mfa} width={35} alt="" />
             <span className="Ad-security-title">Two-Factor Authentication</span>
@@ -599,17 +598,16 @@ const handleRevoke = async (id) => {
             src={UpArrow}
             alt=""
             width={10}
-            onClick={toggle2FA}
             className={is2FAOpen ? 'Ad-security-up' : 'Ad-security-down'}
           />
         </div>
- 
+
         {is2FAOpen && (
           <div className="Ad-2fa-content-wrapper">
             <p className="Ad-2fa-desc">
               Enhance your account security by requiring a verification code from your mobile device in addition to your password.
             </p>
- 
+
             <div className="Ad-2fa-card-white">
               <div className="Ad-2fa-card-info">
                 <span style={{ fontWeight: "600" }}>Enable 2FA</span>
@@ -625,7 +623,7 @@ const handleRevoke = async (id) => {
                 <span className="Adm-Not-slider"></span>
               </label>
             </div>
- 
+
             {/* Always show verification methods with tick marks when verified */}
             <div className="Ad-2fa-methods">
               <div className="Ad-2fa-method-box active">
@@ -648,7 +646,7 @@ const handleRevoke = async (id) => {
                   </button>
                 )}
               </div>
- 
+
               <div className="Ad-2fa-method-box active">
                 <div className="Ad-security-icon-bg light-blue">
                   <img src={AuthenticatorApp} width={50} alt="Email" />
@@ -670,7 +668,7 @@ const handleRevoke = async (id) => {
                 )}
               </div>
             </div>
- 
+
             {showModal && (
               <div className="otp-modal-overlay">
                 <div className="otp-modal-content">
@@ -720,10 +718,10 @@ const handleRevoke = async (id) => {
           </div>
         )}
       </div>
- 
+
       {/* Admin Access Logs Section */}
       <div className="Ad-security-container">
-        <div className="Ad-security-header">
+        <div className="Ad-security-header" onClick={() => setisAdminopen(!isadminopen)}>
           <div className="Ad-security-title-box">
             <img src={AdminAccess} width={35} alt="" />
             <span className="Ad-security-title">Admin Access Logs</span>
@@ -734,11 +732,10 @@ const handleRevoke = async (id) => {
               alt=""
               width={10}
               className={`Ad-Acc-arrow ${isadminopen ? 'Ad-security-up' : 'Ad-security-down'}`}
-              onClick={() => setisAdminopen(!isadminopen)}
             />
           </div>
         </div>
- 
+
         {isadminopen && (
           <div className="Ad-Acc-content-wrapper">
             <div className="Ad-Acc-table-header">
@@ -747,7 +744,7 @@ const handleRevoke = async (id) => {
               <span className="Ad-security-title">LOCATION</span>
               <span className="Ad-security-title">STATUS</span>
             </div>
- 
+
             <div className="Ad-Acc-logs-list">
               {logs.map((log, index) => (
                 <div key={index} className="Ad-Acc-log-row">
@@ -765,7 +762,7 @@ const handleRevoke = async (id) => {
                 </div>
               ))}
             </div>
- 
+
             <div className="Ad-Acc-trusted-section">
               <h4 className="Ad-Acc-sub-title">TRUSTED DEVICES</h4>
               {trustedDevices.map((device, index) => (
@@ -781,4 +778,3 @@ const handleRevoke = async (id) => {
     </div>
   );
 };
- 

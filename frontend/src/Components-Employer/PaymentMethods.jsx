@@ -340,7 +340,7 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
                                             </div>
                                             <div className="PaymentMethods-action-row">
                                                 <button type="button" className="PaymentMethods-cancel-btn" onClick={() => setShowOtp(false)}>Cancel</button>
-                                                <button type="submit" className="PaymentMethods-submit-btn">Verify & Pay</button>
+                                                <button type="submit" className="PaymentMethods-submit-btn" disabled={isVerifying}>Verify & Pay</button>
                                             </div>
                                         </form>
                                     )}

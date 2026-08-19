@@ -1,70 +1,139 @@
-.search-result-title{
+.search-result-title {
     text-align: center;
     margin: 15px 0;
 }
-.Mainsec-Search-Res{
-    display: grid; 
+
+.search-result-title h1 {
+    font-size: 2rem;
+}
+
+.Mainsec-Search-Res {
+    display: grid;
     grid-template-columns: 30% 50%;
     margin: 20px auto;
     padding: 20px;
-    gap: 6.5rem;
+    gap: 1rem;
 }
-.Aside{
+
+.Aside {
     padding: 20px;
     height: max-content;
-    overflow-y: scroll;   
-    margin-left: 50px;  
+    overflow-y: auto;
+    margin-left: 50px;
+    margin-top: 50px;
 }
-.Aside::-webkit-scrollbar{
+
+.Aside::-webkit-scrollbar {
     display: none;
 }
 
-.filter-applied{
+.filter-applied {
     color: #3b82f6;
     font-weight: 700;
     cursor: pointer;
 }
-.maincontent{
+
+.maincontent {
     display: flex;
     flex-direction: column;
     width: fit-content;
-    margin-left: 30px;
+    margin-left: 10px;
 }
-.jobs-card{
+
+.jobs-card {
     margin: 10px 20px;
     padding: 0px 50px;
 }
-.aside-header{
+
+.aside-header {
     display: flex;
     justify-content: space-between;
     margin: 0 20px;
     padding: 0 20px;
     border-bottom: 2px solid #777;
 }
-.Search-Worktype-Container{
+
+.Search-Worktype-Container {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding-left: 20px;
-    margin-left: 20px;
-    padding-bottom: 25px;
-    border-bottom: 1px solid #999;
-  
+    padding: 18px 20px;
+    margin: 0 20px;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-.Search-Worktype-Container input{
-    margin-right: 10px;
+/* ====== UPDATED: Checkbox on RIGHT side ====== */
+.location-checkbox-container {
+    margin-bottom: 8px;
+    width: 100%;
 }
-.Search-Worktype-Container label{
+
+.location-checkbox-container-wrapper {
+    width: 100%;
+}
+
+.location-checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Pushes checkbox to right */
+    gap: 10px;
+    width: 100%;
+    cursor: pointer;
+    padding: 6px 0;
+    flex-direction: row-reverse;
+    /* This puts checkbox on right */
+}
+
+.location-text {
+    margin: 0;
+    font-size: 15px;
+    color: #555;
+    flex: 1;
+    /* Takes available space, pushes checkbox to right */
+}
+
+.location-checkbox-label input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    /* Prevents checkbox from shrinking */
+    margin-left: 10px;
+    /* Space between text and checkbox */
+}
+
+/* For Education and other filters with same structure */
+.Search-Worktype-Container label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row-reverse;
     color: #83858B;
     font-weight: 500;
-}
-.Search-Worktype-Container h4{
-    color:#032240 ;
+    width: 100%;
+    cursor: pointer;
+    padding: 6px 0;
 }
 
-.viewmore-btn{
-    width: fit-content  ;
+.Search-Worktype-Container label input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+
+.Search-Worktype-Container label span {
+    flex: 1;
+    text-align: left;
+}
+
+.Search-Worktype-Container h4 {
+    color: #032240;
+}
+
+.viewmore-btn {
+    width: fit-content;
     padding: 5px;
     border-radius: 7px;
     border: none;
@@ -73,73 +142,90 @@
     color: #3b82f6;
     cursor: pointer;
 }
-.viewmore-cont{
+
+.viewmore-cont {
     display: flex;
     margin-top: 15px;
 }
+
 .SortbySearch {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 20px;
 }
- 
+
 .sort-wrapper {
-  position: relative;
+    position: relative;
 }
-.NoofJobsCont{
+
+.NoofJobsCont {
     margin-left: 70px;
 }
- 
+
 .Sortbutton {
-  padding: 6px 6px 5px 15px;
-  border-radius: 20px;
-  border: 1px solid #d0d5dd;
-  background-color: #ffffff;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  gap: 6px;
+    padding: 6px 6px 5px 15px;
+    border-radius: 20px;
+    border: 1px solid #d0d5dd;
+    background-color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
 }
- 
+
 .Sortbutton:hover {
-  background-color: #f5f7fa;
+    background-color: #f5f7fa;
 }
- 
+
 .sort-dropdown {
-  position: absolute;
-  top: 42px;
-  right: 0;
-  width: 250px;
-  background-color: #ffffff;
-  border: 1px solid #e4e7ec;
-  border-radius: 10px;
-  box-shadow: 0px 4px 14px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  overflow: hidden;
+    position: absolute;
+    right: 0;
+    top: 45px;
+    width: 220px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+    z-index: 100;
 }
- 
+
+.sort-dropdown p {
+    padding: 12px 16px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.sort-dropdown p:hover {
+    background: #f5f5f5;
+}
+
 .sort-dropdown div {
-  padding: 10px 85px;
-  font-size: 14px;
-  cursor: pointer;
-  color: #0b0b0b;
-  border-bottom: 1px solid #e3e1e1;
+    padding: 10px 85px;
+    justify-self: center;
+    align-self: center;
+    width: 90%;
+    font-size: 14px;
+    cursor: pointer;
+    color: #0b0b0b;
+    border-bottom: 1px solid #e3e1e1;
 }
+
 .sort-dropdown div:last-child {
-  border-bottom: none;
+    border-bottom: none;
 }
+
 .sort-dropdown div:hover {
-  background-color: #f5f7fa;
+    background-color: #f5f7fa;
 }
 
 .range-container {
     position: relative;
     width: 100%;
-    height: 6px; 
+    height: 6px;
     margin: 30px 0 15px 0;
     display: flex;
     align-items: center;
@@ -150,7 +236,7 @@
     -webkit-appearance: none !important;
     appearance: none !important;
     width: 100%;
-    height: 6px !important; 
+    height: 6px !important;
     background: transparent;
     outline: none;
     border-radius: 10px;
@@ -183,26 +269,24 @@
 
 .slider.multi {
     position: absolute;
-    pointer-events: none; 
+    pointer-events: none;
     z-index: 3;
 }
 
 .Single-slider::-webkit-slider-thumb,
 .slider::-webkit-slider-thumb {
-    -webkit-appearance: none !important; 
+    -webkit-appearance: none !important;
     appearance: none !important;
-    pointer-events: auto; 
-    /* Ball Dimensions */
+    pointer-events: auto;
     width: 18px !important;
     height: 18px !important;
     border-radius: 50%;
     background-color: #3b82f6;
     border: 2px solid #fff;
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-    margin-top: -1px !important; 
+    margin-top: -1px !important;
 }
 
-/* Firefox */
 .Single-slider::-moz-range-thumb,
 .slider::-moz-range-thumb {
     pointer-events: auto;
@@ -237,8 +321,717 @@
     margin-left: 12%;
 }
 
-@media (max-width: 480px) {
-  .filter-group {
-    max-width: 100%; 
-  }
+.mobile-actions {
+    display: none;
+}
+
+.filter-btn {
+    display: none;
+}
+
+.mobile-filter-header {
+    display: none;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.desktop-sort {
+    position: relative;
+}
+
+.mobile-toolbar {
+    display: none;
+}
+
+.sort-btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #0d6efd;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mobile-filter-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.mobile-filter-actions button {
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.mobile-filter-actions button:last-child {
+    background: #2563eb;
+    color: #fff;
+}
+
+.mobile-filter-actions button:first-child {
+    background: #f3f4f6;
+}
+
+/* ============ RESPONSIVE STYLES ============ */
+
+/* Large laptops & small desktops */
+@media screen and (max-width: 1400px) {
+    .Mainsec-Search-Res {
+        grid-template-columns: 35% 50%;
+        gap: 4rem;
+        padding: 20px;
+    }
+
+    .Aside {
+        margin-left: 30px;
+    }
+
+    .maincontent {
+        margin-left: 0;
+    }
+
+    .jobs-card {
+        padding: 0 30px;
+    }
+}
+
+/* Tablets & small laptops */
+@media screen and (max-width: 1200px) {
+    .Mainsec-Search-Res {
+        grid-template-columns: 38% 52%;
+        gap: 3rem;
+        padding: 15px;
+    }
+
+    .Aside {
+        margin-left: 20px;
+        padding: 15px;
+    }
+
+    .maincontent {
+        margin-left: 0;
+    }
+
+    .jobs-card {
+        padding: 0 20px;
+        margin: 10px 10px;
+    }
+
+    .aside-header {
+        margin: 0 10px;
+        padding: 0 10px;
+    }
+
+    .Search-Worktype-Container {
+        padding-left: 10px;
+        margin-left: 10px;
+    }
+
+    .NoofJobsCont {
+        margin-left: 30px;
+        font-size: 1.2rem;
+    }
+
+    .filter-group {
+        width: 90%;
+        margin-left: 5%;
+    }
+}
+
+/* Tablets */
+@media screen and (max-width: 992px) {
+    .Mainsec-Search-Res {
+        grid-template-columns: 40% 55%;
+        gap: 2rem;
+        padding: 15px;
+    }
+
+    .Aside {
+        margin-left: 10px;
+        padding: 12px;
+    }
+
+    .search-result-title h1 {
+        font-size: 1.6rem;
+    }
+
+    .jobs-card {
+        padding: 0 15px;
+        margin: 10px 5px;
+    }
+
+    .NoofJobsCont {
+        margin-left: 20px;
+        font-size: 1.1rem;
+    }
+
+    .SortbySearch {
+        padding: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .sort-dropdown {
+        width: 200px;
+        right: 0;
+    }
+
+    .sort-dropdown div {
+        padding: 8px 40px;
+        font-size: 13px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .mobile-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 15px 10px;
+        gap: 10px;
+    }
+
+    .mobile-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .desktop-sort {
+        display: none;
+    }
+
+    .mobile-toolbar {
+        display: flex;
+        gap: 10px;
+    }
+
+    .mobile-filter-btn,
+    .mobile-sort-btn {
+        padding: 8px 18px;
+        border: none;
+        border-radius: 8px;
+        background: #0d6efd;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        flex: 1;
+        text-align: center;
+    }
+
+    .Mainsec-Search-Res {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 10px;
+        margin: 10px auto;
+    }
+
+    .Aside {
+        margin-left: 0;
+        padding: 15px;
+        overflow-y: auto;
+        height: auto;
+        order: 2;
+        border-top: 2px solid #e0e0e0;
+        padding-top: 20px;
+        position: fixed;
+        top: 0;
+        margin-top: 60px;
+        left: -100%;
+        width: 85%;
+        max-width: 400px;
+        height: 100vh;
+        background: white;
+        z-index: 999;
+        transition: left .3s ease;
+    }
+
+    .Aside.show-filters {
+        left: 0;
+    }
+
+    .maincontent {
+        margin-left: 0;
+        width: 100%;
+        order: 1;
+    }
+
+    .search-result-title h1 {
+        font-size: 1.4rem;
+    }
+
+    .jobs-card {
+        padding: 0 10px;
+        margin: 10px 0;
+    }
+
+    .aside-header {
+        display: none;
+    }
+
+    .mobile-filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        background: #fff;
+        padding: 15px 20px;
+        z-index: 1001;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .mobile-filter-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .mobile-filter-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .close-filter {
+        border: none;
+        background: transparent;
+        font-size: 24px;
+        cursor: pointer;
+        color: #333;
+        padding: 0 5px;
+    }
+
+    .Search-Worktype-Container {
+        padding-left: 5px;
+        margin-left: 5px;
+        padding-bottom: 15px;
+    }
+
+    .Search-Worktype-Container h4 {
+        font-size: 15px;
+    }
+
+    .Search-Worktype-Container label {
+        font-size: 13px;
+        color: #555;
+    }
+
+    .NoofJobsCont {
+        margin-left: 0;
+        font-size: 1rem;
+        text-align: center;
+        width: 100%;
+    }
+
+    .SortbySearch {
+        padding: 10px 5px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .sort-wrapper {
+        align-self: flex-end;
+    }
+
+    .Sortbutton {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+
+    .sort-dropdown {
+        width: 180px;
+        right: 0;
+        top: 38px;
+    }
+
+    .sort-dropdown div {
+        padding: 8px 30px;
+        font-size: 13px;
+    }
+
+    .filter-group {
+        width: 95%;
+        margin-left: 2.5%;
+    }
+
+    .section-title {
+        font-size: 0.9rem;
+    }
+
+    .salary-labels {
+        font-size: 0.8rem;
+    }
+
+    .viewmore-btn {
+        font-size: 13px;
+    }
+
+    .slider.multi {
+        height: 8px !important;
+    }
+
+    .Single-slider::-webkit-slider-thumb,
+    .slider::-webkit-slider-thumb {
+        width: 22px !important;
+        height: 22px !important;
+    }
+
+    .filter-btn {
+        display: block;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+    }
+
+    .location-checkbox-label {
+        flex-direction: row-reverse;
+        justify-content: space-between;
+        padding: 8px 0;
+    }
+
+    .Search-Worktype-Container label {
+        flex-direction: row-reverse;
+        justify-content: space-between;
+        padding: 8px 0;
+    }
+
+    .Search-Worktype-Container label span {
+        flex: 1;
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .location-checkbox-label input,
+    .Search-Worktype-Container label input {
+        width: 18px;
+        height: 18px;
+        margin-left: 12px;
+        flex-shrink: 0;
+    }
+}
+
+/* Mobile portrait */
+@media screen and (max-width: 480px) {
+    .Mainsec-Search-Res {
+        padding: 5px;
+        margin: 5px auto;
+    }
+
+    .Aside {
+        padding: 10px 8px;
+        width: 90%;
+        max-width: 350px;
+    }
+
+    .search-result-title {
+        margin: 10px 0;
+    }
+
+    .search-result-title h1 {
+        font-size: 1.1rem;
+        padding: 0 10px;
+    }
+
+    .jobs-card {
+        padding: 0 5px;
+        margin: 8px 0;
+    }
+
+    .mobile-filter-header {
+        padding: 12px 15px;
+    }
+
+    .mobile-filter-header h2 {
+        font-size: 1rem;
+    }
+
+    .mobile-filter-actions button {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .close-filter {
+        font-size: 20px;
+    }
+
+    .mobile-filter-btn,
+    .mobile-sort-btn {
+        padding: 6px 14px;
+        font-size: 13px;
+    }
+
+    .Search-Worktype-Container {
+        padding-left: 3px;
+        margin-left: 3px;
+        padding-bottom: 12px;
+    }
+
+    .Search-Worktype-Container h4 {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    .Search-Worktype-Container label {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    .Search-Worktype-Container label span {
+        font-size: 13px;
+    }
+
+    .Search-Worktype-Container label input,
+    .location-checkbox-label input {
+        width: 16px;
+        height: 16px;
+        margin-left: 8px;
+    }
+
+    .NoofJobsCont {
+        font-size: 0.9rem;
+    }
+
+    .SortbySearch {
+        padding: 8px 5px;
+        gap: 8px;
+    }
+
+    .Sortbutton {
+        font-size: 12px;
+        padding: 4px 10px;
+        gap: 4px;
+    }
+
+    .sort-dropdown {
+        width: 160px;
+        right: -10px;
+        top: 35px;
+    }
+
+    .sort-dropdown div {
+        padding: 6px 20px;
+        font-size: 12px;
+    }
+
+    .filter-group {
+        width: 100%;
+        margin-left: 0;
+        padding: 0 5px;
+    }
+
+    .section-title {
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+    }
+
+    .salary-labels {
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .range-container {
+        margin: 20px 0 10px 0;
+        height: 5px;
+    }
+
+    .viewmore-btn {
+        font-size: 12px;
+        padding: 3px 8px;
+    }
+
+    .viewmore-cont {
+        margin-top: 10px;
+    }
+
+    /* Larger touch targets on mobile */
+    .Single-slider::-webkit-slider-thumb,
+    .slider::-webkit-slider-thumb {
+        width: 24px !important;
+        height: 24px !important;
+    }
+}
+
+/* Small mobile devices */
+@media screen and (max-width: 380px) {
+    .search-result-title h1 {
+        font-size: 0.95rem;
+    }
+
+    .Aside {
+        padding: 8px 5px;
+        width: 95%;
+        max-width: 320px;
+        margin-top: 66px;
+    }
+
+    .mobile-filter-header {
+        padding: 10px 12px;
+    }
+
+    .mobile-filter-header h2 {
+        font-size: 0.9rem;
+    }
+
+    .mobile-filter-actions button {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+
+    .close-filter {
+        font-size: 18px;
+    }
+
+    .Search-Worktype-Container label {
+        font-size: 11px;
+    }
+
+    .Search-Worktype-Container h4 {
+        font-size: 13px;
+    }
+
+    .NoofJobsCont {
+        font-size: 0.8rem;
+    }
+
+    .Sortbutton {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+
+    .sort-dropdown {
+        width: 140px;
+        right: -5px;
+    }
+
+    .sort-dropdown div {
+        padding: 5px 15px;
+        font-size: 11px;
+    }
+
+    .section-title {
+        font-size: 0.8rem;
+    }
+
+    .salary-labels {
+        font-size: 0.7rem;
+    }
+
+    .jobs-card {
+        padding: 0 3px;
+    }
+}
+
+/* Fix for very wide screens */
+@media screen and (min-width: 1800px) {
+    .Mainsec-Search-Res {
+        grid-template-columns: 25% 55%;
+        gap: 8rem;
+        max-width: 1600px;
+        margin: 20px auto;
+    }
+
+    .Aside {
+        margin-left: 80px;
+    }
+
+    .jobs-card {
+        padding: 0 60px;
+    }
+}
+
+/* Improve filter-group responsiveness */
+@media screen and (max-width: 992px) {
+    .filter-group {
+        width: 85%;
+        margin-left: 7.5%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .filter-group {
+        width: 95%;
+        margin-left: 2.5%;
+    }
+}
+
+/* Ensure dropdown doesn't overflow on mobile */
+@media screen and (max-width: 480px) {
+    .sort-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .sort-dropdown {
+        right: 0;
+        left: auto;
+        min-width: 150px;
+    }
+}
+
+/* ====== FIX: Results header on mobile ====== */
+@media screen and (max-width: 768px) {
+    .results-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 0 10px;
+    }
+
+    .results-header .NoofJobsCont {
+        order: 1;
+        width: 100%;
+        text-align: center;
+        margin: 5px 0;
+    }
+
+    .results-header .mobile-toolbar {
+        order: 2;
+        width: 100%;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .results-header .mobile-toolbar .mobile-filter-btn,
+    .results-header .mobile-toolbar .mobile-sort-btn {
+        flex: 1;
+        max-width: 150px;
+    }
+}
+
+/* Mobile filter overlay background */
+.filter-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+}
+
+.filter-overlay.active {
+    display: block;
+}
+
+/* Fix for long text wrapping in filters */
+.location-text {
+    word-break: break-word;
+    padding-right: 5px;
 }

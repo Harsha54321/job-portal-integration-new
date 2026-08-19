@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
  
+import os
 from pathlib import Path
+from datetime import timedelta
  
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,8 +30,9 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "54.183.89.14"
-    ]
+    "54.183.89.14",
+    "jobportal.stacklycloud.com",
+]
  
  
  
@@ -48,9 +51,10 @@ INSTALLED_APPS = [
     # 'jobapp',
     'jobapp.apps.JobappConfig',
     'channels',
+    'django_celery_beat',
 ]
  
-'django_celery_beat',
+
  
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -73,22 +77,37 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
    
 ]
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+ 
+CELERY_ACCEPT_CONTENT = ['json']
+ 
+CELERY_TASK_SERIALIZER = 'json'
+ 
+CELERY_RESULT_SERIALIZER = 'json'
+ 
+CELERY_TIMEZONE = 'Asia/Kolkata'
+
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+ 
+
 
 from celery.schedules import crontab
  
 CELERY_BEAT_SCHEDULE = {
- 
+
     # ─────────────────────────────
     # WEEKLY EMPLOYER SUMMARY
     # ─────────────────────────────
- 
+
     'weekly-employer-summary': {
  
         'task': (
             'jobapp.tasks.'
             'send_weekly_summary_notifications'
         ),
- 
+
+        # 'schedule': timedelta(seconds=60),
+
         'schedule': crontab(
             hour=9,
             minute=0,
@@ -128,16 +147,25 @@ CELERY_BEAT_SCHEDULE = {
             minute=0
         ),
     },
+ 
+    # ─────────────────────────────
+    # PROCESS QUIET-HOUR NOTIFICATIONS
+    # ─────────────────────────────
+ 
+    'process-pending-notifications': {
+ 
+        'task': (
+            'jobapp.tasks.'
+            'process_pending_notifications'
+        ),
+ 
+        'schedule': crontab(
+            minute='*'
+        ),
+    },
 }
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+
  
-CELERY_ACCEPT_CONTENT = ['json']
- 
-CELERY_TASK_SERIALIZER = 'json'
- 
-CELERY_RESULT_SERIALIZER = 'json'
- 
-CELERY_TIMEZONE = 'Asia/Kolkata'
 
 # GeoIP DB path (project currently keeps mmdb under jobapp/geoip)
 GEOIP_PATH = BASE_DIR / "jobapp" / "geoip"
@@ -151,12 +179,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
+    "http://localhost:5174",
     "https://112m0g3c-5173.inc1.devtunnels.ms",
-    "http://54.183.89.14"
+    "http://54.183.89.14",
+    "https://jobportal.stacklycloud.com"
    
 ]
- 
- 
+
  
  
 ROOT_URLCONF = 'jobportal.urls'
@@ -164,7 +193,7 @@ ROOT_URLCONF = 'jobportal.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        "DIRS": [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -245,17 +274,18 @@ AUTH_PASSWORD_VALIDATORS = [
  
 LANGUAGE_CODE = 'en-us'
  
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
  
 USE_I18N = True
  
-USE_TZ = True
+USE_TZ = False
  
  
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
  
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
  
@@ -272,6 +302,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
  
 CHANNEL_LAYERS = {
@@ -286,7 +318,13 @@ RAZORPAY_WEBHOOK_SECRET = ''
  
 import os
  
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://54.183.89.14")
- 
-GOOGLE_CLIENT_ID = "105293618059-al95762js6gc2o9umchkb3la0mnirhs1.apps.googleusercontent.com"
+# FRONTEND_URL = os.getenv("FRONTEND_URL", "http://54.183.89.14")
+# FRONTEND_URL = os.getenv("FRONTEND_URL", "https://jobportal.stacklycloud.com")
+FRONTEND_URL = "http://localhost:5173"
+
+SITE_URL = "http://127.0.0.1:8000"
+# SITE_URL = "http://54.183.89.14"
+#SITE_URL = "https://jobportal.stacklycloud.com"
+GOOGLE_CLIENT_ID = "534453822581-vvarj10pdfecp6ouht0qi1a4j6q333ak.apps.googleusercontent.com"
+# GOOGLE_CLIENT_ID = "105293618059-al95762js6gc2o9umchkb3la0mnirhs1.apps.googleusercontent.com"
 #GOOGLE_CLIENT_ID = "146646258104-184rcr7uv1mpttpi8bjf9tjq2r2ijg1i.apps.googleusercontent.com"

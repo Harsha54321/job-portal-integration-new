@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import search from '../assets/icon_search.png'
 import location from '../assets/icon_location.png'
 import tick from '../assets/icon_tick.png'
+import './SearchBar.css'
  
 export const SearchBar = ({searchQuery, setSearchQuery,searchLocation, setSearchLocation,searchExp, setSearchExp,onSearch}) => {
  

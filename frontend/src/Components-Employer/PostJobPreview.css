@@ -414,6 +414,30 @@
   border: 1px solid #f5c2c2;
 }
 
+.jobpost-previous-description-text,
+.jobpost-previous-description-list {
+  font-size: 15px;
+  color: #83858B;
+  line-height: 1.6;
+ 
+  white-space: pre-wrap;  
+  word-wrap: break-word;    
+  overflow-wrap: break-word;
+  word-break: break-word;  
+  max-width: 100%;          
+  min-width: 0; 
+  overflow: hidden;
+  text-overflow: ellipsis;           
+}
+ 
+.jobpost-previous-section-block {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
 /* 
 @media (max-width: 768px) {
   .jobpost-form-container {
@@ -484,3 +508,9 @@
 
 
  */
+
+ .jobpost-job-main,
+.opp-job-details-card,
+.jobpost-previous-section-block {
+  min-width: 0;
+}

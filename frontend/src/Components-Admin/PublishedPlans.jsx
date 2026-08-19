@@ -1,44 +1,175 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SixDots from '../assets/AdminAssets/SixDots.png';
 import Save from '../assets/AdminAssets/SaveDraft.png';
-import Tick from '../assets/AdminAssets/Greentick.png';
+import Tick from '../assets/AdminAssets/GreenTick.png';
 import RedCross from '../assets/AdminAssets/RedCross.png';
 import './PublishedPlan.css';
+import './Membership.css';
 import { useJobs } from '../JobContext';
+import api from '../api/axios';
+
+// Simple Watermark Tooltip Component
+const WatermarkTooltip = ({ text, children }) => {
+  const [show, setShow] = useState(false);
+
+  return (
+    <div
+      style={{ position: 'relative', display: 'inline-block' }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <div style={{
+          position: 'absolute',
+          bottom: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          marginBottom: '8px',
+          background: '#1e293b',
+          color: '#fff',
+          padding: '6px 12px',
+          borderRadius: '6px',
+          fontSize: '12px',
+          whiteSpace: 'nowrap',
+          zIndex: 1000,
+          pointerEvents: 'none',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+        }}>
+          {text}
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            border: '5px solid transparent',
+            borderTopColor: '#1e293b'
+          }}></div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const PublishedPlans = () => {
-  const {allPlans,setAllPlans}=useJobs()
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [editPlan, setEditPlan] = useState(null);
   const [previewPlan, setPreviewPlan] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [allPlans, setAllPlans] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [tempInputValues, setTempInputValues] = useState({});
 
-  // Helper function to calculate total payable amount
-  const calculateTotalPayable = (basePrice, discountPercent, taxPercent, billingCycle) => {
-    let price = parseFloat(basePrice) || 0;
+  const isStarterPlan = editPlan?.name?.toUpperCase() === 'STARTER PLAN';
 
-    if (billingCycle === '6 Months') {
-      price = price * 6;
-    } else if (billingCycle === 'Yearly') {
-      price = price * 12;
+  const getAdminToken = () => {
+    return (
+      sessionStorage.getItem("access") ||
+      sessionStorage.getItem("token") ||
+      sessionStorage.getItem("admin_token") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("admin_token")
+    );
+  };
+
+  useEffect(() => {
+    fetchAllPlans();
+  }, []);
+
+  // Notification click deep-link: open the specific plan's preview once
+  // the plans list has loaded.
+  useEffect(() => {
+    if (!allPlans || allPlans.length === 0) return;
+
+    const highlightType = sessionStorage.getItem('adminNotifHighlightType');
+    const highlightId = sessionStorage.getItem('adminNotifHighlightId');
+
+    if (highlightType === 'plan' && highlightId) {
+      const match = allPlans.find(p => String(p.id) === String(highlightId));
+      if (match) {
+        fetchSelectedPlanDetails(highlightId).then(() => setShowPreviewModal(true));
+      }
+      sessionStorage.removeItem('adminNotifHighlightType');
+      sessionStorage.removeItem('adminNotifHighlightId');
     }
+  }, [allPlans]);
 
-    const hasDiscount = billingCycle === '6 months' || billingCycle === 'Yearly';
-    const activeDiscountPercent = hasDiscount ? (parseFloat(discountPercent) || 0) : 0;
+  const fetchAllPlans = async () => {
+    try {
+      const token = getAdminToken();
+      const response = await api.get('plans/', {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined
+        }
+      });
+      setAllPlans(response.data);
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+    }
+  };
 
-    const discountAmt = price * (activeDiscountPercent / 100);
-    const priceAfterDiscount = price - discountAmt;
-    
-    const taxAmt = priceAfterDiscount * ((parseFloat(taxPercent) || 0) / 100);
-    const finalTotal = priceAfterDiscount + taxAmt;
+  const fetchSelectedPlanDetails = async (planId) => {
+    try {
+      const token = getAdminToken();
+      const response = await api.get(`plans/${planId}/`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined
+        }
+      });
+      const planData = response.data;
 
+      const normalizedPlan = {
+        ...planData,
+        monthly_price: planData.monthly_price ?? 0,
+        discount_halfyear: planData.discount_halfyear ?? 0,
+        discount_annual: planData.discount_annual ?? 0,
+        tax: planData.tax ?? 0,
+        trial_duration: planData.trial_duration ?? 0,
+        grace_time: planData.grace_time ?? 0,
+        is_trial_enabled: planData.is_trial_enabled ?? false,
+        is_auto_renewal: planData.is_auto_renewal ?? false,
+        color: planData.color ?? '#1E88E5',
+        features: planData.features?.map(feature => ({
+          ...feature,
+          // For numeric features, ensure they're numbers
+          value: feature.text === 'Jobs Posting' || feature.text === 'Highlight Your Job Listing'
+            ? (feature.value !== undefined && feature.value !== null && feature.value !== ''
+              ? parseInt(feature.value, 10) || 0
+              : 0)
+            : (feature.value ?? (feature.text === 'Jobs Posting' || feature.text === 'Highlight Your Job Listing' ? 0 : "false"))
+        })) || []
+      };
+
+      setEditPlan(normalizedPlan);
+      setPreviewPlan(normalizedPlan);
+      setErrors({});
+      setFieldErrors({});
+    } catch (error) {
+      console.error('Error fetching plan details:', error);
+    }
+  };
+
+  const calculateTotalPayable = (basePrice, tax) => {
+    let price = parseFloat(basePrice) || 0;
+    if (price === 0) return "0.00";
+    const taxAmt = price * (tax / 100);
+    const finalTotal = price + taxAmt;
     return finalTotal.toFixed(2);
   };
 
   const handleFeatureValueChange = (featureIdx, value) => {
     const updatedFeatures = editPlan.features.map((feature, i) => {
       if (i === featureIdx) {
-        return { ...feature, value: value };
+        // Ensure value is a number for numeric features
+        const numericValue = typeof value === 'string' ? parseInt(value, 10) : value;
+        return {
+          ...feature,
+          value: isNaN(numericValue) ? 0 : numericValue
+        };
       }
       return feature;
     });
@@ -47,109 +178,561 @@ export const PublishedPlans = () => {
 
   const handleSelectPlan = (plan) => {
     setSelectedPlanId(plan.id);
-    const CopiedPlan = JSON.parse(JSON.stringify(plan));
-    setEditPlan(CopiedPlan);
-    setPreviewPlan(CopiedPlan);
+    setErrors({});
+    setFieldErrors({});
+    fetchSelectedPlanDetails(plan.id);
   };
 
-  // const handleInputChange = (field, value) => {
-  //   setEditPlan(prev => {
-  //     const updated = { ...prev, [field]: value };
-  //     if (field === 'billingCycle') {
-  //       updated.duration = value === 'Monthly'&& 30 ;
-  //       updated.duration = value === '6 months'&& 180;
-  //       updated.duration = value === 'yearly'&& 365;
-  //     }
-  //     return updated;
-  //   });
-  // };
+  const validatePriceInput = (value, field) => {
+    let cleanedValue = value.replace(/[^0-9.]/g, '');
 
-  const handleInputChange = (field, value) => {
-  setEditPlan(prev => {
-    const updated = { ...prev, [field]: value };
+    const parts = cleanedValue.split('.');
+    if (parts.length > 2) {
+      cleanedValue = parts[0] + '.' + parts.slice(1).join('');
+    }
 
-    if (field === 'billingCycle') {
-      const durationMap = {
-        'Monthly': 30,
-        '6 Months': 180,
-        'Yearly': 365
-      };
-      
-      if (durationMap[value] !== undefined) {
-        updated.duration = durationMap[value];
+    cleanedValue = cleanedValue.replace(/-/g, '');
+
+    if (cleanedValue.length > 1 && cleanedValue.startsWith('0') && !cleanedValue.startsWith('0.')) {
+      cleanedValue = cleanedValue.replace(/^0+/, '');
+      if (cleanedValue === '') cleanedValue = '0';
+    }
+
+    if (cleanedValue.includes('.')) {
+      const [integerPart, decimalPart] = cleanedValue.split('.');
+      if (integerPart.length > 5) {
+        cleanedValue = integerPart.slice(0, 5) + '.' + decimalPart;
+      }
+      if (decimalPart && decimalPart.length > 2) {
+        cleanedValue = integerPart.slice(0, 5) + '.' + decimalPart.slice(0, 2);
+      }
+    } else {
+      if (cleanedValue.length > 5) {
+        cleanedValue = cleanedValue.slice(0, 5);
       }
     }
 
-    return updated;
-  });
-};
+    return cleanedValue;
+  };
+
+  const validateFeatureNumber = (value) => {
+    // Remove all non-numeric characters
+    let cleanedValue = value.replace(/[^0-9]/g, '');
+
+    // Get the current length
+    const currentLength = cleanedValue.length;
+
+    console.log(`Feature number input: "${value}" -> Cleaned: "${cleanedValue}" (Length: ${currentLength})`);
+
+    // If empty, return 0
+    if (cleanedValue === '') {
+      return {
+        value: '0',
+        error: null,
+        length: 0
+      };
+    }
+
+    // Remove leading zeros
+    if (cleanedValue.length > 1 && cleanedValue.startsWith('0')) {
+      cleanedValue = cleanedValue.replace(/^0+/, '');
+      if (cleanedValue === '') cleanedValue = '0';
+    }
+
+    // Parse the numeric value
+    const numericValue = parseInt(cleanedValue, 10);
+
+    // Check if value exceeds maximum (100)
+    if (numericValue > 100) {
+      // Important: Show the actual numeric value, not the original input
+      return {
+        value: cleanedValue,
+        error: `Value cannot exceed 100 (Current: ${numericValue})`,
+        length: currentLength
+      };
+    }
+
+    // Success
+    return {
+      value: cleanedValue,
+      error: null,
+      length: currentLength
+    };
+  };
+
+  const handleInputChange = (field, value) => {
+    const priceFields = ['monthly_price', 'tax', 'discount_halfyear', 'discount_annual'];
+
+    if (isStarterPlan && priceFields.includes(field)) {
+      console.log("Starter Plan: Price fields cannot be edited");
+      return;
+    }
+
+    if (field === "name") {
+      if (/[^a-zA-Z\s]/.test(value)) return;
+      if (value.length > 50) {
+        setFieldErrors(prev => ({
+          ...prev,
+          name: "Plan name cannot exceed 50 characters"
+        }));
+        return; // Don't update the state
+      } else {
+        setFieldErrors(prev => ({
+          ...prev,
+          name: null
+        }));
+      }
+
+      // Update state
+      setEditPlan(prev => ({ ...prev, [field]: value }));
+
+      // Clear general error
+      if (errors[field]) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      }
+      return;
+    }
+
+    if (field === "summary") {
+      // if (/[^a-zA-Z\s.,!?\-]/.test(value)) return;
+      if (value.length > 100) {
+        setFieldErrors(prev => ({
+          ...prev,
+          summary: "Summary cannot exceed 100 characters"
+        }));
+        return; // Don't update the state
+      }
+
+      // Check if value contains at least one alphabet character
+      const hasAlphabet = /[a-zA-Z]/.test(value);
+
+      // Store validation state
+      setFieldErrors(prev => ({
+        ...prev,
+        summary: !hasAlphabet && value.length > 0 ? "Summary must contain at least one letter" : null
+      }));
+
+      setEditPlan(prev => {
+        const updated = { ...prev, [field]: value };
+        console.log(`Updated ${field} to:`, value);
+        return updated;
+      });
+
+      // Clear general error for this field if it exists
+      if (errors[field]) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      }
+      return;
+    }
+
+    if (priceFields.includes(field)) {
+      const cleanedValue = validatePriceInput(value, field);
+
+      let error = null;
+      let maxValue = null;
+
+      switch (field) {
+        case 'monthly_price':
+          maxValue = 99999.99;
+          break;
+        case 'discount_halfyear':
+        case 'discount_annual':
+          maxValue = 100;
+          break;
+        case 'tax':
+          maxValue = 100;
+          break;
+        default:
+          break;
+      }
+
+      if (cleanedValue !== '' && maxValue !== null) {
+        const numValue = parseFloat(cleanedValue);
+        if (numValue > maxValue) {
+          error = `Value cannot exceed ${maxValue}`;
+        }
+        if (numValue < 0) {
+          error = 'Value cannot be negative';
+        }
+      }
+
+      setFieldErrors(prev => ({
+        ...prev,
+        [field]: error
+      }));
+
+      if (errors[field]) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      }
+
+      setEditPlan(prev => ({ ...prev, [field]: cleanedValue }));
+      return;
+    }
+
+    // For all other fields (including summary)
+    setEditPlan(prev => {
+      const updated = { ...prev, [field]: value };
+      console.log(`Updated ${field} to:`, value);
+      return updated;
+    });
+
+    // Clear error for this field if it exists
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
 
   const handleToggleFeature = (featureIdx) => {
     const updatedFeatures = editPlan.features.map((feature, i) => {
       if (i === featureIdx) {
-        return { ...feature, isInclude: !feature.isInclude };
+        const currentValue = feature.value;
+        const newValue = (currentValue === "true" || currentValue === true) ? "false" : "true";
+        return { ...feature, value: newValue };
       }
       return feature;
     });
     setEditPlan(prev => ({ ...prev, features: updatedFeatures }));
-  };
-
-  const handleFeatureTextChange = (featureIdx, textValue) => {
-    const updatedFeatures = editPlan.features.map((feature, i) => {
-      if (i === featureIdx) {
-        return { ...feature, text: textValue };
-      }
-      return feature;
-    });
-    setEditPlan(prev => ({ ...prev, features: updatedFeatures }));
-  };
-
-  const handleAutoRenewalToggle = () => {
-  setEditPlan(prev => ({ ...prev, isAutoRenewal: !prev.isAutoRenewal }));
   };
 
   const handleTriggerPreview = () => {
-  setPreviewPlan({ ...editPlan });
-  };
-  const handleAddTag = (e) => {
-    const value = e.target.value.trim();
-    if (value && !editPlan.planTags.includes(value)) {
-      setEditPlan({
-        ...editPlan,
-        planTags: [...editPlan.planTags, value]
-      });
-    }
-    setIsAdding(false);
+    setPreviewPlan({ ...editPlan });
+    setShowPreviewModal(true);
   };
 
-  const removeTag = (tagToRemove) => {
-    setEditPlan((prevData) => ({
-      ...prevData,
-      planTags: prevData.planTags.filter(tag => tag !== tagToRemove),
+  const handleClosePreviewModal = () => {
+    setShowPreviewModal(false);
+  };
+
+  const handleTrailToggle = () => {
+    setEditPlan(prev => ({
+      ...prev,
+      is_trial_enabled: !prev.is_trial_enabled,
+      trial_duration: !prev.is_trial_enabled ? 7 : 0
     }));
   };
-  
-  const handleTrailToggle = () => {
-  setEditPlan(prev => ({ 
-    ...prev, 
-    isTrialEnabled: !prev.isTrialEnabled,
-    TrailDuration: !prev.isTrialEnabled ? "7" : "0" 
-  }));
-  };
-   
-  const handleSavePlan = () => {
-    setAllPlans(prevPlans =>
-      prevPlans.map(plan => plan.id === selectedPlanId ? { ...editPlan } : plan)
-    );
-    alert("Changes saved successfully to the plan database!");
+
+  const handleSavePlan = async () => {
+    if (isSaving) return;
+
+    const hasFieldErrors = Object.values(fieldErrors).some(error => error !== null);
+    if (hasFieldErrors) {
+      alert('Please fill all required field.');
+      return;
+    }
+
+    const newErrors = {};
+
+    // Debug log to see what's in editPlan
+    console.log("Current editPlan:", editPlan);
+    console.log("Summary value:", editPlan?.summary);
+    console.log("Name value:", editPlan?.name);
+
+    // Validate name
+    if (!editPlan?.name?.trim()) {
+      newErrors.name = "Plan name is required.";
+    }
+
+    // Validate summary
+    if (!editPlan?.summary?.trim()) {
+      newErrors.summary = "Summary is required.";
+    } else if (!/[a-zA-Z]/.test(editPlan?.summary)) {
+      // Check if summary contains at least one alphabet character
+      newErrors.summary = "Summary must contain at least one letter.";
+    } else {
+      console.log("Summary is valid:", editPlan.summary);
+    }
+
+    if (!isStarterPlan) {
+      if (editPlan?.monthly_price === '' || editPlan?.monthly_price === null || editPlan?.monthly_price === undefined)
+        newErrors.monthly_price = "Price is required.";
+      else if (parseFloat(editPlan?.monthly_price) < 0)
+        newErrors.monthly_price = "Price cannot be negative.";
+      else if (parseFloat(editPlan?.monthly_price) > 99999.99)
+        newErrors.monthly_price = "Price cannot exceed ₹99,999.99.";
+
+      if (editPlan?.discount_halfyear === '' || editPlan?.discount_halfyear === null || editPlan?.discount_halfyear === undefined)
+        newErrors.discount_halfyear = "Discount is required.";
+      else if (parseFloat(editPlan?.discount_halfyear) < 0)
+        newErrors.discount_halfyear = "Discount cannot be negative.";
+      else if (parseFloat(editPlan?.discount_halfyear) > 999.99)
+        newErrors.discount_halfyear = "Discount cannot exceed 999.99%.";
+
+      if (editPlan?.discount_annual === '' || editPlan?.discount_annual === null || editPlan?.discount_annual === undefined)
+        newErrors.discount_annual = "Discount is required.";
+      else if (parseFloat(editPlan?.discount_annual) < 0)
+        newErrors.discount_annual = "Discount cannot be negative.";
+      else if (parseFloat(editPlan?.discount_annual) > 999.99)
+        newErrors.discount_annual = "Discount cannot exceed 999.99%.";
+
+      if (editPlan?.tax === '' || editPlan?.tax === null || editPlan?.tax === undefined)
+        newErrors.tax = "Tax is required.";
+      else if (parseFloat(editPlan?.tax) < 0)
+        newErrors.tax = "Tax cannot be negative.";
+      else if (parseFloat(editPlan?.tax) > 100)
+        newErrors.tax = "Tax cannot exceed 100%.";
+    }
+
+    // Update errors state
+    setErrors(newErrors);
+
+    console.log("Validation errors:", newErrors);
+
+    // If there are errors, scroll to the first error
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorField = Object.keys(newErrors)[0];
+      const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        errorElement.focus();
+      } else {
+        // If no element found with that name, try to find by id or class
+        const fallbackElement = document.querySelector(`#${firstErrorField}`);
+        if (fallbackElement) {
+          fallbackElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const token = getAdminToken();
+
+      const planData = {
+        name: editPlan?.name,
+        summary: editPlan?.summary,
+        color: editPlan?.color,
+        monthly_price: isStarterPlan ? 0 : (parseFloat(editPlan?.monthly_price) || 0),
+        tax: isStarterPlan ? 0 : (parseFloat(editPlan?.tax) || 0),
+        discount_halfyear: isStarterPlan ? 0 : (parseFloat(editPlan?.discount_halfyear) || 0),
+        discount_annual: isStarterPlan ? 0 : (parseFloat(editPlan?.discount_annual) || 0),
+        duration_days: editPlan?.duration_days ?? 30,
+        is_trial_enabled: editPlan?.is_trial_enabled ?? false,
+        trial_duration: editPlan?.trial_duration ?? 0,
+        is_auto_renewal: editPlan?.is_auto_renewal ?? false,
+        grace_time: editPlan?.grace_time ?? 0,
+        Analytics: editPlan?.Analytics ?? false,
+        Candidate_Search: editPlan?.Candidate_Search ?? false,
+        Premium_Support: editPlan?.Premium_Support ?? false,
+        Account_Manager: editPlan?.Account_Manager ?? false,
+        features: editPlan?.features
+      };
+
+      console.log("Saving plan data:", planData);
+
+      const response = await api.patch(`plans/${selectedPlanId}/`, planData, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Plan updated successfully:', response.data);
+
+      setAllPlans(prevPlans =>
+        prevPlans.map(plan => plan.id === selectedPlanId ? response.data : plan)
+      );
+
+      setErrors({});
+      setFieldErrors({});
+
+      alert("Plan changes saved successfully");
+
+      await fetchSelectedPlanDetails(selectedPlanId);
+      await fetchAllPlans();
+
+    } catch (error) {
+      console.error('Error saving plan:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        if (error.response.data) {
+          const apiErrors = {};
+          Object.keys(error.response.data).forEach(key => {
+            apiErrors[key] = Array.isArray(error.response.data[key])
+              ? error.response.data[key][0]
+              : error.response.data[key];
+          });
+          setErrors(apiErrors);
+        }
+        alert(`Error saving plan: ${JSON.stringify(error.response.data)}`);
+      } else {
+        alert("Error saving plan. Please try again.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeleteFeature = (featureIdx) => {
-    const updatedFeatures = editPlan.features.filter((_, i) => i !== featureIdx);
-    setEditPlan(prev => ({ ...prev, features: updatedFeatures }));
+
+  const handleFeatureNumberInput = (i, value) => {
+    // Store the raw input temporarily
+    setTempInputValues(prev => ({
+      ...prev,
+      [i]: value
+    }));
+
+    // Remove all non-numeric characters
+    let cleanedValue = value.replace(/[^0-9]/g, '');
+
+    // If empty, set to 0 for display
+    if (cleanedValue === '') {
+      // Don't update feature value yet - user is still typing
+      // Just clear the error
+      const featureErrorKey = `feature_${i}`;
+      setFieldErrors(prev => ({
+        ...prev,
+        [featureErrorKey]: null
+      }));
+      return;
+    }
+
+    // Remove leading zeros but keep single zero
+    if (cleanedValue.length > 1 && cleanedValue.startsWith('0')) {
+      cleanedValue = cleanedValue.replace(/^0+/, '');
+      if (cleanedValue === '') cleanedValue = '0';
+    }
+
+    // Parse numeric value
+    const numericValue = parseInt(cleanedValue, 10);
+
+    // Validate max (100)
+    let error = null;
+    if (numericValue > 100) {
+      error = `Value cannot exceed 100 (Current: ${numericValue})`;
+    }
+
+    // Store error
+    const featureErrorKey = `feature_${i}`;
+    setFieldErrors(prev => ({
+      ...prev,
+      [featureErrorKey]: error
+    }));
+
+    // If no error, update the feature value
+    if (!error) {
+      handleFeatureValueChange(i, numericValue);
+    } else {
+      // Still update but with error state
+      handleFeatureValueChange(i, numericValue);
+    }
   };
 
- 
+  const getFeatureError = (i) => {
+    const featureErrorKey = `feature_${i}`;
+    return fieldErrors[featureErrorKey];
+  };
+
+  const getPriceFieldError = (field) => {
+    return fieldErrors[field];
+  };
+
+  // Preview Card Component
+  const PreviewCard = ({ plan, isStarterPlan }) => (
+    <div className="published-plan-preview-card">
+      <div className="published-plan-badge" style={{ backgroundColor: plan.color || '#1E88E5' }}>
+        {plan.name}
+      </div>
+
+      <div className="published-plan-content">
+        <div className="published-plan-price-section">
+          <h2 className="published-plan-price">
+            {isStarterPlan ? "Free Plan" : `₹ ${calculateTotalPayable(plan.monthly_price ?? 0, plan.tax ?? 0)}`}
+          </h2>
+          {!isStarterPlan && <small style={{ color: '#555' }}>For a Month</small>}
+          <p className="published-plan-sub-badge">{plan.summary}</p>
+        </div>
+
+        <div className="published-plan-divider"></div>
+        <ul className="published-plan-features">
+          {plan.features?.map((feature, i) => {
+            // Handle Jobs Posting
+            if (feature.text === 'Jobs Posting') {
+              const numericValue = feature.value !== undefined && feature.value !== null && feature.value !== ''
+                ? parseInt(feature.value, 10)
+                : 0;
+              const displayValue = isNaN(numericValue) ? 0 : numericValue;
+              return (
+                <li key={i} className="published-plan-feature-item included">
+                  <span className="published-plan-icon">
+                    <img src={Tick} alt="yes" width={15} />
+                  </span>
+                  Max Job Posts: {displayValue}
+                </li>
+              );
+            }
+
+            // Handle Highlight Your Job Listing
+            if (feature.text === 'Highlight Your Job Listing') {
+              const numericValue = feature.value !== undefined && feature.value !== null && feature.value !== ''
+                ? parseInt(feature.value, 10)
+                : 0;
+              const displayValue = isNaN(numericValue) ? 0 : numericValue;
+
+              if (displayValue > 0) {
+                return (
+                  <li key={i} className="published-plan-feature-item included">
+                    <span className="published-plan-icon">
+                      <img src={Tick} alt="yes" width={15} />
+                    </span>
+                    {displayValue} Highlight Your Job Listing
+                  </li>
+                );
+              } else {
+                return (
+                  <li key={i} className="published-plan-feature-item excluded">
+                    <span className="published-plan-icon">
+                      <img src={RedCross} alt="no" width={15} />
+                    </span>
+                    <span className="published-plan-feature-text">
+                      Highlight Your Job Listing
+                    </span>
+                  </li>
+                );
+              }
+            }
+
+            const isEnabled = feature.value === "true" || feature.value === true;
+            return (
+              <li
+                key={i}
+                className={`published-plan-feature-item ${isEnabled ? 'included' : 'excluded'}`}
+              >
+                <span className="published-plan-icon">
+                  <img src={isEnabled ? Tick : RedCross} alt={isEnabled ? "yes" : "no"} width={15} />
+                </span>
+                <span className="published-plan-feature-text">
+                  {feature.text}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+
+        <button
+          className="published-plan-btn-get-started"
+          style={{ backgroundColor: plan.color || '#1E88E5' }}
+        >
+          {isStarterPlan ? "Get Started For Free" : "Get started"}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -171,7 +754,7 @@ export const PublishedPlans = () => {
                   border: "1px solid #afaaaa",
                   width: "35%",
                   borderRadius: "10px",
-                  background: plan.color,
+                  background: plan.color || '#1E88E5',
                   color: "#fff",
                   textAlign: "center",
                   fontWeight: 600,
@@ -179,21 +762,31 @@ export const PublishedPlans = () => {
                   boxShadow: "0px 4px 6px rgba(0,0,0,0.1)"
                 }}
               >
-                {plan.PlanName}
+                {plan.name}
               </div>
             ))}
           </div>
         </>
       ) : (
         <div className="membership-cr-membership-container">
-          <div style={{display:"flex",alignItems:"center",padding:"10px 15px",margin:"10px 0",gap:"10px"}} >
-          <button onClick={() => {setSelectedPlanId(null); setEditPlan(null); setPreviewPlan(null);}}
-            style={{padding: "5px 5px",cursor: "pointer",borderRadius: "5px",border: "1px solid #a2a2a2",fontWeight: "500"}}>
-            Back to Plans</button>
-          <div className="membership-cr-membership-header">
-            <h1 style={{padding: "10px 20px",flex:"1",fontSize:"18px"}}>Edit Plan: {editPlan?.PlanName}</h1>
+          <div style={{ display: "flex", alignItems: "center", padding: "10px 15px", margin: "10px 0", gap: "10px" }} >
+            <button onClick={() => { setSelectedPlanId(null); setEditPlan(null); setPreviewPlan(null); setErrors({}); setFieldErrors({}); }}
+              style={{ padding: "7px 10px", cursor: 'pointer', fontSize: '14px', backgroundColor: '#1E88E5', color: 'white', border: 'none', borderRadius: "5px" }}>
+              Back to plans
+            </button>
+            <div className="membership-cr-membership-header">
+              <h1 style={{ padding: "10px 20px", flex: "1", fontSize: "18px" }}>
+                Plan Name: {editPlan?.name} {isStarterPlan && "⚠️ (PRICE FIELDS READ-ONLY)"}
+              </h1>
+            </div>
           </div>
-        </div>
+
+          {isStarterPlan && (
+            <div style={{ backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', padding: '12px 20px', borderRadius: '6px', margin: '10px 15px', fontWeight: '500', fontSize: '14px', textAlign: 'start' }}>
+              <strong>Notice:</strong> This is the default system Starter Plan (Free Tier). Price fields are read-only, but features can be customized.
+            </div>
+          )}
+
           <div className="membership-cr-membership-content">
             <div className="membership-cr-form-sections">
 
@@ -203,19 +796,61 @@ export const PublishedPlans = () => {
                 </div>
                 <div className="membership-cr-row">
                   <div className="membership-cr-input-group">
-                    <label>Plan name*</label>
+                    <label>Plan name</label>
                     <input
                       type="text"
-                      value={editPlan?.PlanName || ''}
-                      onChange={(e) => handleInputChange('PlanName', e.target.value)}
+                      name="name"
+                      maxLength={50}
+                      value={editPlan?.name ?? ''}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      disabled={false}
+                      style={{
+                        borderColor: errors.name ? '#ff0000' : '#ddd',
+                        ...(errors.name ? { border: '1px solid #ff0000' } : {})
+                      }}
                     />
+                    {errors.name && <span style={{ color: 'red', fontSize: '12px' }}>{errors.name}</span>}
                   </div>
                   <div className="membership-cr-input-group">
-                    <label>Plan type*</label>
+                    <label>Summary</label>
                     <input
                       type="text"
-                      value={editPlan?.badge || ''}
-                      onChange={(e) => handleInputChange('badge', e.target.value)}
+                      name="summary"
+                      maxLength={100}
+                      value={editPlan?.summary ?? ''}
+                      onChange={(e) => {
+                        console.log("Summary input changed:", e.target.value);
+                        handleInputChange('summary', e.target.value);
+                      }}
+                      disabled={false}
+                      style={{
+                        borderColor: (fieldErrors.summary || errors.summary) ? '#ff0000' : '#ddd',
+                        ...((fieldErrors.summary || errors.summary) ? { border: '1px solid #ff0000' } : {})
+                      }}
+                    />
+                    {(fieldErrors.summary || errors.summary) && (
+                      <span style={{ color: 'red', fontSize: '12px' }}>
+                        {fieldErrors.summary || errors.summary}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="membership-cr-row" style={{ marginTop: '15px' }}>
+                  <div className="membership-cr-input-group" style={{ width: '50%' }}>
+                    <label>Card Color / Badge Visual Theme Code</label>
+                    <input
+                      type="text"
+                      value={editPlan?.color ?? '#1E88E5'}
+                      readOnly
+                      placeholder="e.g. #1E88E5 or green"
+                      style={{ flex: 1, backgroundColor: '#e9ecef', cursor: 'not-allowed' }}
+                    />
+                    <input
+                      type="color"
+                      value={editPlan?.color?.startsWith('#') && editPlan?.color?.length === 7 ? editPlan.color : '#1E88E5'}
+                      onChange={(e) => handleInputChange('color', e.target.value)}
+                      style={{ width: '40px', height: '38px', padding: '0', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
                     />
                   </div>
                 </div>
@@ -227,255 +862,343 @@ export const PublishedPlans = () => {
                 </div>
                 <div className="membership-cr-row">
                   <div className="membership-cr-input-group">
-                    <label>Price (₹)*</label>
+                    <label>Price (₹) for a month {isStarterPlan && ""}</label>
                     <input
-                      type="number"
-                      value={editPlan?.price || ''}
-                      onChange={(e) => handleInputChange('price', e.target.value)}
+                      type="text"
+                      name="monthly_price"
+                      value={editPlan?.monthly_price ?? ''}
+                      onChange={(e) => handleInputChange('monthly_price', e.target.value)}
+                      disabled={isStarterPlan}
+                      placeholder="0.00"
+                      style={{
+                        backgroundColor: isStarterPlan ? '#e9ecef' : '#fff',
+                        borderColor: (getPriceFieldError('monthly_price') || errors.monthly_price) ? '#ff0000' : '#ddd',
+                        ...((getPriceFieldError('monthly_price') || errors.monthly_price) ? { border: '1px solid #ff0000' } : {})
+                      }}
                     />
+                    {(getPriceFieldError('monthly_price') || errors.monthly_price) && (
+                      <span style={{ color: 'red', fontSize: '12px' }}>
+                        {getPriceFieldError('monthly_price') || errors.monthly_price}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '11px', color: '#666' }}>Max: ₹99,999.99</span>
                   </div>
                   <div className="membership-cr-input-group">
-                    <label>Billing Cycle*</label>
-                    <input 
-                      value={editPlan?.billingCycle || 'Monthly'} 
-                      onChange={(e) => handleInputChange('billingCycle', e.target.value)}
-                      readOnly
-                    >
-                    </input>
-                    </div>
-                      {/* <option value="Monthly">Monthly</option> */}
-                     
-                    
-                    {/* <div className="membership-cr-input-group">
-                      <label>Billing Cycle*</label>
-                    <select name="Billing cycle" value={editPlan?.billingCycle || 'Monthly'} 
-                      onChange={(e) => handleInputChange('billingCycle', e.target.value)}
-                      readOnly>
-                      <option value="Monthly">Monthly</option>
-                      <option value="6 Months">6 Months</option>
-                      <option value="Yearly">Yearly</option>
-                    </select>
-                  </div> */}
-                  <div className="membership-cr-input-group">
-                    <label>Duration (Days)*</label>
-                    <input 
-                      type="number" 
-                      value={editPlan?.duration || 30} 
-                      onChange={(e) => handleInputChange('duration', e.target.value)}
+                    <label>Discount (%) for 6 month plan {isStarterPlan && ""}</label>
+                    <input
+                      type="text"
+                      name="discount_halfyear"
+                      value={editPlan?.discount_halfyear ?? ''}
+                      onChange={(e) => handleInputChange('discount_halfyear', e.target.value)}
+                      disabled={isStarterPlan}
+                      placeholder="0.00"
+                      style={{
+                        backgroundColor: isStarterPlan ? '#e9ecef' : '#fff',
+                        borderColor: (getPriceFieldError('discount_halfyear') || errors.discount_halfyear) ? '#ff0000' : '#ddd',
+                        ...((getPriceFieldError('discount_halfyear') || errors.discount_halfyear) ? { border: '1px solid #ff0000' } : {})
+                      }}
                     />
+                    {(getPriceFieldError('discount_halfyear') || errors.discount_halfyear) && (
+                      <span style={{ color: 'red', fontSize: '12px' }}>
+                        {getPriceFieldError('discount_halfyear') || errors.discount_halfyear}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '11px', color: '#666' }}>Max: 100%</span>
                   </div>
                 </div>
                 <div className="membership-cr-row">
                   <div className="membership-cr-input-group">
-                    <label>Discount (%)</label>
-                    <input 
-                      type="number" 
-                      value={editPlan.billingCycle === 'Yearly' ? editPlan.discount : 0 || editPlan.billingCycle ==="6 Months" ? editPlan.discount : 0} 
-                      onChange={(e) => handleInputChange('discount', e.target.value)}
+                    <label>Discount (%) for Annual plan {isStarterPlan && ""}</label>
+                    <input
+                      type="text"
+                      name="discount_annual"
+                      value={editPlan?.discount_annual ?? ''}
+                      onChange={(e) => handleInputChange('discount_annual', e.target.value)}
+                      disabled={isStarterPlan}
+                      placeholder="0.00"
+                      style={{
+                        backgroundColor: isStarterPlan ? '#e9ecef' : '#fff',
+                        borderColor: (getPriceFieldError('discount_annual') || errors.discount_annual) ? '#ff0000' : '#ddd',
+                        ...((getPriceFieldError('discount_annual') || errors.discount_annual) ? { border: '1px solid #ff0000' } : {})
+                      }}
                     />
+                    {(getPriceFieldError('discount_annual') || errors.discount_annual) && (
+                      <span style={{ color: 'red', fontSize: '12px' }}>
+                        {getPriceFieldError('discount_annual') || errors.discount_annual}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '11px', color: '#666' }}>Max: 100%</span>
                   </div>
                   <div className="membership-cr-input-group">
-                    <label>Tax (%)</label>
-                    <input 
-                      type="number" 
-                      value={editPlan?.tax ?? 18} 
+                    <label>Tax (%) {isStarterPlan && ""}</label>
+                    <input
+                      type="text"
+                      name="tax"
+                      value={editPlan?.tax ?? ''}
                       onChange={(e) => handleInputChange('tax', e.target.value)}
+                      disabled={isStarterPlan}
+                      placeholder="0.00"
+                      style={{
+                        backgroundColor: isStarterPlan ? '#e9ecef' : '#fff',
+                        borderColor: (getPriceFieldError('tax') || errors.tax) ? '#ff0000' : '#ddd',
+                        ...((getPriceFieldError('tax') || errors.tax) ? { border: '1px solid #ff0000' } : {})
+                      }}
                     />
+                    {(getPriceFieldError('tax') || errors.tax) && (
+                      <span style={{ color: 'red', fontSize: '12px' }}>
+                        {getPriceFieldError('tax') || errors.tax}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '11px', color: '#666' }}>Max: 100%</span>
                   </div>
-                  
+
                   <div className="membership-cr-total-payable">
                     <p style={{ textAlign: "start", margin: "5px 0", fontWeight: "600" }}>Total Payable</p>
                     <h3 style={{ textAlign: "start", fontSize: "24px" }}>
-                      ₹ {calculateTotalPayable(editPlan?.price, editPlan?.discount, editPlan?.tax,editPlan.billingCycle)}{" "}
-                      <span style={{ fontSize: "16px", fontWeight: "normal", color: "#555" }}>
-                        / {editPlan?.billingCycle === 'Monthly' ? 'Month' : 'Yearly'}
-                      </span>
+                      {isStarterPlan ? "Free Plan" : `₹ ${calculateTotalPayable(editPlan?.monthly_price ?? 0, editPlan?.tax ?? 0)}`}
+                      {!isStarterPlan && (
+                        <span style={{ fontSize: "16px", fontWeight: "normal", color: "#555" }}>
+                          / for a Month
+                        </span>
+                      )}
                     </h3>
                     <p style={{ textAlign: "start", margin: "5px 0", fontSize: "12px" }}>(incl. tax after discount)</p>
                   </div>
                 </div>
               </div>
 
-              {/* <div className="membership-cr-form-card">
+              <div className="membership-cr-form-card">
                 <div className="membership-cr-section-title">
                   <span className="membership-cr-step-num">3</span> Features & Limits
                 </div>
                 <table className="membership-cr-features-table">
                   <thead>
-                    <tr>
-                      <th>Feature Name</th>
-                      <th>Included</th>
+                    <tr >
+                      <th style={{ textAlign: 'left', padding: '10px' }}>Feature</th>
+                      <th style={{ textAlign: 'center', padding: '10px' }}>Limit / Inclusion</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {editPlan?.features.map((item, i) => (
-                      <tr key={i}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <img src={SixDots} alt="" className="membership-cr-drag-dots" />
-                            <input
-                              type="text"
-                              value={item.text}
-                              className="membership-cr-feature-label-input"
-                              onChange={(e) => handleFeatureTextChange(i, e.target.value)}
-                              style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%' }}
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <div
-                            className={`membership-cr-toggle-switch ${item.isInclude ? "membership-cr-active" : ""}`}
-                            onClick={() => handleToggleFeature(i)}
-                          ></div>
-                        </td>
-                      </tr>
-                    ))}
+                  <tbody style={{ border: "1px solid #f0f0ff" }}>
+                    {editPlan?.features?.map((item, i) => {
+                      if (item.text === 'Jobs Posting') {
+                        const featureError = getFeatureError(i);
+                        // Get raw input value if exists, otherwise use actual value
+                        const rawValue = tempInputValues[i];
+                        const actualValue = item.value !== undefined && item.value !== null && item.value !== ''
+                          ? parseInt(item.value, 10)
+                          : 0;
+                        const displayValue = rawValue !== undefined ? rawValue : (isNaN(actualValue) ? 0 : actualValue);
+
+                        return (
+                          <tr key={i}>
+                            <td style={{ padding: '20px' }} title="Maximum number of job posts allowed for this plan.">
+                              Max Job Posts ⓘ
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '10px' }}>
+                              <div>
+                                <input
+                                  type="text"
+                                  value={String(displayValue)}
+                                  onChange={(e) => handleFeatureNumberInput(i, e.target.value)}
+                                  onBlur={() => {
+                                    // On blur, clear temp value and use actual
+                                    setTempInputValues(prev => {
+                                      const newState = { ...prev };
+                                      delete newState[i];
+                                      return newState;
+                                    });
+                                  }}
+                                  disabled={false}
+                                  placeholder="0"
+                                  style={{
+                                    width: '80px',
+                                    padding: '8px',
+                                    textAlign: 'center',
+                                    border: `1px solid ${featureError ? '#ff0000' : '#ddd'}`,
+                                    borderRadius: '4px',
+                                    fontSize: '14px'
+                                  }}
+                                  title="Enter the number of job posts (max 100)"
+                                />
+                                {featureError && (
+                                  <div style={{ color: 'red', fontSize: '11px', marginTop: '4px' }}>
+                                    {featureError}
+                                  </div>
+                                )}
+                                <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
+                                  Max: 100
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      if (item.text === 'Highlight Your Job Listing') {
+                        const featureError = getFeatureError(i);
+                        // Get raw input value if exists, otherwise use actual value
+                        const rawValue = tempInputValues[i];
+                        const actualValue = item.value !== undefined && item.value !== null && item.value !== ''
+                          ? parseInt(item.value, 10)
+                          : 0;
+                        const displayValue = rawValue !== undefined ? rawValue : (isNaN(actualValue) ? 0 : actualValue);
+
+                        return (
+                          <tr key={i}>
+                            <td style={{ padding: '20px' }} title="Number of job highlights available per billing cycle. Highlighted jobs appear at top of search results.">
+                              {item.text} ⓘ
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '10px' }}>
+                              <div>
+                                <input
+                                  type="text"
+                                  value={String(displayValue)}
+                                  onChange={(e) => handleFeatureNumberInput(i, e.target.value)}
+                                  onBlur={() => {
+                                    // On blur, clear temp value and use actual
+                                    setTempInputValues(prev => {
+                                      const newState = { ...prev };
+                                      delete newState[i];
+                                      return newState;
+                                    });
+                                  }}
+                                  disabled={false}
+                                  placeholder="0"
+                                  style={{
+                                    width: '80px',
+                                    padding: '8px',
+                                    textAlign: 'center',
+                                    border: `1px solid ${featureError ? '#ff0000' : '#ddd'}`,
+                                    borderRadius: '4px',
+                                    fontSize: '14px'
+                                  }}
+                                  title="Set how many job posts can be highlighted (max 100)"
+                                />
+                                {featureError && (
+                                  <div style={{ color: 'red', fontSize: '11px', marginTop: '4px' }}>
+                                    {featureError}
+                                  </div>
+                                )}
+                                <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
+                                  Max: 100
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      const featureHints = {
+                        'Analytics ': 'Access to detailed job performance analytics and reports',
+                        'Candidate Search': 'Ability to search and filter candidate in findtalent only',
+                        'Premium Support': 'Priority customer support with faster response times',
+                        'Account Manager': 'Dedicated account manager for personalized assistance'
+                      };
+
+                      return (
+                        <tr key={i}>
+                          <td
+                            style={{ padding: '20px' }}
+                            title={featureHints[item.text] || `Enable or disable ${item.text} feature`}
+                          >
+                            {item.text} ⓘ
+                          </td>
+                          <td style={{ textAlign: 'center', padding: '10px' }}>
+                            <div
+                              style={{ display: 'flex', justifyContent: 'center' }}
+                              title={`Click to ${item.value === "true" || item.value === true ? 'disable' : 'enable'} ${item.text}`}
+                            >
+                              <div
+                                className={`membership-cr-toggle-switch ${item.value === "true" || item.value === true ? "membership-cr-active" : ""}`}
+                                onClick={() => handleToggleFeature(i)}
+                                style={{ cursor: 'pointer' }}
+                              ></div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
-              </div> */}
-              <div className="membership-cr-form-card">
-              <div className="membership-cr-section-title">
-                  <span className="membership-cr-step-num">3</span> Features & Limits
-                </div>
-              <table className="membership-cr-features-table">
-  <thead>
-    <tr >
-      <th style={{ textAlign: 'left', padding: '10px' }}>Feature Name</th>
-      <th style={{ textAlign: 'center', padding: '10px' }}>Value / Limit</th>
-      <th style={{ textAlign: 'center', padding: '10px' }}>Included</th>
-      <th style={{ textAlign: 'center', padding: '10px' }}>Action</th>
-    </tr>
-  </thead>
-  <tbody style={{border:"1px solid #f0f0ff"}}>
-    {editPlan?.features.map((item, i) => (
-      <tr key={i}>
-        {/* Feature Name */}
-        <td style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <img src={SixDots} alt="" className="membership-cr-drag-dots" width="12" />
-            <input
-              type="text"
-              value={item.text}
-              className="membership-cr-feature-label-input"
-              onChange={(e) => handleFeatureTextChange(i, e.target.value)}
-              style={{ border: '1px solid #ddd', padding: '5px', borderRadius: '4px', width: '90%', outline: 'none' }}
-            />
-          </div>
-        </td>
-        <td style={{ textAlign: 'center', padding: '10px' }}>
-          {item.isInclude ? (
-            <input
-              type="text"
-              value={item.value || ''}
-              onChange={(e) => handleFeatureValueChange(i, e.target.value)}
-              placeholder="e.g. 30"
-              style={{ width: '60px', padding: '5px', textAlign: 'center', border: '1px solid #ddd', borderRadius: '4px' }}
-            />
-          ) : (
-            <span style={{ color: '#aaa', fontSize: '12px' }}>-</span>
-          )}
-        </td>
-
-        <td style={{ textAlign: 'center', padding: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div
-              className={`membership-cr-toggle-switch ${item.isInclude ? "membership-cr-active" : ""}`}
-              onClick={() => handleToggleFeature(i)}
-            ></div>
-          </div>
-        </td>
-
-        {/* Action / Delete Button */}
-        <td style={{ textAlign: 'center', padding: '10px' }}>
-          <button 
-            onClick={() => handleDeleteFeature(i)}
-            style={{ background: 'transparent', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontWeight: 'bold' }}
-            title="Delete Feature"
-          >
-           Delete
-          </button>
-        </td>
-      </tr>
-    ))}
-  </tbody>
-</table>
-</div>
-{/* Add Feature Button */}
-{/* <div style={{ padding: '10px', textAlign: 'left' }}>
-  <button 
-    onClick={handleAddFeature}
-    style={{ background: '#eef2ff', color: '#5c6bc0', border: '1px solid #5c6bc0', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
-  >
-    + Add New Feature
-  </button>
-</div> */}
+              </div>
 
               <div className="membership-cr-form-card membership-cr-mini-section">
-            <div className="membership-cr-section-title"><span className="membership-cr-step-num">4</span> Trial Settings</div>
-            <div className="membership-cr-row membership-cr-align-center">
-              <div className="membership-cr-toggle-group" >
-                <span>Free Trial Available</span>
-                <div onClick={handleTrailToggle} className={`membership-cr-toggle-switch  ${editPlan.isTrialEnabled ? "membership-cr-active" : ""}` }></div>
-              </div>
-              <div className="membership-cr-input-group">
-                <label>Total Duration (Days)</label>
-                <input type="number" name="TrailDuration" value={editPlan.TrailDuration}  disabled={!editPlan.isTrialEnabled} />
-              </div>
-            </div>
+                <div className="membership-cr-section-title">
+                  <span className="membership-cr-step-num">4</span> Trial Settings
+                  <span
+                    style={{
+                      marginLeft: '10px',
+                      fontSize: '12px',
+                      color: '#ff9800',
+                      backgroundColor: '#fff3e0',
+                      padding: '2px 8px',
+                      borderRadius: '4px'
+                    }}
+                    title="Will be implemented after Razorpay gateway integration"
+                  >
+                  </span>
+                </div>
+                <div className="membership-cr-row membership-cr-align-center">
+                  <div
+                    className="membership-cr-toggle-group"
+                    style={{ pointerEvents: 'auto', opacity: '0.5', cursor: 'not-allowed' }}
+                    title="Will be implemented after Razorpay gateway integration"
+                  >
+                    <span>Free trial option</span>
+                    <div
+                      className="membership-cr-toggle-switch"
+                      style={{ cursor: 'not-allowed', opacity: '0.5' }}
+                    ></div>
+                  </div>
+                  <div
+                    className="membership-cr-input-group"
+                    title="Will be implemented after Razorpay gateway integration"
+                  >
+                    <label>Total Duration (Days)</label>
+                    <input
+                      type="text"
+                      name="TrailDuration"
+                      value={editPlan?.trial_duration ?? 0}
+                      disabled={true}
+                      style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }}
+                      title="Will be implemented after Razorpay gateway integration"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="membership-cr-form-card">
-            <div className="membership-cr-section-title"><span className="membership-cr-step-num">5</span> Advanced Settings</div>
-            <div className="membership-cr-row membership-cr-align-center">
-              <div className="membership-cr-toggle-group" onClick={handleAutoRenewalToggle}>
-                <span>Auto Renewal</span>
-                <div className={`membership-cr-toggle-switch ${editPlan.isAutoRenewal ? 'membership-cr-active' : ''}`}></div>
-              </div>
-              <div className="membership-cr-input-group">
-                <label>Grace Period (Days)</label>
-                <input type="number" name="GraceTime" value={editPlan.GraceTime} onChange={handleInputChange} disabled={!editPlan.isAutoRenewal} />
-              </div>
-
-              <div className="membership-cr-input-group">
-                <label>Plan Tags</label>
-                <div className="membership-cr-tags-input">
-                  {editPlan.planTags.map((tag, index) => (
-                    <span key={index} className="membership-cr-tag">
-                      {tag}
-                      <span
-                        onClick={() => removeTag(tag)}
-                        style={{ cursor: 'pointer', marginLeft: '8px' }}
-                      >
-                        ✕
-                      </span>
-                    </span>
-                  ))}
-
-                  {isAdding ? (
+                <div className="membership-cr-section-title">
+                  <span className="membership-cr-step-num">5</span> Advanced Settings
+                </div>
+                <div className="membership-cr-row membership-cr-align-center">
+                  <div
+                    className="membership-cr-toggle-group"
+                    style={{ pointerEvents: 'auto', opacity: '0.5', cursor: 'not-allowed' }}
+                    title="Will be implemented after Razorpay gateway integration"
+                  >
+                    <span>Auto Renewal</span>
+                    <div
+                      className="membership-cr-toggle-switch"
+                      style={{ cursor: 'not-allowed', opacity: '0.5' }}
+                    ></div>
+                  </div>
+                  <div
+                    className="membership-cr-input-group"
+                    title="Will be implemented after Razorpay gateway integration"
+                  >
+                    <label>Grace Period (Days)</label>
                     <input
                       type="text"
-                      autoFocus
-                      placeholder="Enter tag..."
-                      className="membership-cr-tag-input-field"
-                      onBlur={handleAddTag}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleAddTag(e);
-                        if (e.key === 'Escape') setIsAdding(false);
-                      }}
+                      name="GraceTime"
+                      value={editPlan?.grace_time ?? 0}
+                      disabled={true}
+                      style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }}
+                      title="Will be implemented after Razorpay gateway integration"
                     />
-                  ) : (
-                    <span
-                      className="membership-cr-add-tag"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setIsAdding(true)}
-                    >
-                      +
-                    </span>
-                  )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
               <div className="membership-cr-action-buttons" style={{ display: 'flex', gap: '15px' }}>
                 <button
@@ -499,63 +1222,42 @@ export const PublishedPlans = () => {
                   type="button"
                   className="membership-cr-btn-save"
                   onClick={handleSavePlan}
+                  disabled={isSaving}
+                  style={{ opacity: isSaving ? 0.7 : 1 }}
                 >
-                  {Save && <img src={Save} alt="" className="membership-cr-btn-icon" />} Save
+                  {Save && <img src={Save} alt="" className="membership-cr-btn-icon" />} {isSaving ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>
 
             <div className="membership-cr-preview-sidebar">
               {previewPlan && (
-                <div className="published-plan-preview-card">
-                  <div className="published-plan-badge" style={{ backgroundColor: previewPlan.color }}>
-                    {previewPlan.PlanName}
-                  </div>
-                  
-
-                  <div className="published-plan-content">
-                    <div className="published-plan-price-section">
-                      <h2 className="published-plan-price">
-                        ₹ {calculateTotalPayable(previewPlan.price, previewPlan.discount, previewPlan.tax,previewPlan.billingCycle)}
-                      </h2>
-                      <small style={{ color: '#555' }}>
-                        ({previewPlan.billingCycle})
-                      </small>
-                      <p className="published-plan-sub-badge">{previewPlan.badge}</p>
-                      {/* <small style={{ color: '#555' }}>
-                        Base: ₹{previewPlan.price} | Disc: {previewPlan.discount}% | Tax: {previewPlan.tax}%
-                      </small> */}
-                    </div>
-
-                    <div className="published-plan-divider"></div>
-                    <ul className="published-plan-features">
-                      {previewPlan.features.map((feature, i) => (
-                        <li
-                          key={i}
-                          className={`published-plan-feature-item ${feature.isInclude ? 'included' : 'excluded'}`}
-                        >
-                          <span className="published-plan-icon">
-                            <img src={feature.isInclude ? Tick : RedCross} alt={feature.isInclude ? "yes" : "no"} width={15} />
-                          </span>
-                          <span className="published-plan-feature-text">
-  {feature.value && feature.isInclude ? <strong style={{marginRight: '5px'}}>{feature.value}</strong> : null}
-  {feature.text}
-</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button
-                      className="published-plan-btn-get-started"
-                      style={{ backgroundColor: previewPlan.color }}
-                    >
-                      Get started
-                    </button>
-                  </div>
-                </div>
+                <PreviewCard plan={previewPlan} isStarterPlan={isStarterPlan} />
               )}
             </div>
+          </div>
+        </div>
+      )}
 
+      {/* Preview Modal */}
+      {showPreviewModal && previewPlan && (
+        <div className="published-plans-preview-modal-overlay" onClick={handleClosePreviewModal}>
+          <div className="published-plans-preview-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="published-plans-preview-modal-close"
+              onClick={handleClosePreviewModal}
+            >
+              ×
+            </button>
+
+            <div className="published-plans-preview-modal-header">
+              <h3>Preview Plan</h3>
+              <p>This is how your plan will appear to users</p>
+            </div>
+
+            <div className="published-plans-preview-modal-body">
+              <PreviewCard plan={previewPlan} isStarterPlan={isStarterPlan} />
+            </div>
           </div>
         </div>
       )}

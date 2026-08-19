@@ -26,10 +26,10 @@ export const AdminNotificationSettings = () => {
   const mainChannels = ['Email', 'In-App', 'SMS', 'Push'];
 
   const quickChannels = [
-    { id: 'email_notif', title: 'Email Notifications', description: 'Receive notification via email', iconClass: EmailNotif },
-    { id: 'inapp_notif', title: 'In-App Notification', description: 'Receive notification in admin panel', iconClass: InAppNotify },
-    { id: 'sms_notif', title: 'SMS Notification', description: 'Receive important alerts via SMS', iconClass: SmsNotify },
-    { id: 'push_notif', title: 'Push Notification', description: 'Receive push notification in browser', iconClass: PushNotify }
+    { id: 'email_notif', title: 'Email Notifications', description: 'Receive notification via email', iconClass: EmailNotif, channelName: 'Email' },
+    { id: 'inapp_notif', title: 'In-App Notification', description: 'Receive notification in admin panel', iconClass: InAppNotify, channelName: 'In-App' },
+    { id: 'sms_notif', title: 'SMS Notification', description: 'Receive important alerts via SMS', iconClass: SmsNotify, channelName: 'SMS' },
+    { id: 'push_notif', title: 'Push Notification', description: 'Receive push notification in browser', iconClass: PushNotify, channelName: 'Push' }
   ];
 
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -39,6 +39,7 @@ export const AdminNotificationSettings = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
   const [startTime, setStartTime] = useState("22:00");
   const [endTime, setEndTime] = useState("07:00");
   const [activeDays, setActiveDays] = useState(["Mon", "Tue", "Wed", "Thu", "Fri"]);
@@ -77,7 +78,6 @@ export const AdminNotificationSettings = () => {
       ]);
 
       // ── Table preferences ─────────────────────────────────
-      // Backend returns: { table_preferences: { user_mgmt: { Email, "In-App", SMS, Push }, ... } }
       const backendPrefs = prefsRes.data?.table_preferences || {};
       const mapped = notificationTypes.reduce((acc, type) => {
         const fromBackend = backendPrefs[type.id] || {};
@@ -93,13 +93,13 @@ export const AdminNotificationSettings = () => {
 
       // ── Quiet hours ───────────────────────────────────────
       const qh = quietRes.data?.quiet_hours || {};
+      if (typeof qh.enabled === 'boolean') setQuietHoursEnabled(qh.enabled);
       if (qh.start_time) setStartTime(qh.start_time.slice(0, 5));
       if (qh.end_time) setEndTime(qh.end_time.slice(0, 5));
       if (qh.timezone) setTimezone(qh.timezone);
       if (qh.active_days) setActiveDays(qh.active_days);
 
       // ── Channel settings ──────────────────────────────────
-      // Backend returns: { quick_setup: { email_notif, inapp_notif, sms_notif, push_notif } }
       const qs = channelsRes.data?.quick_setup || {};
       setQuickSetup({
         email_notif: qs.email_notif ?? false,
@@ -122,22 +122,18 @@ export const AdminNotificationSettings = () => {
     setError(null);
     try {
       await Promise.all([
-        // 1. Notification preferences (table)
         api.patch('notification-preferences/update/', {
           table_preferences: tablePreferences
         }),
-
-        // 2. Quiet hours
         api.patch('quiet-hours/update/', {
           quiet_hours: {
+            enabled: quietHoursEnabled,
             start_time: startTime,
             end_time: endTime,
             timezone: timezone,
             active_days: activeDays,
           }
         }),
-
-        // 3. Notification channel settings
         api.patch('notification-channels/update/', {
           quick_setup: quickSetup
         }),
@@ -161,56 +157,88 @@ export const AdminNotificationSettings = () => {
     );
   };
 
-  // const handleTableChange = (typeId, channelName) => {
-  //   setTablePreferences(prev => ({
-  //     ...prev,
-  //     [typeId]: {
-  //       ...prev[typeId],
-  //       [channelName]: !prev[typeId][channelName]
-  //     }
-  //   }));
-  // };
-
-
-  // added this on  29-05-26
-  const handleTableChange = (typeId, channelName) => {
-    // Add this if condition at the very beginning
-    if (channelName === 'SMS' || channelName === 'Push') {
+  // ── NEW: Handle Quick Channel Change (Master Switch) ──
+  const handleQuickChange = (channelId) => {
+    // Disable SMS toggle (Under Implementation)
+    if (channelId === 'sms_notif') {
       return;
     }
 
+    const newValue = !quickSetup[channelId];
+
+    // Find the channel name mapping
+    const channelMap = {
+      'email_notif': 'Email',
+      'inapp_notif': 'In-App',
+      'sms_notif': 'SMS',
+      'push_notif': 'Push'
+    };
+
+    const channelName = channelMap[channelId];
+
+    // Update quick setup state
+    setQuickSetup(prev => ({
+      ...prev,
+      [channelId]: newValue
+    }));
+
+    // Update all table preferences for this channel
+    // If master switch is turned OFF, disable all rows for this channel
+    // If master switch is turned ON, enable all rows for this channel (only if they were previously off)
+    setTablePreferences(prev => {
+      const updated = { ...prev };
+      notificationTypes.forEach(type => {
+        updated[type.id] = {
+          ...updated[type.id],
+          [channelName]: newValue
+        };
+      });
+      return updated;
+    });
+  };
+
+  // ── Handle Table Change (Individual Row Toggle) ──
+  const handleTableChange = (typeId, channelName) => {
+    // Disable SMS (Under Implementation)
+    if (channelName === 'SMS') {
+      return;
+    }
+
+    // Update table preferences ONLY (No master channel side-effects)
     setTablePreferences(prev => ({
       ...prev,
       [typeId]: {
         ...prev[typeId],
-        [channelName]: !prev[typeId][channelName]
+        [channelName]: !prev[typeId]?.[channelName]
       }
     }));
-  };
-  // const handleQuickChange = (channelId) => {
-  //   setQuickSetup(prev => ({
-  //     ...prev,
-  //     [channelId]: !prev[channelId]
-  //   }));
-  // };
-  
 
-    // added this on  29-05-26
+    // Check if all rows for this channel are now ON
+    // If all are ON, turn ON the master switch
+    // If any is OFF, turn OFF the master switch
+    const allRowsForChannel = notificationTypes.every(
+      type => type.id === typeId ? newValue : tablePreferences[type.id]?.[channelName]
+    );
 
-  const handleQuickChange = (channelId) => {
-    // Disable SMS and Push toggling
-    if (channelId === 'sms_notif' || channelId === 'push_notif') {
-      return;
+    // Find the corresponding quick channel ID
+    const channelMapReverse = {
+      'Email': 'email_notif',
+      'In-App': 'inapp_notif',
+      'SMS': 'sms_notif',
+      'Push': 'push_notif'
+    };
+
+    const quickChannelId = channelMapReverse[channelName];
+
+    if (quickChannelId && quickChannelId !== 'sms_notif') {
+      setQuickSetup(prev => ({
+        ...prev,
+        [quickChannelId]: allRowsForChannel
+      }));
     }
-
-    setQuickSetup(prev => ({
-      ...prev,
-      [channelId]: !prev[channelId]
-    }));
   };
 
   // ── Timezone display helper ───────────────────────────────
-  // Backend stores "Asia/Kolkata" but the select shows "(UTC +05:30) Asia/Kolkata"
   const timezoneOptions = [
     { value: 'Asia/Kolkata', label: '(UTC +05:30) Asia/Kolkata' },
     { value: 'America/Los_Angeles', label: '(UTC -08:00) America/Los_Angeles' },
@@ -218,6 +246,18 @@ export const AdminNotificationSettings = () => {
     { value: 'Europe/London', label: '(UTC +01:00) Europe/London' },
     { value: 'Europe/Berlin', label: '(UTC +02:00) Europe/Berlin' },
   ];
+
+  // ── Helper to check if a channel is globally enabled ──
+  const isChannelEnabled = (channelName) => {
+    const channelMap = {
+      'Email': 'email_notif',
+      'In-App': 'inapp_notif',
+      'SMS': 'sms_notif',
+      'Push': 'push_notif'
+    };
+    const quickId = channelMap[channelName];
+    return quickSetup[quickId] ?? false;
+  };
 
   // ── Render ────────────────────────────────────────────────
   if (loading) {
@@ -274,34 +314,28 @@ export const AdminNotificationSettings = () => {
                       </div>
                     </div>
                   </td>
-                  {/* {mainChannels.map(channel => (
-                    <td key={channel} className="Adm-Not-td-switch">
-                      <label className="Adm-Not-switch">
-                        <input
-                          type="checkbox"
-                          checked={tablePreferences[type.id]?.[channel] ?? false}
-                          onChange={() => handleTableChange(type.id, channel)}
-                        />
-                        <span className="Adm-Not-slider"></span>
-                      </label>
-                    </td>
-                  ))} */}
-
-
                   {mainChannels.map(channel => {
-                    // Add this line to check if disabled
-                    const isDisabled = channel === 'SMS' || channel === 'Push';
+                    const isRowDisabled = type.id === 'general';
+                    const isChannelDisabled = channel === 'SMS';
+                    const isGloballyEnabled = isChannelEnabled(channel);
+
+                    const shouldDisable = isChannelDisabled || isRowDisabled || !isGloballyEnabled;
 
                     return (
                       <td key={channel} className="Adm-Not-td-switch">
-                        {/* Add span with title for tooltip */}
-                        <span title={isDisabled ? "Under Implementation" : ""}>
-                          <label className="Adm-Not-switch">
+                        <span title={isChannelDisabled || isRowDisabled ? "Under Implementation" : (!isGloballyEnabled ? "Channel is disabled" : "")}>
+                          <label
+                            className="Adm-Not-switch"
+                            style={{
+                              opacity: shouldDisable ? 0.5 : 1,
+                              pointerEvents: shouldDisable ? 'none' : 'auto'
+                            }}
+                          >
                             <input
                               type="checkbox"
-                              checked={tablePreferences[type.id]?.[channel] ?? false}
+                              checked={shouldDisable ? false : (tablePreferences[type.id]?.[channel] ?? false)}
                               onChange={() => handleTableChange(type.id, channel)}
-                              disabled={isDisabled}
+                              disabled={shouldDisable}
                             />
                             <span className="Adm-Not-slider"></span>
                           </label>
@@ -323,31 +357,8 @@ export const AdminNotificationSettings = () => {
             <h2 className="Adm-Not-panel-title">Notification Channels</h2>
             <p className="Adm-Not-panel-subtitle">Choose your preferred communication channel</p>
             <div className="Adm-Not-channel-list">
-              {/* {quickChannels.map(channel => (
-                <div key={channel.id} className="Adm-Not-channel-item">
-                  <div style={{ display: "flex", alignItems: "center" }} className="Adm-Not-item-info">
-                    <img src={channel.iconClass} alt="" width={25} height={25} />
-                    <div>
-                      <div className="Adm-Not-item-title">{channel.title}</div>
-                      <div className="Adm-Not-item-desc">{channel.description}</div>
-                    </div>
-                  </div>
-                  <label className="Adm-Not-switch">
-                    <input
-                      type="checkbox"
-                      checked={quickSetup[channel.id] ?? false}
-                      onChange={() => handleQuickChange(channel.id)}
-                    />
-                    <span className="Adm-Not-slider"></span>
-                  </label>
-                </div>
-              ))} */}
-
-
-              
               {quickChannels.map(channel => {
-                // Check if this channel should be disabled
-                const isDisabled = channel.id === 'sms_notif' || channel.id === 'push_notif';
+                const isDisabled = channel.id === 'sms_notif';
 
                 return (
                   <div key={channel.id} className="Adm-Not-channel-item">
@@ -377,10 +388,26 @@ export const AdminNotificationSettings = () => {
 
           {/* Quiet Hours panel */}
           <div className="Adm-Not-panel Adm-Not-quiet-hours-panel">
-            <h2 className="Adm-Not-panel-title">Quiet Hours</h2>
-            <p className="Adm-Not-panel-subtitle">Set quiet hours to avoid notification at certain times</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 className="Adm-Not-panel-title">Quiet Hours</h2>
+                <p className="Adm-Not-panel-subtitle">Set quiet hours to avoid notification at certain times(only for admin) </p>
+            </div>
 
-            <div className="Adm-Not-time-inputs">
+              <label className="Adm-Not-switch">
+                <input
+                  type="checkbox"
+                  checked={quietHoursEnabled}
+                  onChange={() => setQuietHoursEnabled(prev => !prev)}
+                />
+                <span className="Adm-Not-slider"></span>
+              </label>
+            </div>
+
+            <div
+              className="Adm-Not-time-inputs"
+              style={{ opacity: quietHoursEnabled ? 1 : 0.5 }}
+            >
               <div className="Adm-Not-time-group">
                 <label>Start time</label>
                 <div className="Adm-Not-time-select-wrapper">
@@ -390,6 +417,7 @@ export const AdminNotificationSettings = () => {
                     type="time"
                     onChange={(e) => setStartTime(e.target.value)}
                     value={startTime}
+                    disabled={!quietHoursEnabled}
                   />
                 </div>
               </div>
@@ -402,28 +430,37 @@ export const AdminNotificationSettings = () => {
                     type="time"
                     onChange={(e) => setEndTime(e.target.value)}
                     value={endTime}
+                    disabled={!quietHoursEnabled}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="Adm-Not-day-picker">
+            <div
+              className="Adm-Not-day-picker"
+              style={{ opacity: quietHoursEnabled ? 1 : 0.5 }}
+            >
               {daysOfWeek.map(day => (
                 <button
                   key={day}
                   className={activeDays.includes(day) ? "day-btn active" : "day-btn"}
                   onClick={() => toggleDay(day)}
+                  disabled={!quietHoursEnabled}
                 >
                   {day}
                 </button>
               ))}
             </div>
 
-            <div className="Adm-Not-timezone-select-wrapper">
+            <div
+              className="Adm-Not-timezone-select-wrapper"
+              style={{ opacity: quietHoursEnabled ? 1 : 0.5 }}
+            >
               <select
                 className="Adm-Not-timezone-select"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
+                disabled={!quietHoursEnabled}
               >
                 {timezoneOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>
@@ -433,7 +470,6 @@ export const AdminNotificationSettings = () => {
               </select>
             </div>
           </div>
-
         </div>
       </div>
     </div>

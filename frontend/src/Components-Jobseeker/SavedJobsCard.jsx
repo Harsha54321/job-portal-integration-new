@@ -7,18 +7,40 @@ import place from '../assets/opportunity_location.png';
 import calender from '../assets/calender_card.png';
 import './SavedJobsCard.css';
 import { useJobs } from '../JobContext';
-import { formatPostedDate } from './OpportunitiesCard';
+import { formatPostedDate, isRecentlyPosted } from './OpportunitiesCard';
 import { useNavigate } from "react-router-dom";
+import { LocationDisplay } from './LocationDisplay';
 
 export const SavedJobsCard = ({ job, onRemoved }) => {
-    // const { applyForJob, toggleSaveJob, appliedJobs } = useJobs();
-
     const { isJobApplied } = useJobs();
     const { unsaveJob } = useJobs();
     const isApplied = isJobApplied(job.id);
 
     const navigate = useNavigate();
     if (!job) return null;
+
+    // Determine card styling based on job status
+    const isHighlighted = job.is_highlighted === true;
+    const isRecent = isRecentlyPosted(job.posted_date || job.created_at);
+
+    // Priority: Highlighted > Recent > Normal
+    let cardClassName = "myjobs-job-card";
+    // if (isHighlighted) {
+    //     cardClassName += " highlighted-job";
+    // } else if (isRecent) {
+    //     cardClassName += " recent-job";
+    // }
+
+    // Get badge text based on job status
+    const getBadge = () => {
+        // if (isHighlighted) {
+        //     return <span className="job-badge premium-badge">⭐ Featured</span>;
+        // }
+        // if (isRecent) {
+        //     return <span className="job-badge recent-badge">🆕 New</span>;
+        // }
+        return null;
+    };
 
     const handleUnsave = async () => {
         try {
@@ -37,28 +59,18 @@ export const SavedJobsCard = ({ job, onRemoved }) => {
     };
 
     const HandleClick = () => {
-        navigate(`/Job-portal/jobseeker/OpportunityOverview/${job.id}`)
-    }
-
-    const formatLocation = (location) => {
-
-        if (!location) return "Location not specified";
-
-        if (Array.isArray(location)) {
-            return location.join(", ");
-        }
-        return location;
+        navigate(`/Job-portal/jobseeker/OpportunityOverview/${job.id}`);
     };
 
-    const locationDisplay = formatLocation(job.location);
-
     return (
-        <div className="myjobs-job-card">
+        <div className={cardClassName}>
+            {/* Badge for highlighted/recent jobs */}
+            {getBadge()}
+
             <div onClick={() => HandleClick()}>
                 <div className="myjobs-card-header">
                     <div>
                         <h2 className="myjobs-job-title">{job.job_title}</h2>
-                        {/* <span className="menu-dots">⋮</span> */}
                     </div>
                 </div>
                 <div className="myjobs-company-sub">
@@ -81,18 +93,18 @@ export const SavedJobsCard = ({ job, onRemoved }) => {
                             {job.work_type}
                         </span>
                         <span className="Opportunities-divider">|</span>
-                        ₹ {job.salary} Lpa
+                        ₹ {job.salary}
                     </p>
 
                     <p className="Opportunities-detail-line">
                         <img src={experience} className="card-icons" alt="" />
-                        {job.experience} years of experience
+                        {job.experience}
                     </p>
 
-                    <p className="Opportunities-detail-line">
+                    <div className="Opportunities-detail-line">
                         <img src={place} className="card-icons" alt="" />
-                        {locationDisplay}
-                    </p>
+                        <LocationDisplay locations={job.location} />
+                    </div>
 
                     <p className="Opportunities-detail-line">
                         <img src={calender} className="card-icons" alt="" />
@@ -104,13 +116,23 @@ export const SavedJobsCard = ({ job, onRemoved }) => {
                     </p>
                 </div>
 
-                <div className="Opportunities-job-tags">
+                <div className="Opportunities-worktype-details">
+                    <div className="Opportunities-job-tags">
                     {job.job_category && (
                         <span className={`Opportunities-job-tag ${job.job_category.toLowerCase().replace(/\s+/g, '-')}`}>
                             {job.job_category}
                         </span>
                     )}
                 </div>
+                <div className="Opportunities-job-highlighted">
+                    {job.is_highlighted && (
+                      <span className="highlighted-job-label">
+                          ⭐ Highlighted Job
+                      </span>
+                  )}
+                </div>
+                </div>
+
             </div>
             <hr className="Opportunities-separator" />
 

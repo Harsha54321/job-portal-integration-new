@@ -76,7 +76,6 @@ body {
   border-radius: 6px;
   font-size: 14px;
   display: flex;
-  /* position: relative; */
   box-sizing: border-box;
 }
 
@@ -137,7 +136,18 @@ body {
   font-weight: 600;
   z-index: 5;
   line-height: 1;
+  box-sizing: border-box;   
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;  
 }
+ 
+.jsignup-small-verify-btn:hover,
+.jsignup-small-verify-btn:focus {
+  outline: none;
+  transform: translateY(-50%); 
+}
+
 
 
 .verified-badge {
@@ -183,6 +193,10 @@ body {
   display: flex;
   align-items: center;
   z-index: 5;
+  background: none;
+  border: none;
+  padding: 0;
+
 } 
 
  .eye-icon img {
@@ -198,6 +212,20 @@ input[type="password"]::-webkit-reveal {
     height: 0 !important;
     opacity: 0 !important;
     pointer-events: none !important;
+}
+
+/* Ensure OTP modal displays properly */
+.otp-modal-overlay * {
+    box-sizing: border-box;
+}
+
+.otp-modal-overlay .otp-input-group {
+    overflow: visible !important;
+}
+
+.otp-modal-overlay .otp-input-group input {
+    min-width: 40px !important;
+    max-width: 55px !important;
 }
 
 @media screen and (max-width: 768px) {
@@ -297,4 +325,55 @@ input[type="password"]::-webkit-reveal {
     padding: 8px 12px;
     font-size: 13px;
   }
+}
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper .eye-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  /* margin-top: 3px; */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.login-form .password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.login-form .password-wrapper input {
+  padding-right: 42px; /* space for eye icon */
+}
+
+/* Eye icon positioning */
+.login-form .password-wrapper .eye-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.login-form .password-wrapper .eye-icon:hover {
+  opacity: 1;
+}
+
+.login-form .password-wrapper .show-icon {
+  height: 20px;
+  width: auto;
 }

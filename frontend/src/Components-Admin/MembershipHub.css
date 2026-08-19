@@ -1,0 +1,184 @@
+.SubOrders-container, .AdminSubs-container {
+    padding: 20px;
+}
+
+.SubOrders-header h2, .AdminSubs-header h2 {
+    margin: 0 0 4px 0;
+    font-size: 20px;
+    color: #1a1a2e;
+}
+
+.SubOrders-header p, .AdminSubs-header p {
+    margin: 0 0 16px 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.SubOrders-search-wrapper, .AdminSubs-search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 420px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    background: #fff;
+}
+
+.SubOrders-search-wrapper input, .AdminSubs-search-wrapper input {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 13px;
+}
+
+.SubOrders-table-wrapper, .AdminSubs-table-wrapper {
+    background: #fff;
+    border: 1px solid #eef0f3;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.SubOrders-table, .AdminSubs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.SubOrders-table th, .AdminSubs-table th {
+    text-align: left;
+    background: #f9fafb;
+    color: #6b7280;
+    font-weight: 600;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eef0f3;
+}
+
+.SubOrders-table td, .AdminSubs-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #1a1a2e;
+}
+
+.SubOrders-table tr:last-child td, .AdminSubs-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* .SubOrders-table tr.highlighted-row, .AdminSubs-table tr.highlighted-row {
+    background: #fff7e6;
+} */
+
+.sub-status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.sub-status-badge.success, .sub-status-badge.active {
+    background: #e6f7ee;
+    color: #1a9e5c;
+}
+
+.sub-status-badge.pending, .sub-status-badge.created {
+    background: #fff4e5;
+    color: #b76e00;
+}
+
+.sub-status-badge.failed, .sub-status-badge.cancelled {
+    background: #fdecec;
+    color: #d33;
+}
+
+.sub-status-badge.refunded, .sub-status-badge.expired {
+    background: #eef0f3;
+    color: #6b7280;
+}
+
+.SubOrders-view-btn, .AdminSubs-view-btn {
+    border: 1px solid #d8dbe0;
+    background: #fff;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #1a1a2e;
+}
+
+.SubOrders-view-btn:hover, .AdminSubs-view-btn:hover {
+    background: #f3f4f6;
+}
+
+.SubOrders-no-records, .AdminSubs-no-records {
+    text-align: center;
+    padding: 30px;
+    color: #9ca3af;
+}
+
+.SubOrders-pagination, .AdminSubs-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.SubOrders-pagination button, .AdminSubs-pagination button {
+    border: 1px solid #d8dbe0;
+    background: #fff;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    margin-left: 6px;
+}
+
+.SubOrders-pagination button:disabled, .AdminSubs-pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Detail view */
+.SubOrders-detail, .AdminSubs-detail {
+    background: #fff;
+    border: 1px solid #eef0f3;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 560px;
+}
+
+.SubOrders-detail-back, .AdminSubs-detail-back {
+    background: none;
+    border: none;
+    color: #4b5eff;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 14px;
+    padding: 0;
+}
+
+.SubOrders-detail-row, .AdminSubs-detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+}
+
+.SubOrders-detail-row:last-child, .AdminSubs-detail-row:last-child {
+    border-bottom: none;
+}
+
+.SubOrders-detail-label, .AdminSubs-detail-label {
+    color: #6b7280;
+}
+
+.SubOrders-detail-value, .AdminSubs-detail-value {
+    color: #1a1a2e;
+    font-weight: 500;
+    text-align: right;
+    word-break: break-all;
+}

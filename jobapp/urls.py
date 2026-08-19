@@ -4,11 +4,26 @@ from .views import (
     AJobListView,
     AdminCompanyListView,
     AdminCompanyDetailView,
+    AdminComplaintDetailView,
     # AdminDashboardOverviewView,
     AdminDashboardStats,
+    AdminJobDetailView,
     AdminLoginView,
+    AdminProfilePhotoView,
+    AdminTicketDeleteView,
+    AdminTicketListView,
+    AdminTicketUpdateView,
     AdminUpdateComplaintView,
+    BlogCategoryDetailView,
+    BlogCategoryListCreateView,
+    BlogDetailView,
+    BlogListCreateView,
+    BlogStatsView,
+    BlogsGroupedView,
+    CheckPlanExpiryView,
     CompanyProfileCreateView,
+    ContactMessageDeleteAPIView,
+    ContactMessageStatusUpdateAPIView,
     DashboardView,
     DisableAdmin2FAView,
     EmployerPlatformSettingsView,
@@ -24,8 +39,13 @@ from .views import (
     DeleteNotificationView,
     ClearAllNotificationsView,
     NewsletterSubscribeAPIView,
+    PlanDetailView,
+    PlanListCreateView,
+    PlanPublishToggleView,
     SubmitComplaintView,
     UpdateCompanyStatusView,
+    UserDeleteView,
+    UserDetailView,
     UserListView,
     UserSettingsView,
     SaveJobView,
@@ -108,17 +128,72 @@ from .views import (
     AdminQuietHoursUpdateView,
     NotificationChannelSettingsView,
     NotificationChannelSettingsUpdateView,
-    NotificationPreferenceListView
-    
-    
+    RegisterDeviceTokenView,
+    NotificationPreferenceListView,
+    ContactMessageListAPIView,
+    AdminUpdateJobStatusView,
+    CurrentUserView,
+    EmployerForgotPasswordView,
+    LogoutView,
+    AdminForgotPasswordView,
+    AdminResetPasswordConfirmView,
+    EmployerRegistrationSettingsView,
+    AdminAccountManagerListView,
+    AdminAccountManagerDetailView,
+    AdminAssignAccountManagerView,
+    AdminEmployerAssignmentsView,
+    EmployerAccountManagersView,
+    AdminLogin2FAOTPView,
+    AllowedDomainsView,
+    AdminBillingListView,
+    AdminBillingDetailView,
+    MyComplaintsListView,
+    MyTicketsListView,
+    JobseekerChangePasswordView,
+    Jobseeker2FAStatusView,
+    JobseekerVerify2FAOTPView,
+    JobseekerDisable2FAView,
+    JobseekerLoginSend2FAOTPView,
+    JobseekerLoginVerify2FAView,
 
     # REMOVED: Company-related view imports (CompanyListView, CompanyDetailView, etc.)
 )
 from .webhooks import razorpay_webhook
 from . import views 
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework.reverse import reverse
 
+@api_view(['GET'])
+def api_root(request, format=None):
+    data = {}
+    for p in urlpatterns[1:]:
+        try:
+            if getattr(p, "name", None):
+                data[p.name] = reverse(p.name, request=request, format=format)
+        except Exception:
+            pass
+    return Response(data)
+
+# from django.http import JsonResponse
+# def jobseeker_2fa_status(request, *args, **kwargs):
+#     """Return the current 2FA status for the authenticated job seeker."""
+#     return JsonResponse({
+#         "enabled": False,
+#         "status": "disabled",
+#         "message": "Two-factor authentication is currently disabled.",
+#     }, status=200)
+ 
+ 
+# def jobseeker_2fa_send_otp(request, *args, **kwargs):
+#     """Send a useful OTP response while keeping the route functional."""
+#     return JsonResponse({
+#         "detail": "OTP sent successfully.",
+#         "status": "sent",
+#     }, status=200)
 
 urlpatterns = [
+    path('', api_root, name='api-root'),
     # Registration (open to everyone)
     path('register/jobseeker/', JobSeekerRegistrationView.as_view(), name='jobseeker-register'),
     path('register/employer/', EmployerRegistrationView.as_view(), name='employer-register'),
@@ -191,16 +266,36 @@ urlpatterns = [
     
     # Password
     path('auth/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('auth/employer/forgot-password/', EmployerForgotPasswordView.as_view(), name='employer-forgot-password'),
     path('auth/reset-password-confirm/', ResetPasswordConfirmView.as_view(), name='reset-password-confirm'),
     path('auth/create-password/', CreatePasswordView.as_view(), name='create-password'),
     path('auth/validate-reset-token/', ValidateResetTokenView.as_view(), name='validate-reset-token'),
     path('admin/create-password-token/', AdminCreatePasswordTokenView.as_view(), name='admin-create-password-token'),
+    path('auth/admin/forgot-password/', AdminForgotPasswordView.as_view(), name='admin-forgot-password'),
+    path('auth/admin/reset-password-confirm/', AdminResetPasswordConfirmView.as_view(), name='admin-reset-password-confirm'),
     
     # raise ticket
-    path('raise-ticket/', RaiseTicketCreateView.as_view(), name='raise-ticket'),
+     # CREATE TICKET
+    path('raise-ticket/',RaiseTicketCreateView.as_view(), name='raise-ticket'),
+ 
+    # ADMIN LIST ALL TICKETS
+    path('admin/tickets/',AdminTicketListView.as_view(),name='admin-ticket-list'),
+ 
+    # ADMIN UPDATE TICKET STATUS
+    path('admin/tickets/<int:pk>/update/',AdminTicketUpdateView.as_view(), name='admin-ticket-update'),
+ 
+    # ADMIN / USER DELETE TICKET
+    path('admin/tickets/<int:pk>/delete/',AdminTicketDeleteView.as_view(),name='admin-ticket-delete'),
     
-    # contact 
-    path('contact/', ContactMessageCreateAPIView.as_view(), name='contact-message'),
+    # contact  create/Enquiries
+    path( "contact/create/", ContactMessageCreateAPIView.as_view(), name="contact-create" ),
+        #contact list
+    path("contact/list/",ContactMessageListAPIView.as_view(),name="contact-list" ),
+     #contact update
+    path("contact/update/<int:pk>/",ContactMessageStatusUpdateAPIView.as_view(),name="contact-update"),
+
+    path("contact-messages/<int:pk>/delete/",ContactMessageDeleteAPIView.as_view(), name="contact-message-delete",),
+    
     
     # newsletter subscribe
     path("subscribe/", NewsletterSubscribeAPIView.as_view(), name="subscribe-newsletter"),
@@ -241,13 +336,18 @@ urlpatterns = [
     path('companies/', CompanyProfileListView.as_view(), name='company-profile-list'),
     path('companies/<int:company_id>/', CompanyProfileByIdView.as_view(), name='company-profile-by-id'),
     
-    # Report A Job
-    path('complaints/submit/', SubmitComplaintView.as_view(), name='submit-complaint'),
+
+     # Report A Job/Escalation
+    # path('complaints/submit/', SubmitComplaintView.as_view(), name='submit-complaint'),
+    path('complaints/submit/<int:job_id>/', SubmitComplaintView.as_view(), name='submit-complaint'),
     path('admin/complaints/', AdminComplaintListView.as_view(), name='admin-complaint-list'),
     path('admin/complaints/<int:pk>/', AdminUpdateComplaintView.as_view(), name='admin-complaint-update'),
+    path('admin/complaints/<int:pk>/detail/', AdminComplaintDetailView.as_view(), name='admin-complaint-detail'),
+    path('admin/jobs/<int:pk>/detail/', AdminJobDetailView.as_view(), name='admin-job-detail'),
+    path( "admin/jobs/<int:pk>/status/", AdminUpdateJobStatusView.as_view()),
 
     # Billing
-    path("plans/", PlanListView.as_view(), name='plan-list'),
+    # path("plans/", PlanListView.as_view(), name='plan-list'),
     path("create-order/", CreateOrderView.as_view(), name='create-order'),
     path("subscription/", CurrentSubscriptionView.as_view(), name='current-subscription'),
     path("cancel/", CancelSubscriptionView.as_view(), name='cancel-subscription'),
@@ -261,21 +361,26 @@ urlpatterns = [
     path('company/send-email-otp/', SendCompanyEmailOTPView.as_view(), name='send-company-email-otp'),
     path('company/verify-email-otp/', VerifyCompanyEmailOTPView.as_view(), name='verify-company-email-otp'),
     path('employer/onboarding-status/', EmployerOnboardingStatusView.as_view(), name='employer-onboarding-status'),
-
+     #AdminHeader
+    path('admin/profile/photo/', AdminProfilePhotoView.as_view(), name='admin-profile-photo'),
     # Google Login
     path("google-login/", GoogleLoginView.as_view()),
     # admin login
     path('admin-login/', AdminLoginView.as_view(), name='admin-login'),
+    path("admin/login/send-otp/",AdminLogin2FAOTPView.as_view(),name="admin-login-send-otp"),
     #ActivityMonitor
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('company/', AdminCompanyListView.as_view(), name='dashboardlist'),
     path('company/<int:pk>/', AdminCompanyDetailView.as_view(), name='admin-company-detail'),
     path('company/<int:pk>/status/', UpdateCompanyStatusView.as_view(), name='update-company-status'),
+    # ============ CURRENT LOGGED-IN USER ============
+    path('users/me/', views.CurrentUserView.as_view(), name='current-user'),
     #UserManagement
     path('users/', UserListView.as_view(), name='user-list'),
     path('users/<int:pk>/status/', UserStatusUpdateView.as_view(), name='user-status-update'),
     path('users/stats/', UserStatsView.as_view(), name='user-stats'),
-
+    path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
+    path('users/<int:pk>/delete/', UserDeleteView.as_view(), name='user-delete'),
      #admin JobMonitoring
     path('admin/jobs/', AdminJobListView.as_view(), name='admin-job-list'),
     path('admin/jobs/<int:pk>/approve/', AdminJobApproveView.as_view(), name='admin-job-approve'),
@@ -309,6 +414,11 @@ urlpatterns = [
  
     path("notification-channels/",NotificationChannelSettingsView.as_view(),name="notification-channels"),
     path("notification-channels/update/",NotificationChannelSettingsUpdateView.as_view(),name="notification-channels-update"),
+    path(
+        "devices/register/",
+        RegisterDeviceTokenView.as_view(),
+        name="register-device-token"
+    ),
 
 
 
@@ -329,21 +439,71 @@ urlpatterns = [
  
     path("admin/2fa/status/", Admin2FAStatusView.as_view(), name="admin-2fa-status"),
     path("admin-2fa/login/verify-otp/",VerifyAdminLoginOTPView.as_view(),name="admin-login-verify-otp"),
- 
-    path("admin/2fa/send-otp/",SendAdmin2FAOTPView.as_view(),name="admin-2fa-send-otp"),
- 
-    path("admin/2fa/verify-otp/",VerifyAdmin2FAOTPView.as_view(),name="admin-2fa-verify-otp"),
- 
-    path("admin/2fa/disable/", DisableAdmin2FAView.as_view(),name="admin-2fa-disable"),
 
+    path("admin/2fa/send-otp/",SendAdmin2FAOTPView.as_view(),name="admin-2fa-send-otp"),
+
+    path("admin/2fa/verify-otp/",VerifyAdmin2FAOTPView.as_view(),name="admin-2fa-verify-otp"),
+    path("admin/2fa/disable/", DisableAdmin2FAView.as_view(),name="admin-2fa-disable"),
 
     #for employer setting 
 
     path("employer-settings/<int:plan_id>/<str:account_status>/",EmployerPlatformSettingsView.as_view()),
-    path('employer/weekly-summary/',EmployerWeeklySummaryView.as_view(),name='employer-weekly-summary'),
+    path(
+        "employer/weekly-summary/<uuid:token>/",
+        EmployerWeeklySummaryView.as_view(),
+        name="employer-weekly-summary",
+    ),
+    path('employer-registration-settings/',EmployerRegistrationSettingsView.as_view(),name='employer-registration-settings'),
 
     # jobseekersetting
-
     path('jobseeker/settings/',JobseekerPlatformSettingsView.as_view(),name='jobseeker-platform-settings'),
 
+    # PLANS
+    path('plans/', PlanListCreateView.as_view(), name='plan-list-create'),
+    path('plans/<int:pk>/', PlanDetailView.as_view(), name='plan-detail'),
+    path('plans/<int:pk>/toggle-publish/', PlanPublishToggleView.as_view(), name='plan-toggle-publish'),
+    path('check-plan-expiry/', CheckPlanExpiryView.as_view(), name='check-plan-expiry'),
+    
+
+    path('blogs/', BlogListCreateView.as_view(), name='blog-list-create'),
+    path('blogs/grouped/', BlogsGroupedView.as_view(), name='blogs-grouped'),
+    path('blogs/<int:pk>/', BlogDetailView.as_view(), name='blog-detail'),
+    path('blog-categories/', BlogCategoryListCreateView.as_view(), name='blog-category-list-create'),
+    path('blog-categories/<int:pk>/', BlogCategoryDetailView.as_view(), name='blog-category-detail'),
+    path('blog-stats/', BlogStatsView.as_view(), name='blog-stats'),
+
+    #Sessiontimout
+    path('logout/', LogoutView.as_view(), name='logout'),
+
+    # ============================================================
+    # ACCOUNT MANAGER URLS
+    # ============================================================
+
+    # Admin URLs
+    path('admin/account-managers/', AdminAccountManagerListView.as_view(), name='admin-account-managers'),
+    path('admin/account-managers/<int:pk>/', AdminAccountManagerDetailView.as_view(), name='admin-account-manager-detail'),
+    path('admin/assign-account-manager/', AdminAssignAccountManagerView.as_view(), name='admin-assign-account-manager'),
+    path('admin/employer-assignments/', AdminEmployerAssignmentsView.as_view(), name='admin-employer-assignments'),
+
+    # Employer URLs
+    path('employer/account-managers/', EmployerAccountManagersView.as_view(), name='employer-account-managers'),
+
+    path('jobseeker/allowed-domains/', AllowedDomainsView.as_view(), name='jobseeker-allowed-domains'),
+    path('admin/billing/', AdminBillingListView.as_view(), name='admin-billing-list'),
+    path('admin/billing/<int:pk>/', AdminBillingDetailView.as_view(), name='admin-billing-detail'),
+
+    path('notifications/<int:pk>/route/', views.NotificationRouteView.as_view()),
+ 
+    path('my-tickets/', MyTicketsListView.as_view(), name='my-tickets'),
+    path('my-complaints/', MyComplaintsListView.as_view(), name='my-complaints'),
+ 
+    path('employer/weekly-summary-data/', views.EmployerWeeklySummaryDataView.as_view(), name='employer-weekly-summary-data'),
+
+    path('jobseeker/change-password/', JobseekerChangePasswordView.as_view(), name='jobseeker-change-password'),
+    path('jobseeker/2fa/status/', Jobseeker2FAStatusView.as_view(), name='jobseeker-2fa-status'),
+    path('jobseeker/2fa/send-otp/', Jobseeker2FAStatusView.as_view(), name='jobseeker-2fa-send-otp'),
+    path('jobseeker/2fa/verify-otp/', JobseekerVerify2FAOTPView.as_view(), name='jobseeker-2fa-verify-otp'),
+    path('jobseeker/2fa/disable/', JobseekerDisable2FAView.as_view(), name='jobseeker-2fa-disable'),
+    path('jobseeker/login/send-otp/', JobseekerLoginSend2FAOTPView.as_view(), name='jobseeker-login-send-otp'),
+    path('jobseeker/login/verify-otp/', JobseekerLoginVerify2FAView.as_view(), name='jobseeker-login-verify-otp'),
 ]

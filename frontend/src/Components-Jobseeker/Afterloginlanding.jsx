@@ -14,7 +14,6 @@ export const Afterloginlanding = () => {
     const { jobs, loading } = useJobs();
 
     const [profile, setProfile] = useState(null);
-    // const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
@@ -24,7 +23,7 @@ export const Afterloginlanding = () => {
                 setProfile(profileRes.data);
             } catch (error) {
                 navigate("/Job-portal/jobseeker/login");
-            } 
+            }
         };
 
         loadData();

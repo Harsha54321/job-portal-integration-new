@@ -1,21 +1,21 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useNavigate } from "react-router-dom";
 import forgot from "../assets/Forgot.png"
 import './Eforgotpassword.css'
 import api from '../api/axios'
 
 export const Eforgotpassword = () => {
-  const navigate = useNavigate();
 
   const [formValues, setFormValues] = useState({ email: "" })
-
   const [errors, setErrors] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState("")
 
   const handleForm = (e) => {
     const { name, value } = e.target
     setFormValues({ ...formValues, [name]: value })
     setErrors({ ...errors, [name]: "" })
+    setApiError("")
   }
 
   const validateForm = () => {
@@ -24,7 +24,7 @@ export const Eforgotpassword = () => {
     const regexOfMail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
     if (!formValues.email.trim()) {
-      newErrors.email = "email is required"
+      newErrors.email = "Email is required"
     } else if (!regexOfMail.test(formValues.email)) {
       newErrors.email = "Invalid email format"
     }
@@ -33,24 +33,42 @@ export const Eforgotpassword = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(e) {
+    e.preventDefault()
+    
+    setApiError("")
+    setErrors({})
+    
     if (!validateForm()) {
-      return false // stops form submit if errors
+      return false
     }
+    
+    setLoading(true)
+    
     try {
-      const res = await api.post('auth/forgot-password/',formValues)
+      const res = await api.post('auth/employer/forgot-password/', formValues)
       alert(res.data.message)
-      // navigate("/Job-portal/employer/login/forgotpassword/createpassword") it should not redirect to create new password page, user gets create new pass from mail
+      setFormValues({ email: "" })
+      setLoading(false)
+      
     } catch (error) {
-     const message = error.response?.data?.email?.[0];
-     alert(message)
+      setLoading(false)
+      
+      const errorMessage = error.response?.data?.error
+      
+      if (errorMessage) {
+        setApiError(errorMessage)
+      } else {
+        const message = error.response?.data?.email?.[0]
+        setApiError(message || "An error occurred. Please try again.")
+      }
     }
   }
 
   return (
     <div className="j-forgot-password-page">
       <header className="j-forgot-password-header">
-        <Link to="/Job-portal" className="logo">
+        <Link to="/" className="logo">
           <span className="logo-text">Job portal</span>
           <span className='subtext'>For Employers</span>
         </Link>
@@ -63,14 +81,28 @@ export const Eforgotpassword = () => {
         <div className="forgot-password-illustration">
           <img src={forgot} alt="Forgot password Illustration" />
         </div>
-        <form action={handleSubmit} className="forgot-password-form">
+        <form onSubmit={handleSubmit} className="forgot-password-form">
           <h2>Forgot Your Password?</h2>
 
           <label>Email ID</label>
-          <input type="text" placeholder="Enter your Email ID" name="email" value={formValues.email} onChange={handleForm} className={errors.email ? "input-error" : ""} />
-          {errors.email && <span className="error-msg">{errors.email}</span>}
+          <input 
+            type="email" 
+            placeholder="Enter your Email ID" 
+            name="email" 
+            value={formValues.email} 
+            onChange={handleForm} 
+            className={errors.email || apiError ? "input-error" : ""} 
+          />
+          {errors.email && <p className="error-text">{errors.email}</p>}
+          {apiError && <p className="error-text">{apiError}</p>}
 
-          <button className="j-send-link-btn">Send Link</button>
+          <button 
+            className="j-send-link-btn" 
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Sending..." : "Send Link"}
+          </button>
 
           <div className='center-div-text'>
             <p>Remember your password? <Link to="/Job-portal/employer/login" className='j-password-form-login-link'>Login</Link></p>

@@ -6,12 +6,11 @@ import eye from '../assets/show_password.png'
 import eyeHide from '../assets/eye-hide.png'
 import api from '../api/axios'
 
-
 export const Ecreatepassword = () => {
   const [passwordShow, setPasswordShow] = useState(true)
-
   const [confirmPasswordShow, setconfirmPasswordShow] = useState(true)
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false)
 
   const togglePasswordView = () => {
     setPasswordShow((prev) => !prev)
@@ -44,14 +43,22 @@ export const Ecreatepassword = () => {
       newErrors.newPassword = "New Password is required";
     } else if (formValues.newPassword.length < 8) {
       newErrors.newPassword = "Password must be at least 8 characters long";
-    } else if (!regexofLowercase.test(formValues.newPassword) && !regexofUppercase.test(formValues.newPassword)) {
-      newErrors.newPassword = "Password must contain at least one letter";
-    } else if (!regexofNumber.test(formValues.newPassword)) {
-      newErrors.newPassword = "Password must contain at least one number";
-    } else if (!regexofSpecialChar.test(formValues.newPassword)) {
-      newErrors.newPassword = "Password must contain at least one special character (e.g., ! @ # $)";
-    } else if (!regexofUppercase.test(formValues.newPassword)) {
+    } 
+    // ✅ FIX: First check lowercase (must have at least one)
+    else if (!regexofLowercase.test(formValues.newPassword)) {
+      newErrors.newPassword = "Password must contain at least one lowercase letter";
+    }
+    // Then check uppercase
+    else if (!regexofUppercase.test(formValues.newPassword)) {
       newErrors.newPassword = "Password must contain at least one uppercase letter";
+    }
+    // Then check number
+    else if (!regexofNumber.test(formValues.newPassword)) {
+      newErrors.newPassword = "Password must contain at least one number";
+    }
+    // Then check special character
+    else if (!regexofSpecialChar.test(formValues.newPassword)) {
+      newErrors.newPassword = "Password must contain at least one special character (e.g., ! @ # $ %)";
     }
 
     if (!formValues.confirmPassword.trim()) {
@@ -66,15 +73,15 @@ export const Ecreatepassword = () => {
     return Object.keys(newErrors).length === 0
   }
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const queryParams = new URLSearchParams(location.search);
+    const queryParams = new URLSearchParams(window.location.search);
     const tokenFromURL = queryParams.get('token');
     if (!validateForm()) {
       return false
     }
+    setLoading(true)
     try {
       const res = await api.post('auth/reset-password-confirm/',
         {
@@ -85,9 +92,8 @@ export const Ecreatepassword = () => {
       )
       alert(res.data.message);
       navigate('/Job-portal/employer/login')
-
-
     } catch (error) {
+      setLoading(false)
       alert('Invalid token or expired token')
     }
   }
@@ -95,7 +101,7 @@ export const Ecreatepassword = () => {
   return (
     <div className="j-create-password-page">
       <header className="j-create-password-header">
-        <Link to="/Job-portal" className="logo">
+        <Link to="/" className="logo">
           <span className="logo-text">Job portal</span>
           <span className='subtext'>For Employers</span>
         </Link>
@@ -131,7 +137,9 @@ export const Ecreatepassword = () => {
           </div>
           {errors.confirmPassword && <span className="error-msg">{errors.confirmPassword}</span>}
 
-          <button className="j-reset-link-btn">Reset Password</button>
+          <button className="j-reset-link-btn" type="submit" disabled={loading}>
+            {loading ? "Resetting..." : "Reset Password"}
+          </button>
 
           <div className='center-div-text'>
             <p>Remember your password? <Link to="/Job-portal/employer/login" className='j-password-form-login-link'>Login</Link></p>

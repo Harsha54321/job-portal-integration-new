@@ -97,8 +97,6 @@ export const JobMonitoring = () => {
     useEffect(() => {
         fetchJobs();
     }, [fetchJobs]);
-
-
     const [activeMenu, setActiveMenu] = useState(null);
     const menuRef = useRef(null);
     const [filterType, setFilterType] = useState('Recent');
@@ -122,6 +120,24 @@ export const JobMonitoring = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedJob, setSelectedJob] = useState(null);
     const postsPerPage = 10;
+
+    // If we arrived here from a clicked notification, auto-open the
+    // relevant job's preview modal once the jobs list has loaded.
+    useEffect(() => {
+        if (loading || jobs.length === 0) return;
+
+        const highlightType = sessionStorage.getItem('adminNotifHighlightType');
+        const highlightId = sessionStorage.getItem('adminNotifHighlightId');
+
+        if (highlightType === 'job' && highlightId) {
+            const match = jobs.find(job => String(job.id) === String(highlightId));
+            if (match) {
+                setSelectedJob(match);
+            }
+            sessionStorage.removeItem('adminNotifHighlightType');
+            sessionStorage.removeItem('adminNotifHighlightId');
+        }
+    }, [loading, jobs]);
 
 
 

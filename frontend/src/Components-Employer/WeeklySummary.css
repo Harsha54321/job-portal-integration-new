@@ -1,0 +1,488 @@
+/* src/Components-Employer/WeeklySummary.css */
+
+/* ----- Global reset / base (scoped to container) ----- */
+.weekly-summary-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #032240;
+  background-color: #ffffff;
+  padding: 2rem 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.weekly-summary-container * {
+  box-sizing: border-box;
+}
+
+/* ----- Typography ----- */
+.weekly-summary-container h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0 0 0.15rem 0;
+  color: #032240;
+  letter-spacing: -0.01em;
+}
+
+.weekly-summary-container h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #032240;
+  margin: 0 0 1.2rem 0;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  color: #8998A6;
+  font-size: 1rem;
+  margin: 0 0 1.8rem 0;
+  font-weight: 400;
+}
+
+.empty-state {
+  color: #8998A6;
+  font-size: 1rem;
+  padding: 1.2rem 0;
+  margin: 0;
+}
+
+/* ----- Header ----- */
+.summary-header {
+  margin-bottom: 2rem;
+}
+
+/* ----- Summary Cards ----- */
+.summary-cards-section {
+  margin-bottom: 2.8rem;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.2rem;
+}
+
+.stat-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.2rem 0.75rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.15s ease;
+}
+
+.stat-card:hover {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 123, 255, 0.06);
+}
+
+.stat-value {
+  display: block;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #032240;
+  line-height: 1.2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #8998A6;
+  margin-top: 0.3rem;
+  letter-spacing: 0.02em;
+}
+
+/* ----- Job Performance Table ----- */
+.job-performance-section {
+  margin-bottom: 2.8rem;
+  background: #E9F3FC;
+  border-radius: 24px;
+  padding: 1.8rem 1.5rem 2rem;
+}
+
+.job-performance-section h2 {
+  margin-top: 0;
+  color: #032240;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.performance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  min-width: 400px;
+}
+
+.performance-table thead {
+  background: #f8fafc;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.performance-table th {
+  text-align: left;
+  padding: 1rem 1.2rem;
+  font-weight: 600;
+  color: #032240;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.performance-table td {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #f0f3f7;
+  color: #1a2c3e;
+}
+
+.performance-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.performance-table tbody tr:hover {
+  background: #f9fbfd;
+}
+
+/* ----- Recent Activity Grid (2 columns) ----- */
+.recent-activity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 0.5rem;
+}
+
+.recent-applications-section,
+.recent-notifications-section {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 1.5rem 1.2rem 1.2rem;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.02), 0 4px 14px rgba(0, 0, 0, 0.03);
+}
+
+.recent-notifications-section {
+  background: #E9F3FC;
+}
+
+.recent-applications-section h2,
+.recent-notifications-section h2 {
+  font-size: 1.2rem;
+  margin: 0 0 1rem 0;
+}
+
+/* ----- Activity Lists (semantic <ul>) ----- */
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.activity-email {
+  font-weight: 500;
+  color: #032240;
+  font-size: 0.92rem;
+}
+
+.activity-job-title {
+  color: #4a5b6b;
+  font-size: 0.88rem;
+}
+
+.notification-message {
+  color: #032240;
+  font-size: 0.92rem;
+}
+
+.activity-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.activity-date {
+  color: #8998A6;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* ----- Unread dot ----- */
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.unread-dot.unread {
+  background: #007BFF;
+}
+
+/* ----- Status Badges (light tint, full color text) ----- */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 40px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  background: rgba(0, 123, 255, 0.08);
+  color: #007BFF;
+}
+
+.badge-applied {
+  background: rgba(0, 123, 255, 0.10);
+  border-color: rgba(0, 123, 255, 0.15);
+  color: #007BFF;
+}
+
+.badge-shortlisted {
+  background: rgba(26, 162, 98, 0.10);
+  border-color: rgba(26, 162, 98, 0.15);
+  color: #1AA262;
+}
+
+.badge-rejected {
+  background: rgba(229, 72, 77, 0.10);
+  border-color: rgba(229, 72, 77, 0.15);
+  color: #E5484D;
+}
+
+.badge-hired {
+  background: rgba(124, 92, 252, 0.10);
+  border-color: rgba(124, 92, 252, 0.15);
+  color: #7C5CFC;
+}
+
+.badge-interview {
+  background: rgba(0, 123, 255, 0.08);
+  border-color: rgba(0, 123, 255, 0.12);
+  color: #007BFF;
+}
+
+.badge-withdrawn {
+  background: rgba(137, 152, 166, 0.12);
+  border-color: rgba(137, 152, 166, 0.15);
+  color: #6b7a88;
+}
+
+.badge-default {
+  background: #f0f2f5;
+  border-color: #e2e6ea;
+  color: #4a5b6b;
+}
+
+/* ----- Buttons (primary & outlined) ----- */
+.btn-primary {
+  background: #007BFF;
+  border: none;
+  border-radius: 40px;
+  padding: 0.65rem 2rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: white;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.btn-primary:hover {
+  background: #0069d9;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* ----- Error & Loading states ----- */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  gap: 1.2rem;
+  color: #032240;
+}
+
+.error-state p {
+  font-size: 1.1rem;
+  color: #4a5b6b;
+  margin: 0;
+}
+
+/* ----- Skeleton loading ----- */
+.loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.skeleton-header {
+  height: 2.6rem;
+  width: 40%;
+  background: #eef2f6;
+  border-radius: 12px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.2rem;
+}
+
+.skeleton-card {
+  height: 5.5rem;
+  background: #eef2f6;
+  border-radius: 20px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-table {
+  height: 16rem;
+  background: #eef2f6;
+  border-radius: 24px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 900px) {
+  .recent-activity-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .weekly-summary-container {
+    padding: 1.2rem 1rem;
+  }
+
+  .weekly-summary-container h1 {
+    font-size: 1.8rem;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+  }
+
+  .job-performance-section {
+    padding: 1.2rem 0.8rem;
+  }
+
+  /* Stack table rows as cards on mobile */
+  .performance-table thead {
+    display: none;
+  }
+
+  .performance-table,
+  .performance-table tbody,
+  .performance-table tr,
+  .performance-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .performance-table tr {
+    margin-bottom: 0.8rem;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    padding: 0.6rem 0.2rem;
+  }
+
+  .performance-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid #f0f3f7;
+    font-size: 0.9rem;
+  }
+
+  .performance-table td:last-child {
+    border-bottom: none;
+  }
+
+  .performance-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #032240;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .activity-meta {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .recent-applications-section,
+  .recent-notifications-section {
+    padding: 1.2rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cards-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .stat-card {
+    padding: 0.9rem 0.4rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+}

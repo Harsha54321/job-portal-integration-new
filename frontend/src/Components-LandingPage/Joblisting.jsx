@@ -25,10 +25,10 @@ export const Joblisting = () => {
         const data = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data?.results)
-          ? res.data.results
-          : Array.isArray(res.data?.jobs)
-          ? res.data.jobs
-          : [];
+            ? res.data.results
+            : Array.isArray(res.data?.jobs)
+              ? res.data.jobs
+              : [];
  
         setLatestJobs(data.slice(0, 6));
       })
@@ -71,7 +71,7 @@ export const Joblisting = () => {
  
   return (
     <>
-      <section className="job-listings-container">
+      <section id="job-listings-section" className="job-listings-container">
         <h2 className="job-listings-heading">Latest Job Listings</h2>
  
         <div className="jobs-container-wrapper">

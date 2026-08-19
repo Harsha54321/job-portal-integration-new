@@ -7,7 +7,7 @@ from celery import shared_task
 from django.contrib.auth import get_user_model
 from django.utils import timezone
  
-from .models import EmployerPlatformSettings, PostAJob, Subscription
+from .models import EmployerPlatformSettings, PostAJob, Subscription, Payment
 from .services import NotificationService
  
 User = get_user_model()
@@ -237,3 +237,99 @@ def notify_expiring_jobs():
             "Notify expiring jobs task failed | error=%s",
             str(error),
         )
+
+
+from celery import shared_task
+from django.utils import timezone
+ 
+from .models import PendingNotification
+from .services import NotificationService
+ 
+ 
+@shared_task
+def process_pending_notifications():
+ 
+    pending_notifications = (
+        PendingNotification.objects
+        .filter(status="pending")
+        .select_related("user")
+        .order_by("created_at")
+    )
+ 
+    processed_count = 0
+    skipped_count = 0
+    failed_count = 0
+ 
+    for pending in pending_notifications:
+ 
+        try:
+ 
+           
+            if NotificationService._is_admin_quiet_hours(
+                pending.user
+            ):
+ 
+                skipped_count += 1
+ 
+                continue
+ 
+ 
+            notification = (
+                NotificationService.create_notification(
+ 
+                    recipient=pending.user,
+ 
+                    title=pending.title,
+ 
+                    message=pending.message,
+ 
+                    category=pending.category,
+ 
+                    event_type=pending.event_type,
+ 
+                    notification_type=pending.notification_type,
+ 
+                    related_object_id=(
+                        pending.related_object_id
+                    )
+                )
+            )
+ 
+ 
+ 
+            pending.status = "processed"
+ 
+            pending.processed_at = timezone.now()
+ 
+            pending.error_message = None
+ 
+            pending.save(
+                update_fields=[
+                    "status",
+                    "processed_at",
+                    "error_message"
+                ]
+            )
+ 
+            processed_count += 1
+ 
+        except Exception as exc:
+ 
+            failed_count += 1
+ 
+            pending.status = "failed"
+ 
+            pending.error_message = str(exc)
+ 
+            pending.save(
+                update_fields=[
+                    "status",
+                    "error_message"
+                ]
+            )
+ 
+    return {
+        "processed": processed_count,
+        "skipped": skipped_count,
+        "failed": failed_count,
+    }

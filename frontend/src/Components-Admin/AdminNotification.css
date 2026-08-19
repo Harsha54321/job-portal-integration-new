@@ -1,0 +1,501 @@
+/* =========================================
+   ADMIN NOTIFICATION OVERLAY
+========================================= */
+
+.admin-notification-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.15);
+    z-index: 1999;
+}
+
+
+/* =========================================
+   MAIN CONTAINER
+========================================= */
+
+.admin-notifications-container {
+    width: 500px;
+    height: 100vh;
+    max-height: 100dvh;
+
+    position: fixed;
+    top: 0;
+    right: 0;
+
+    background-color: #ffffff;
+
+    border-radius: 30px 0 0 30px;
+
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+    font-family:
+        "Segoe UI",
+        "Roboto",
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+
+    color: #333;
+
+    z-index: 2000;
+
+    display: flex;
+    flex-direction: column;
+
+    transition:
+        transform 0.3s ease-in-out,
+        opacity 0.2s ease-in-out;
+}
+
+
+/* OPEN */
+
+.admin-show-notification {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+
+/* CLOSED */
+
+.admin-hide-notification {
+    transform: translateX(100%);
+    opacity: 0;
+    visibility: hidden;
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+.admin-notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 16px 20px;
+
+    height: 45px;
+}
+
+
+.admin-notifications-heading-container {
+    display: flex;
+    align-items: center;
+}
+
+
+.admin-notification-bell {
+    font-size: 22px;
+    margin-right: 10px;
+}
+
+
+.admin-notifications-header h2 {
+    margin: 0;
+
+    font-size: 21px;
+    font-weight: 600;
+
+    color: #032240;
+}
+
+
+.admin-notifications-close-btn {
+    background: none;
+    border: none;
+
+    font-size: 26px;
+
+    cursor: pointer;
+
+    color: #555;
+
+    padding: 0;
+
+    line-height: 1;
+}
+
+
+.admin-notifications-close-btn:hover {
+    color: #000;
+}
+
+
+/* =========================================
+   SUB HEADER
+========================================= */
+
+.admin-notifications-subheader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 15px 25px;
+
+    font-size: 16px;
+
+    border-top: 1px solid #e0e0e0;
+
+    min-height: 50px;
+
+    box-sizing: border-box;
+
+    color: #032240;
+
+    font-weight: 600;
+}
+
+
+.admin-new-notifications-count {
+    background-color: #ffffff;
+
+    color: #1e88e5;
+
+    padding: 6px 9px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+    margin-left: 12px;
+
+    box-shadow:
+        0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+
+.admin-clear-all-btn {
+    background: none;
+
+    border: none;
+
+    color: #032240;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+    font-weight: 600;
+}
+
+
+.admin-clear-all-btn:hover {
+    color: #1e88e5;
+}
+
+
+/* =========================================
+   NOTIFICATION LIST
+========================================= */
+
+.admin-notifications-list {
+    flex: 1;
+
+    min-height: 0;
+
+    overflow-y: auto;
+
+    border-bottom: 1px solid #e0e0e0;
+}
+
+
+/* =========================================
+   NOTIFICATION ITEM
+========================================= */
+
+.admin-notification-new-item,
+.admin-notification-old-item {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 16px 24px;
+
+    border-bottom: 1px solid #e0e0e0;
+
+    cursor: pointer;
+
+    min-height: 60px;
+
+    box-sizing: border-box;
+}
+
+
+.admin-notification-new-item {
+    background-color: #f8f3f3;
+}
+
+
+.admin-notification-old-item {
+    background-color: #ffffff;
+}
+
+
+/* =========================================
+   NOTIFICATION CONTENT
+========================================= */
+
+.admin-notification-content {
+    flex-grow: 1;
+
+    margin-right: 16px;
+
+    background: none;
+
+    border: none;
+
+    padding: 0;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    font: inherit;
+
+    color: inherit;
+
+    display: block;
+
+    width: 100%;
+}
+
+
+.admin-notification-content:focus-visible {
+    outline: 2px solid #1e88e5;
+
+    outline-offset: 2px;
+
+    border-radius: 4px;
+}
+
+
+.admin-notification-text {
+    margin: 0;
+
+    font-size: 0.9rem;
+
+    color: #032240;
+
+    line-height: 1.4;
+
+    font-weight: 500;
+
+    word-break: break-word;
+}
+
+
+.admin-notification-time {
+    margin: 4px 0 0;
+
+    font-size: 12px;
+
+    color: #888;
+}
+
+
+/* =========================================
+   THREE DOT MENU
+========================================= */
+
+.admin-more-options-wrapper {
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 0 5px;
+}
+
+
+.admin-more-options-btn {
+    background: none;
+
+    border: none;
+
+    font-size: 20px;
+
+    font-weight: bold;
+
+    color: #000;
+
+    cursor: pointer;
+
+    line-height: 1;
+
+    padding: 5px;
+}
+
+
+/* =========================================
+   OVERFLOW MENU
+========================================= */
+
+.admin-overflow-menu {
+    position: absolute;
+
+    top: 100%;
+    right: 0;
+
+    margin-top: 8px;
+
+    width: 150px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #ddd;
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.1);
+
+    z-index: 2010;
+
+    overflow: hidden;
+}
+
+
+.admin-menu-item {
+    display: block;
+
+    width: 100%;
+
+    padding: 10px 15px;
+
+    text-align: left;
+
+    background: none;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+    color: #333;
+
+    font-weight: 500;
+}
+
+
+.admin-menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+
+.admin-delete-item {
+    color: #e53935;
+}
+
+
+/* =========================================
+   EMPTY STATE
+========================================= */
+
+.admin-no-notifications {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    height: 300px;
+
+    color: #777;
+
+    text-align: center;
+}
+
+
+.admin-empty-bell {
+    font-size: 40px;
+
+    margin-bottom: 12px;
+
+    opacity: 0.5;
+}
+
+
+.admin-no-notifications p {
+    margin: 0;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+    color: #555;
+}
+
+
+.admin-no-notifications span {
+    margin-top: 6px;
+
+    font-size: 13px;
+
+    color: #999;
+}
+
+
+/* =========================================
+   SCROLLBAR
+========================================= */
+
+.admin-notifications-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+
+.admin-notifications-list::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+
+    border-radius: 3px;
+}
+
+
+.admin-notifications-list::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 600px) {
+
+    .admin-notifications-container {
+        width: 100%;
+
+        max-width: 100%;
+
+        border-radius: 0;
+    }
+
+}
+
+
+@media (max-width: 768px) and (min-width: 601px) {
+
+    .admin-notifications-container {
+        width: 90%;
+
+        max-width: 420px;
+    }
+
+}

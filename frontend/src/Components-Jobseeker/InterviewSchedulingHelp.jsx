@@ -1,5 +1,5 @@
 import React from "react";
-import "./InterviewSchedulingHelp.css"; 
+import "./InterviewSchedulingHelp.css";
 import { Footer } from "../Components-LandingPage/Footer";
 import InterviewImg from "../assets/Interview_scheduling_help.png";
 import { FHeader } from './FHeader';
@@ -29,39 +29,39 @@ export const InterviewSchedulingHelp = () => {
 
   return (
     <>
-    
       <FHeader />
       <div className="interviewSchedulingHelp-page">
+        <p className="interviewSchedulingHelp-updated">{interviewData.updatedDate}</p>
+
         <div className="interviewSchedulingHelp-container">
           <h1 className="interviewSchedulingHelp-title">{interviewData.title}</h1>
-          <p className="interviewSchedulingHelp-updated">{interviewData.updatedDate}</p>
           <p className="interviewSchedulingHelp-intro">{interviewData.intro}</p>
 
-          <div className="interviewSchedulingHelp-layout">
-            <div className="interviewSchedulingHelp-left">
-              <img 
-                src={InterviewImg} 
-                alt="Interview Scheduling Process" 
-                className="interviewSchedulingHelp-hero-img"
-                style={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
-              />
-            </div>
+          {/* Centered Image Section - Flowchart */}
+          <div className="interviewSchedulingHelp-hero-section">
+            <img
+              src={InterviewImg}
+              alt="Interview Scheduling Process"
+              className="interviewSchedulingHelp-hero-img"
+            />
+          </div>
 
-            <div className="interviewSchedulingHelp-right">
-              <div className="interviewSchedulingHelp-steps-container" style={{ marginTop: 0 }}>
-                <h2>Scheduling Summary</h2>
-                <ul className="interviewSchedulingHelp-steps-list">
-                  {interviewData.summary.map((item, index) => (
-                    <li 
-                      key={index} 
-                      dangerouslySetInnerHTML={{ __html: item }} 
-                    />
-                  ))}
-                </ul>
-              </div>
+          {/* Scheduling Summary - Now moved down */}
+          <div className="interviewSchedulingHelp-summary-section">
+            <div className="interviewSchedulingHelp-steps-container">
+              <h2 className="interviewSchedulingHelp-summary-title">Scheduling Summary</h2>
+              <ul className="interviewSchedulingHelp-steps-list">
+                {interviewData.summary.map((item, index) => (
+                  <li
+                    key={index}
+                    dangerouslySetInnerHTML={{ __html: item }}
+                  />
+                ))}
+              </ul>
             </div>
           </div>
 
+          {/* Detailed Steps */}
           <div className="interviewSchedulingHelp-detailed-steps">
             <h2>Step-by-Step Guide to Interview Scheduling</h2>
 
@@ -106,7 +106,7 @@ export const InterviewSchedulingHelp = () => {
 
             <div className="interviewSchedulingHelp-detailed-step">
               <h3>Quick Troubleshooting Guide</h3>
-              <ul className="interviewSchedulingHelp-steps-list">
+              <ul>
                 {interviewData.troubleshooting.map((item, index) => (
                   <li key={index}>
                     <strong>{item.status}</strong> — {item.solution}

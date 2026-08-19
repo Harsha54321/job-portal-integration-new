@@ -532,3 +532,192 @@ body.modal-open {
     font-size: 16px;
     font-weight: 600;
 }
+.dashboard-job-row {
+    position: relative;
+}
+
+.dashboard-job-row.highlighted-job {
+    border: 2px solid #FFD700;
+    background: linear-gradient(145deg, #FFFDF5, #FFF8E1);
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-job-row.highlighted-job .dashboard-job-info strong {
+    color: #B8860B;
+}
+
+.dashboard-job-row.highlighted-job .count-badge {
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid #FFD700;
+    color: #B8860B;
+}
+
+.dashboard-job-row .job-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    position: absolute;
+    top: -6px;
+    right: 14px;
+    z-index: 2;
+    animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.dashboard-job-row .premium-badge {
+    background: linear-gradient(135deg, #FFD700, #FFA000);
+    color: #5D4037;
+    box-shadow: 0 2px 12px rgba(255, 215, 0, 0.4);
+}
+
+
+/* Add this to EmployerDashboard.css */
+
+/* Fix dropdown in dashboard recently posted jobs */
+.postedjobs-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+
+.postedjobs-menu-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.postedjobs-dots {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px 10px;
+    color: #94a3b8;
+}
+
+.postedjobs-dropdown {
+    position: absolute;
+    right: 0;
+    top: 30px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    z-index: 9999 !important;
+    overflow: hidden;
+    min-width: 130px;
+}
+
+.postedjobs-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.postedjobs-dropdown button:hover {
+    background: #f8f9fa;
+}
+
+.postedjobs-dropdown .delete-opt {
+    color: #d9534f;
+    font-weight: 600;
+}
+
+.postedjobs-dropdown .delete-opt:hover {
+    background: #fff5f5 !important;
+}
+
+/* Ensure grid layout doesn't clip dropdown */
+.postedjobs-grid-layout {
+    display: grid;
+    grid-template-columns: 1.5fr repeat(5, 75px) 180px;
+    gap: 15px;
+    align-items: center;
+    padding: 0 25px;
+    overflow: visible;
+}
+
+.postedjobs-card {
+    overflow: visible;
+    position: relative;
+}
+
+
+/* Add these styles to EmployerDashboard.css */
+
+/* Ensure cards don't clip dropdowns */
+.postedjobs-card {
+    overflow: visible !important;
+    position: relative;
+}
+
+.postedjobs-grid-layout {
+    overflow: visible;
+}
+
+/* Dropdown wrapper */
+.postedjobs-menu-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdown styling with high z-index */
+.postedjobs-dropdown {
+    position: absolute;
+    right: 0;
+    top: 30px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    z-index: 99999 !important;
+    overflow: hidden;
+    min-width: 130px;
+}
+
+.postedjobs-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.postedjobs-dropdown button:hover {
+    background: #f8f9fa;
+}
+
+.postedjobs-dropdown .delete-opt {
+    color: #d9534f;
+    font-weight: 600;
+}
+
+.postedjobs-dropdown .delete-opt:hover {
+    background: #fff5f5 !important;
+}
+
+.postedjobs-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}

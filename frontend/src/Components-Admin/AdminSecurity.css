@@ -287,6 +287,34 @@
   font-size: 0.9rem;
 }
 
+/* ===== SCROLLBAR STYLES FOR LOGS LIST ===== */
+.Ad-Acc-logs-list {
+  max-height: 300px; /* Adjust this value as needed for your design */
+  overflow-y: auto;
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #c1c1c1 #f1f1f1; /* For Firefox */
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.Ad-Acc-logs-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.Ad-Acc-logs-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.Ad-Acc-logs-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.Ad-Acc-logs-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+/* ===== END SCROLLBAR STYLES ===== */
+
 .Ad-Acc-ip {
   font-size: 0.8rem;
   opacity: 0.6;

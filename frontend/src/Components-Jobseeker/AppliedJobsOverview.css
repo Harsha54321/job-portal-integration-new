@@ -1,6 +1,6 @@
 .appliedjobsO-job-card {
     border-radius: 30px;
-    margin: 120px 60px 30px 60px;
+    margin: 30px 60px 30px 60px;
     padding: 50px;
     border: 1px solid #1111 ;
     background-color: #1E88E50A;
@@ -8,7 +8,8 @@
 
 .AppliedJobs-overview-main{
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: start;
     margin: 20px 60px;
 }
 .AppliedJobsStatus{
@@ -39,6 +40,9 @@
   background: #fff;
   border-radius: 10px;
   max-width: 350px;
+    position: sticky;   /* <-- ADD */
+  top: 20px;           /* <-- ADD */
+  align-self: start;   
 }
 
 .status-header {
@@ -112,4 +116,231 @@
   margin: 4px 0 0;
   font-size: 12px;
   color: #777;
+}
+
+
+
+
+.opp-job-details-card p,
+.opp-job-details-card li {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-line;
+}
+
+/* ============================================
+   APPLIED JOBS OVERVIEW - TOP CARD HIGHLIGHTED STYLING
+   ============================================ */
+.appliedjobsO-job-card {
+  position: relative;
+  border-radius: 30px;
+  margin: 30px 60px 30px 60px;
+  padding: 50px;
+  border: 1px solid #1111;
+  background-color: #1E88E50A;
+  transition: all 0.3s ease;
+}
+
+.appliedjobsO-job-card.highlighted-job {
+  border: 2px solid #FFD700;
+  background: linear-gradient(145deg, #FFFDF5, #FFF8E1);
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.appliedjobsO-job-card.highlighted-job .myjobs-job-title {
+  color: #B8860B;
+}
+
+.appliedjobsO-job-card.highlighted-job .myjobs-company-name {
+  color: #8D6E1A;
+}
+
+.appliedjobsO-job-card.highlighted-job .Opportunities-detail-line {
+  color: #6D5A1A;
+}
+
+.appliedjobsO-job-card.highlighted-job .Opportunities-job-tag {
+  border-color: #FFD700;
+  color: #B8860B;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+/* ============================================
+   APPLIED JOBS OVERVIEW - TOP CARD RECENT STYLING
+   ============================================ */
+.appliedjobsO-job-card.recent-job {
+  border: 1.5px solid #90CAF9;
+  background: linear-gradient(145deg, #F5FAFF, #E3F2FD);
+  box-shadow: 0 2px 12px rgba(30, 136, 229, 0.12);
+}
+
+.appliedjobsO-job-card.recent-job .myjobs-job-title {
+  color: #0D47A1;
+}
+
+.appliedjobsO-job-card.recent-job .myjobs-company-name {
+  color: #0D47A1;
+}
+
+.appliedjobsO-job-card.recent-job .Opportunities-detail-line {
+  color: #0D47A1;
+}
+
+.appliedjobsO-job-card.recent-job .Opportunities-job-tag {
+  border-color: #42A5F5;
+  color: #0D47A1;
+  background: rgba(66, 165, 245, 0.1);
+}
+
+/* ============================================
+   APPLIED JOBS OVERVIEW - DETAILS CARD HIGHLIGHTED
+   ============================================ */
+.opp-job-details-card {
+  position: relative;
+  background: #fafafa;
+  border: 1px solid #eee;
+  min-width: 0;
+  border-radius: 12px;
+  padding: 20px;
+  line-height: 1.6;
+  transition: all 0.3s ease;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.opp-job-details-card.highlighted-job {
+  border: 2px solid #FFD700;
+  background: linear-gradient(145deg, #FFFDF5, #FFF8E1);
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+}
+
+.opp-job-details-card.highlighted-job h3 {
+  color: #B8860B;
+}
+
+.opp-job-details-card.highlighted-job .opp-job-highlights {
+  background: rgba(255, 215, 0, 0.08);
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.opp-job-details-card.highlighted-job .opp-key-skills-container span {
+  border-color: #FFD700;
+  color: #B8860B;
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.opp-job-details-card.highlighted-job p strong {
+  color: #8D6E1A;
+}
+
+.opp-job-details-card.highlighted-job .opp-job-highlights ul li {
+  color: #6D5A1A;
+}
+
+/* ============================================
+   APPLIED JOBS OVERVIEW - DETAILS CARD RECENT
+   ============================================ */
+.opp-job-details-card.recent-job {
+  border: 1.5px solid #90CAF9;
+  background: linear-gradient(145deg, #F5FAFF, #E3F2FD);
+  box-shadow: 0 2px 12px rgba(30, 136, 229, 0.12);
+}
+
+.opp-job-details-card.recent-job h3 {
+  color: #0D47A1;
+}
+
+.opp-job-details-card.recent-job .opp-job-highlights {
+  background: rgba(66, 165, 245, 0.08);
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.opp-job-details-card.recent-job .opp-key-skills-container span {
+  border-color: #42A5F5;
+  color: #0D47A1;
+  background: rgba(66, 165, 245, 0.05);
+}
+
+.opp-job-details-card.recent-job p strong {
+  color: #0D47A1;
+}
+
+/* ============================================
+   APPLIED JOBS OVERVIEW - HOVER EFFECTS
+   ============================================ */
+.appliedjobsO-job-card.highlighted-job:hover {
+  box-shadow: 0 6px 25px rgba(255, 215, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+.appliedjobsO-job-card.recent-job:hover {
+  box-shadow: 0 4px 18px rgba(30, 136, 229, 0.2);
+  transform: translateY(-2px);
+}
+
+.opp-job-details-card.highlighted-job:hover {
+  box-shadow: 0 6px 25px rgba(255, 215, 0, 0.25);
+}
+
+.opp-job-details-card.recent-job:hover {
+  box-shadow: 0 4px 18px rgba(30, 136, 229, 0.2);
+}
+
+/* ============================================
+   APPLIED JOBS OVERVIEW - GRID LAYOUT FIX
+   ============================================ */
+.applied-jobs-top-card-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  width: 100%;
+  height: 100%;
+  gap: 20px;
+}
+
+.AppliedJobs-overview-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  margin: 20px 60px;
+  gap: 30px;
+}
+
+/* ============================================
+   BADGE STYLES FOR APPLIED JOBS OVERVIEW
+   ============================================ */
+.appliedjobsO-job-card .job-badge,
+.opp-job-details-card .job-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  z-index: 2;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  color: #5D4037;
+  box-shadow: 0 2px 12px rgba(255, 215, 0, 0.4);
+}
+
+.recent-badge {
+  background: linear-gradient(135deg, #64B5F6, #1E88E5);
+  color: white;
+  box-shadow: 0 2px 10px rgba(30, 136, 229, 0.3);
 }

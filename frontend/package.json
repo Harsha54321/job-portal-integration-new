@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "compress:images": "imagemin src/assets/*.png --out-dir=src/assets/optimized --plugin=pngquant",
+    "compress:replace": "npm run compress:images && ncp src/assets/optimized src/assets",
+    "optimize": "npm run compress:replace && npm run build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -22,6 +25,7 @@
     "axios": "^1.13.5",
     "bootstrap": "^5.3.7",
     "chart.js": "^4.5.1",
+    "firebase": "^12.14.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.14.0",
@@ -29,6 +33,7 @@
     "react-bootstrap": "^2.10.10",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.1.0",
+    "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.7.1",
     "react-slick": "^0.30.3",
     "recharts": "^3.8.1",
@@ -45,6 +50,9 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "gh-pages": "^6.3.0",
     "globals": "^16.3.0",
+    "imagemin-cli": "^8.0.0",
+    "imagemin-pngquant": "^10.0.0",
+    "ncp": "^2.0.0",
     "vite": "^7.0.4"
   }
 }

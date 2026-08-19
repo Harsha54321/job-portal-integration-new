@@ -48,7 +48,12 @@ export const JsProfileOverview = () => {
         );
 
         if (conversationId) {
-          navigate(`/Job-portal/employer-chat/${conversationId}`);
+          navigate('/Job-portal/employer-chat', {
+            state: {
+              conversationId,
+              userId
+            }
+          });
         }
       } catch (error) {
         console.error("Failed to start conversation:", error);
@@ -117,12 +122,29 @@ export const JsProfileOverview = () => {
             <span className="back-icon">←</span> Back to Find Talent
           </button>
           <div className="page-header">
-            <h1>{currentUser.full_name || currentUser.profile?.fullName}{ currentUser.full_name ? `'s`:''} Profile Overview</h1>
+            <h1>{currentUser.full_name || currentUser.profile?.fullName}{currentUser.full_name ? `'s` : ''} Profile Overview</h1>
           </div>
 
           <div className="profile-card-placeholder">
             <ProfileCard user={currentUser} />
           </div>
+
+          {/* --- ADDED: INTRODUCTION VIDEO SECTION --- */}
+          {(currentUser.intro_video || currentUser.profile?.intro_video) && (
+            <div className="resume-section intro-video-section">
+              <h3>Introduction Video</h3>
+              <div className="video-container">
+                <video
+                  controls
+                  controlsList="nodownload"
+                  className="intro-video-player"
+                  src={currentUser.intro_video || currentUser.profile?.intro_video}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+          )}
 
           <div className="resume-section">
             <h3>Resume</h3>

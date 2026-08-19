@@ -12,20 +12,20 @@ import { Header } from "../Components-LandingPage/Header";
 import api from "../api/axios";
 import { useJobs } from "../JobContext";
 import application_success from "../assets/application_success.png";
-
+import { LocationDisplay } from './LocationDisplay';
 
 export const JobApplication = () => {
 
   const { id: jobId } = useParams();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [easyApplyEnabled, setEasyApplyEnabled] = useState(false);
   const { setAppliedJobs } = useJobs();
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state for submission status
+  const [showSuccess, setShowSuccess] = useState(false); // New state for success message
 
   const navigate = useNavigate();
-  // const { id } = useParams();
   const fileInputRef = useRef(null);
-
-  // const job = jobs.find(singleJob => singleJob.id === id);
 
   const [editableField, setEditableField] = useState(null);
 
@@ -43,36 +43,67 @@ export const JobApplication = () => {
     coverLetter: "",
     resume: null,
   });
+
+  // Fetch Easy Apply status and profile data on component load
   useEffect(() => {
-    api.get("profile/jobseeker/")
-      .then(res => {
-        console.log("PROFILE DATA:", res.data);
-        setFormData(prev => ({
-          ...prev,
-          name: res.data.full_name || "",
-          dob: res.data.dob || "",
-          email: res.data.email || "",
-          mobile: res.data.phone || "",
-          marital: res.data.marital_status || "",
-          street: res.data.street || "",
-          city: res.data.city || "",
-          state: res.data.state || "",
-          zip: res.data.pincode || "",
-          country: res.data.country || "",
-          resume: res.data.resume_file
-            ? {
-              name: res.data.resume_file.split("/").pop(),
-              url: res.data.resume_file,
-              isExisting: true
-            }
-            : null
-        }));
-      })
-      .catch(err => {
-        console.error("Failed to preload profile data", err);
-      });
+    const fetchEasyApplyStatus = async () => {
+      try {
+        const response = await api.get("/jobs/apply/");
+
+        if (response.data.status === true && response.data.data) {
+          // Easy Apply is enabled, pre-fill form with profile data
+          setEasyApplyEnabled(true);
+          const profileData = response.data.data;
+
+          setFormData(prev => ({
+            ...prev,
+            name: profileData.full_name || "",
+            dob: profileData.date_of_birth || "",
+            email: profileData.email || "",
+            mobile: profileData.phone_number || "",
+            marital: profileData.marital_status || "",
+            street: profileData.street || "",
+            city: profileData.city || "",
+            state: profileData.state || "",
+            zip: profileData.pincode || "",
+            country: profileData.country || "",
+            resume: profileData.resume
+              ? {
+                name: profileData.resume.split("/").pop(),
+                url: profileData.resume,
+                isExisting: true
+              }
+              : null
+          }));
+        } else {
+          // Easy Apply is disabled, user must manually enter data
+          setEasyApplyEnabled(false);
+          // Reset form to empty values
+          setFormData({
+            name: "",
+            dob: "",
+            marital: "",
+            mobile: "",
+            email: "",
+            street: "",
+            city: "",
+            state: "",
+            zip: "",
+            country: "",
+            coverLetter: "",
+            resume: null,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch Easy Apply status", err);
+        setEasyApplyEnabled(false);
+      }
+    };
+
+    fetchEasyApplyStatus();
   }, []);
 
+  // Fetch job details
   useEffect(() => {
     api.get(`/jobs/${jobId}/`)
       .then(res => {
@@ -99,8 +130,8 @@ export const JobApplication = () => {
         else if (/[^a-zA-Z\s]/.test(value)) error = "Alphabets only";
         break;
       case "email":
-        const emailRegex = /^[a-zA-Z][a-zA-Z0-9]*@(gmail|yahoo|outlook|hotmail)\.[a-zA-Z]{2,}$/;
-        if (!value) error = " Email is Required";
+        const emailRegex = /^[a-zA-Z][a-zA-Z0-9.]*@(gmail|yahoo|outlook|hotmail|thestackly)\.[a-zA-Z]{2,}$/;
+        if (!value) error = "Email is Required";
         else if (!emailRegex.test(value)) error = "Format: name@domain.com";
         break;
       case "mobile":
@@ -108,7 +139,7 @@ export const JobApplication = () => {
         else if (!/^[6-9]\d{9}$/.test(value)) error = "Must be 10 digits starting with 6-9";
         break;
       case "zip":
-        if (!value) error = "zip code is Required";
+        if (!value) error = "Zip code is Required";
         else if (!/^\d{6}$/.test(value)) error = "Must be exactly 6 digits";
         break;
       case "coverLetter":
@@ -129,11 +160,9 @@ export const JobApplication = () => {
           const selectedDate = new Date(value);
           const today = new Date();
 
-          // Calculate Age
           let age = today.getFullYear() - selectedDate.getFullYear();
           const monthDiff = today.getMonth() - selectedDate.getMonth();
 
-          // Adjust age if birthday hasn't happened yet this year
           if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < selectedDate.getDate())) {
             age--;
           }
@@ -164,16 +193,14 @@ export const JobApplication = () => {
     if (name === "coverLetter") {
       val = value.slice(0, 2000);
     }
-    
 
-    // existing logic...
     if (name === "mobile" || name === "zip") {
-      val = value.replace(/\D/g, "");
+      val = val.replace(/\D/g, "");
       if (name === "mobile") val = val.slice(0, 10);
       if (name === "zip") val = val.slice(0, 6);
-    } 
+    }
     else if (["name", "city", "state", "country"].includes(name)) {
-      val = value.replace(/[^a-zA-Z\s]/g, "");
+      val = val.replace(/[^a-zA-Z\s]/g, "");
     }
 
     setFormData(prev => ({ ...prev, [name]: val }));
@@ -181,19 +208,6 @@ export const JobApplication = () => {
     const errorMsg = validateField(name, val);
     setErrors(prev => ({ ...prev, [name]: errorMsg }));
   };
-
-
-
-  // const handleChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setFormData((prev) => ({ ...prev, [name]: value }));
-  // };
-
-  // const handleMobileChange = (e) => {
-  //   let value = e.target.value.replace(/\D/g, "");
-  //   if (value.length > 10) value = value.slice(0, 10);
-  //   setFormData((prev) => ({ ...prev, mobile: value }));
-  // };
 
   const handleResumeUpload = (e) => {
     const file = e.target.files[0];
@@ -205,18 +219,6 @@ export const JobApplication = () => {
       fileInputRef.current.value = "";
     }
   };
-
-  // const removeResume = () => {
-  //   setFormData({
-  //     ...formData,
-  //     resume: null,
-  //     resumeName: "",
-  //   });
-
-  //   if (fileInputRef.current) {
-  //     fileInputRef.current.value = "";
-  //   }
-  // };
 
   const removeResume = () => {
     setFormData(prev => ({ ...prev, resume: null }));
@@ -255,9 +257,8 @@ export const JobApplication = () => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Auto-focus the first error field
       setEditableField(["street", "city", "state", "zip", "country"].includes(firstError) ? "address" : firstError);
-      alert("Please correct the errors in the form before applying.");
+      alert("Please fill all required fields.");
       return false;
     }
 
@@ -269,13 +270,14 @@ export const JobApplication = () => {
     return true;
   };
 
-  console.log("JOB ID FROM URL:", jobId);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     if (!window.confirm("Are you sure want to apply?")) return;
+
+    // Set submitting state to true
+    setIsSubmitting(true);
 
     try {
       const payload = new FormData();
@@ -289,7 +291,7 @@ export const JobApplication = () => {
       payload.append("country", formData.country);
 
       if (formData.resume && !formData.resume.isExisting) {
-        payload.append("resume", formData.resume); // only new file
+        payload.append("resume", formData.resume);
       }
 
       const res = await api.post("/jobs/apply/", payload);
@@ -298,20 +300,49 @@ export const JobApplication = () => {
         const filtered = prev.filter(app =>
           !(app.job?.id === job.id && app.status === "withdrawn")
         );
-
         return [...filtered, res.data];
       });
 
-      navigate(`/Job-portal/jobseeker/submitted/${job.id}`);
+      // Show success state
+      setShowSuccess(true);
+      setIsSubmitting(false);
+
+      // Wait for 5 seconds before redirecting
+      setTimeout(() => {
+        navigate(`/Job-portal/jobseeker/submitted/${job.id}`);
+      }, 5000);
+
     } catch (error) {
-      console.error(error);
-      if (error.response?.status === 400 || error.response?.status === 409) {
-        alert("You have already applied for this job");
-      } else {
-        alert("Failed to apply for job");
+      console.error("Full error object:", error);
+      console.error("Response data:", error.response?.data);
+
+      let errorMessage = "Application failed. Please try again.";
+
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.non_field_errors) {
+          errorMessage = error.response.data.non_field_errors[0];
+        } else {
+          const firstKey = Object.keys(error.response.data)[0];
+          if (firstKey && error.response.data[firstKey]) {
+            errorMessage = Array.isArray(error.response.data[firstKey])
+              ? error.response.data[firstKey][0]
+              : error.response.data[firstKey];
+          }
+        }
       }
+      alert(errorMessage);
+      // Reset submitting state on error
+      setIsSubmitting(false);
     }
-  };
+  }
 
   if (loading) {
     return (
@@ -333,23 +364,26 @@ export const JobApplication = () => {
     );
   }
 
-  const formatLocation = (location) => {
-
-        if (!location) return "Location not specified";
-
-        if (Array.isArray(location)) {
-            return location.join(", ");
-        }
-        return location;
-    };
-
-    const locationDisplay = formatLocation(job.location);
+  // Success overlay component
+  const SuccessOverlay = () => (
+    <div className="success-overlay">
+      <div className="success-content">
+        <img src={application_success} alt="Success" className="success-icon" />
+        <h2>Application Submitted Successfully!</h2>
+        <p>Your application has been received. Redirecting in 5 seconds...</p>
+        <div className="success-progress-bar">
+          <div className="success-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
       <Header />
 
       <div className="apply-form-page">
+        {showSuccess && <SuccessOverlay />}
 
         <div className="apply-form-job-header">
           <h1 className="apply-form-job-title">{job.job_title}</h1>
@@ -359,28 +393,33 @@ export const JobApplication = () => {
               {job.company?.company_name}
             </span>
 
-
             <span>
-              <img src={time} className="apply-form-card-icons" />
+              <img src={time} className="apply-form-card-icons" alt="duration" />
               {job.work_duration}
             </span>
 
-            <span>₹ {job.salary} Lpa</span>
+            <span>₹ {job.salary}</span>
 
             <span>
-              <img src={experience} className="apply-form-card-icons" />
-              {job.experience} years of experience
+              <img src={experience} className="apply-form-card-icons" alt="experience" />
+              {job.experience}
             </span>
 
             <span>
-              <img src={place} className="apply-form-card-icons" />
-              {locationDisplay}
+              <img src={place} className="apply-form-card-icons" alt="location" />
+              <LocationDisplay locations={job.location} />
             </span>
           </div>
         </div>
 
         <div className="apply-form-container">
           <form className="apply-form-card" onSubmit={handleSubmit}>
+
+            {!easyApplyEnabled && (
+              <div className="easy-apply-disabled-warning">
+                <p>Easy Apply is currently disabled. Please fill in all your details manually.</p>
+              </div>
+            )}
 
             <div className="apply-form-row">
               <div className="apply-form-label">Name</div>
@@ -389,13 +428,13 @@ export const JobApplication = () => {
                   type="text"
                   className={`apply-form-text-input ${errors.name ? "error-border" : ""}`}
                   name="name"
-                  disabled={editableField !== "name"}
+                  disabled={editableField !== "name" || isSubmitting}
                   value={formData.name}
                   onChange={handleInputChange}
                 />
                 {errors.name && <small className="error-text">{errors.name}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("name")}>
+              <div className="apply-form-edit" onClick={() => setEditableField("name")} title="Click to edit name"  >
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -407,25 +446,25 @@ export const JobApplication = () => {
                   type="date"
                   className={`apply-form-text-input ${errors.dob ? "error-border" : ""}`}
                   name="dob"
-                  disabled={editableField !== "dob"}
+                  disabled={editableField !== "dob" || isSubmitting}
                   value={formData.dob}
                   max={new Date().toISOString().split("T")[0]}
                   onChange={handleInputChange}
                 />
                 {errors.dob && <small className="error-text">{errors.dob}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("dob")}>
+              <div className="apply-form-edit" onClick={() => setEditableField("dob")} title="Click to edit date of birth"  >
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
             <div className="apply-form-row">
-              <div className="apply-form-label">Marital status</div>
+              <div className="apply-form-label">Marital Status</div>
               <div className="apply-form-input">
                 <select
                   className={`apply-form-select-input ${errors.marital ? "error-border" : ""}`}
                   name="marital"
-                  disabled={editableField !== "marital"}
+                  disabled={editableField !== "marital" || isSubmitting}
                   value={formData.marital}
                   onChange={handleInputChange}
                 >
@@ -435,25 +474,25 @@ export const JobApplication = () => {
                 </select>
                 {errors.marital && <small className="error-text">{errors.marital}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("marital")}>
+              <div className="apply-form-edit" onClick={() => setEditableField("marital")} title="Click to edit marital status"  >
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
             <div className="apply-form-row">
-              <div className="apply-form-label">Mobile number</div>
+              <div className="apply-form-label">Mobile Number</div>
               <div className="apply-form-input">
                 <input
                   type="tel"
                   className={`apply-form-text-input ${errors.mobile ? "error-border" : ""}`}
                   name="mobile"
-                  disabled={editableField !== "mobile"}
+                  disabled={editableField !== "mobile" || isSubmitting}
                   value={formData.mobile}
                   onChange={handleInputChange}
                 />
                 {errors.mobile && <small className="error-text">{errors.mobile}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("mobile")}>
+              <div className="apply-form-edit" onClick={() => setEditableField("mobile")} title="Click to edit mobile number"  >
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -465,27 +504,27 @@ export const JobApplication = () => {
                   type="email"
                   className={`apply-form-text-input ${errors.email ? "error-border" : ""}`}
                   name="email"
-                  disabled={editableField !== "email"}
+                  disabled={editableField !== "email" || isSubmitting}
                   value={formData.email}
                   onChange={handleInputChange}
                 />
                 {errors.email && <small className="error-text">{errors.email}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("email")}>
+              <div className="apply-form-edit" onClick={() => setEditableField("email")} title="Click to edit email"  >
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
             <div className="apply-form-row">
-              <div className="apply-form-label">Current address</div>
+              <div className="apply-form-label">Current Address</div>
               <div className="apply-form-info-box">
                 {editableField === "address" ? (
                   <>
-                    <input className="apply-form-text-input mb" name="street" placeholder="Street" value={formData.street} onChange={handleInputChange} />
-                    <input className="apply-form-text-input mb" name="city" placeholder="City" value={formData.city} onChange={handleInputChange} />
-                    <input className="apply-form-text-input mb" name="state" placeholder="State" value={formData.state} onChange={handleInputChange} />
-                    <input className="apply-form-text-input mb" name="zip" placeholder="Zip" value={formData.zip} onChange={handleInputChange} />
-                    <input className="apply-form-text-input" name="country" placeholder="Country" value={formData.country} onChange={handleInputChange} />
+                    <input className="apply-form-text-input mb" name="street" placeholder="Street" value={formData.street} onChange={handleInputChange} disabled={isSubmitting} />
+                    <input className="apply-form-text-input mb" name="city" placeholder="City" value={formData.city} onChange={handleInputChange} disabled={isSubmitting} />
+                    <input className="apply-form-text-input mb" name="state" placeholder="State" value={formData.state} onChange={handleInputChange} disabled={isSubmitting} />
+                    <input className="apply-form-text-input mb" name="zip" placeholder="Zip" value={formData.zip} onChange={handleInputChange} disabled={isSubmitting} />
+                    <input className="apply-form-text-input" name="country" placeholder="Country" value={formData.country} onChange={handleInputChange} disabled={isSubmitting} />
                   </>
                 ) : (
                   <>
@@ -498,35 +537,29 @@ export const JobApplication = () => {
                 )}
                 {(errors.city || errors.zip) && <small className="error-text">Address details required</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("address")}>
+              <div className="apply-form-edit" onClick={() => setEditableField("address")} title="Click to edit address"  >
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
             <div className="apply-form-row align-top">
-              <div className="apply-form-label">Cover letter</div>
+              <div className="apply-form-label">Cover Letter</div>
               <div className="apply-form-input">
                 <textarea
-
                   className={`cover-textarea ${errors.coverLetter ? "error-border" : ""}`}
                   name="coverLetter"
                   placeholder="Write your cover letter here..."
-                  disabled={editableField !== "coverLetter"}
                   value={formData.coverLetter}
                   onChange={handleInputChange}
                   rows={4}
                   maxLength={2000}
+                  disabled={isSubmitting}
                 />
-                
-
                 {errors.coverLetter && (
                   <small className="error-text" style={{ display: 'block', marginTop: '5px' }}>
                     {errors.coverLetter}
                   </small>
                 )}
-              </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("coverLetter")}>
-                <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
 
@@ -538,28 +571,21 @@ export const JobApplication = () => {
                     <span>
                       {formData.resume?.name || formData.resumeName}
                     </span>
-
                     <button
                       type="button"
                       className="apply-form-remove-btn"
                       onClick={removeResume}
+                      disabled={isSubmitting}
                     >
                       <img src={deleteIcon} alt="delete" />
                     </button>
-
-                    {/* <button
-                      type="button"
-                      onClick={() => fileInputRef.current.click()}
-                    >
-                      Replace
-                    </button> */}
-
                     <input
                       type="file"
                       hidden
                       accept="application/pdf"
                       ref={fileInputRef}
                       onChange={handleResumeUpload}
+                      disabled={isSubmitting}
                     />
                   </div>
                 ) : (
@@ -569,18 +595,23 @@ export const JobApplication = () => {
                     accept="application/pdf"
                     ref={fileInputRef}
                     onChange={handleResumeUpload}
+                    disabled={isSubmitting}
                   />
                 )}
                 {errors.resume && <small className="error-text">{errors.resume}</small>}
               </div>
-
             </div>
 
-
             <div className="apply-form-action-buttons">
-              <button type="button" className="apply-form-secondary-btn" onClick={() => navigate(-1)}>Cancel</button>
-              <button type="submit" className="apply-form-primary-btn">
-                Apply
+              <button type="button" className="apply-form-secondary-btn" onClick={() => navigate(-1)} disabled={isSubmitting}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="apply-form-primary-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Applying..." : "Apply"}
               </button>
             </div>
 

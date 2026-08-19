@@ -2,95 +2,93 @@ import React from 'react';
 import './BlogPage.css';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '../Components-LandingPage/Footer';
-import { FHeader } from '../Components-Jobseeker/FHeader'
-
-// Assets import (kept same)
 import blogheadimg from "../assets/Blog_Images/bloghead.png";
-import blogimg from "../assets/Blog_Images/blog1.png";
-import bloggimg from "../assets/Blog_Images/blog2.png";
-import blggimg from "../assets/Blog_Images/blog3.png";
-import blogcimg from "../assets/Blog_Images/blog4.png";
-import bloggcimg from "../assets/Blog_Images/blog5.png";
-import blogccimg from "../assets/Blog_Images/blog6.png";
-import bloggccimg from "../assets/Blog_Images/blog7.png";
-import blggcimg from "../assets/Blog_Images/blog8.png";
-import blogimgg from "../assets/Blog_Images/blog9.png";
-import bloggimgg from "../assets/Blog_Images/blog10.png";
-import blooggimgg from "../assets/Blog_Images/blog11.png";
+import { FHeader } from '../Components-Jobseeker/FHeader';
+import { useJobs } from '../JobContext';
+
+export const BlogCard = ({ item }) => {
+  const navigate = useNavigate();
+
+  const ReduceDesc = (text, wordLimit) => {
+    if (!text) return '';
+    const words = text.split(/\s+/);
+    if (words.length > wordLimit) {
+      return words.slice(0, wordLimit).join(' ') + '...';
+    }
+    return text;
+  };
+
+  return (
+    <div
+      className='content'
+      onClick={() => navigate(`/Job-portal/jobseeker/Blogs/BlogDatas/${item.title}`, { state: { blogData: item } })}
+      style={{ cursor: "pointer" }}
+    >
+      <img src={item.Thumbnail} alt={item.title} width="300" />
+      <p className='blog-date'>{item.date}</p>
+      <h3 className={item.isCategory ? 'card-title' : ''}>{item.title}</h3>
+
+      {!item.isCategory && (
+        <p style={{
+          overflow: 'hidden',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical'
+        }}>
+          {ReduceDesc(item.desc, 10)}
+        </p>
+      )}
+
+      <p style={{ fontSize: "20px", color: "#5295f8", fontWeight: "600", marginTop: "10px" }}>
+        Read more
+      </p>
+    </div>
+  );
+};
 
 export const BlogPage = () => {
   const navigate = useNavigate();
+  const { publishedBlogs } = useJobs();
 
-  // 1. Data arrays to avoid repetition
-  const featuredBlogs = [
-  ];
-
-  const categories = [
-    { img: blogcimg, title: "career" },
-    { img: bloggcimg, title: "Onboarding" },
-    { img: blogccimg, title: "tasks" },
-    { img: bloggccimg, title: "Worktype" },
-    { img: blggcimg, title: "Meetings" },
-    { img: blogimgg, title: "Environment" },
-  ];
-
-  const techBlogs = [
-    { img: blooggimgg, title: "Hook readers instantly: Start with a bold stat, question, or story" },
-    { img: blggimg, title: "Hook readers instantly: Start with a bold stat, question, or story" },
-  ];
-
-  // 2. Reusable Card Component
-  const BlogCard = ({ img, title, desc, isCategory = false }) => (
-    <div className='content'>
-      <img src={img} alt="blog" width="300" />
-      <h3 className={isCategory ? 'card-title' : ''}>{title}</h3>
-      <p>{desc || "Hook readers instantly: Start with a bold stat, question, or story"}</p>
-      <button>Read more</button>
-    </div>
-  );
 
   return (
     <>
       <FHeader />
 
       <div style={{ marginTop: "150px" }} className='blogpage'>
-        <img src={blogheadimg} alt="blogpage" width="1450px" style={{ padding: "25px" }} />
+        <img src={blogheadimg} alt="blogpage header" width="1450px" style={{ padding: "25px" }} />
       </div>
 
-      {/* Featured Section */}
-      <div className='cat-con'>
-        <div className='container2'>
-          {featuredBlogs.map((blog, index) => (
-            <BlogCard key={index} {...blog} />
-          ))}
-        </div>
-      </div>
+      {Object.entries(publishedBlogs).map(([sectionTitle, sectionItems]) => {
+        const filteredItems = sectionItems.filter(item => item.Status === "Published");
+        if (filteredItems.length === 0) return null;
 
-      {/* Categories Section */}
-      <div className='cat-con'>
-        <div className='categories2'>
-          <h1>Categories</h1>
-          <button onClick={() => navigate('/Job-portal/jobseeker/Blogs/Category')} className='blog-view-all'>view all</button>
-        </div>
-        <div className='container2'>
-          {categories.map((cat, index) => (
-            <BlogCard key={index} {...cat} isCategory={true} />
-          ))}
-        </div>
-      </div>
+        return (
+          <div className='cat-con' key={sectionTitle}>
+            <div className='categories2'>
+              <h1>{sectionTitle}</h1>
+              {filteredItems.length > 3 && (
+                <button onClick={() => {
+                  navigate(`/Job-portal/jobseeker/Blogs/view-all/${sectionTitle}`, {
+                    state: { pageTitle: sectionTitle, pageData: filteredItems }
+                  });
+                }}
+                  className='view-all'
+                >
+                  View all
+                </button>
+              )}
+            </div>
 
-      {/* Technology Blogs Section */}
-      <div className='cat-con'>
-        <div className='categories2'>
-          <h1>Technology Blogs</h1>
-          <button onClick={() => navigate('/Job-portal/jobseeker/Blogs/Technology')} className='blog-view-all'>view all</button>
-        </div>
-        <div className='container2'>
-          {techBlogs.map((blog, index) => (
-            <BlogCard key={index} {...blog} />
-          ))}
-        </div>
-      </div>
+            <div className='container2'>
+              {filteredItems.slice(0, 3).map((item) => (
+                <BlogCard key={item.id} item={item} />
+              ))}
+            </div>
+            <hr style={{ border: "0.5px solid #eee", margin: "20px 25px" }} />
+          </div>
+        )
+      })}
 
       <Footer />
     </>

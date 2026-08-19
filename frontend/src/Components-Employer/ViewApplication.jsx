@@ -1,30 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import UserIcon from "../assets/Employer/User.png";
 import { useJobs } from "../JobContext";
 import "./ViewApplication.css";
- 
+
 export const ViewApplication = () => {
   const { Alluser } = useJobs();
   const [viewMode, setViewMode] = useState("list");
   const [selectedUser, setSelectedUser] = useState(null);
- 
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [viewMode]);
+
   const handleViewDetails = (user) => {
     setSelectedUser(user);
     setViewMode("detail");
   };
- 
+
   const handleBack = () => {
     setViewMode("list");
     setSelectedUser(null);
   };
- 
+
   const getStatusClass = (status) => {
     const s = status?.toLowerCase() || 'pending';
     if (s === 'invited') return 'status-invited';
     if (s === 'rejected') return 'status-rejected';
     return 'status-pending';
   };
- 
+
   if (viewMode === "list") {
     return (
       <div className="view-applicants-page">
@@ -35,7 +39,7 @@ export const ViewApplication = () => {
               <p className="subtitle">{Alluser.length} Total Jobseekers</p>
             </div>
           </div>
- 
+
           <table className="applicants-table">
             <thead>
               <tr>
@@ -85,7 +89,7 @@ export const ViewApplication = () => {
       </div>
     );
   }
- 
+
   return (
     <div className="view-applicants-page detail-view">
       <div className="detail-container">
@@ -97,25 +101,25 @@ export const ViewApplication = () => {
             <button className="btn-invite-solid">Invite for Interview</button>
           </div>
         </div>
- 
+
         <div className="detail-layout">
           <div className="detail-left">
             <div className="profile-main-card">
               <img src={UserIcon} alt="Profile" className="detail-avatar" />
               <h3>{selectedUser.profile?.fullName}</h3>
-             
+
               <div style={{ marginBottom: '10px' }}>
                 <span className={`status-pill ${getStatusClass(selectedUser.status)}`}>
                   {selectedUser.status || "Pending"}
                 </span>
                 {/* Job Type Pill (Hybrid/Remote/Full-time) */}
                 <span className="work-mode-pill">
-                    {selectedUser.preferences?.[0]?.jobType}
+                  {selectedUser.preferences?.[0]?.jobType}
                 </span>
               </div>
- 
+
               <p className="role-tag">{selectedUser.currentDetails?.jobTitle}</p>
-             
+
               <div className="contact-list">
                 {/* Corrected paths to match JobContext.jsx */}
                 <p><strong>Experience:</strong> {selectedUser.currentDetails?.experience}</p>
@@ -124,14 +128,14 @@ export const ViewApplication = () => {
               </div>
             </div>
           </div>
- 
+
           <div className="detail-right">
             <div className="tabs-bar">
               <span className="tab active">Profile</span>
               <span className="tab">Resume</span>
               <span className="tab">Experience</span>
             </div>
- 
+
             <div className="tab-pane">
               {/* Cover Letter - Placeholder based on typical flow */}
               <section className="info-section">
@@ -144,22 +148,22 @@ export const ViewApplication = () => {
                   </p>
                 </div>
               </section>
- 
+
               {/* Resume Preview Box */}
               <section className="info-section">
                 <h4>Resume</h4>
                 <div className="resume-preview-card">
-                   <div className="file-info">
-                      <span className="file-icon"></span>
-                      <div>
-                        <p className="file-name">{selectedUser.profile?.fullName}_Resume.pdf</p>
-                        <p className="file-size">{selectedUser.resume?.size}</p>
-                      </div>
-                   </div>
-                   <button className="preview-btn">Preview</button>
+                  <div className="file-info">
+                    <span className="file-icon"></span>
+                    <div>
+                      <p className="file-name">{selectedUser.profile?.fullName}_Resume.pdf</p>
+                      <p className="file-size">{selectedUser.resume?.size}</p>
+                    </div>
+                  </div>
+                  <button className="preview-btn">Preview</button>
                 </div>
               </section>
- 
+
               <section className="info-section">
                 <h4>Education Details</h4>
                 {selectedUser.education?.graduations?.map((edu, i) => (
@@ -169,7 +173,7 @@ export const ViewApplication = () => {
                   </div>
                 ))}
               </section>
- 
+
               <section className="info-section">
                 <h4>Top Skills</h4>
                 <div className="skill-pills">

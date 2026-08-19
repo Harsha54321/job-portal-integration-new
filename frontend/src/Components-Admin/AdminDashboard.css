@@ -2,8 +2,11 @@
     display: grid;
     grid-template-columns: 250px Auto;
     gap: 5px;
-    /* margin: 70px 2.5px 0 2.5px; */
     margin-top: 70px;
+    /* Remove fixed height and overflow hidden - let content flow naturally */
+    min-height: calc(100vh - 70px);
+    height: auto;
+    overflow: visible;
 }
 
 .Admin-Sidebar {
@@ -16,14 +19,60 @@
     align-items: center;
     position: sticky;
     top: 70px;
-    height: fit-content;
+    height: calc(100vh - 80px);
+    /* Fixed height for sidebar only */
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-self: flex-start;
+    /* Prevent stretching */
+}
+
+/* Scrollbar styling for Admin sidebar - matching EmployerDashboard */
+.Admin-Sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.Admin-Sidebar::-webkit-scrollbar-track {
+    background: #0a4a7a;
+    border-radius: 10px;
+}
+
+.Admin-Sidebar::-webkit-scrollbar-thumb {
+    background: #1a6a9a;
+    border-radius: 10px;
+    transition: background 0.3s;
+}
+
+.Admin-Sidebar {
+    scroll-behavior: smooth;
+}
+
+/* Make header sticky within sidebar */
+.Admin-Sidebar>h2 {
+    position: sticky;
+    top: 0;
+    background-color: #01165D;
+    z-index: 10;
+    padding: 10px 0;
+    margin-top: 20px;
+    flex-shrink: 0;
+    width: 100%;
+    text-align: center;
 }
 
 .Admin-Sidebar-list {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 20px 0;
+    width: 100%;
+    flex: 1;
+}
+
+/* Logout button at bottom - ensure it's visible */
+.Admin-Sidebar-list .Admin-Navbar:last-child,
+.Admin-Sidebar-list .Admin-Navbar:last-of-type {
+    margin-bottom: 15px;
 }
 
 .Admin-Navbar {
@@ -31,6 +80,12 @@
     padding-left: 15px;
     width: 215px;
     border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.Admin-Navbar:hover {
+    background-color: rgba(0, 102, 204, 0.35);
 }
 
 .Admin-Navbox {
@@ -52,8 +107,14 @@
 .Admin-MainSec {
     border-radius: 10px;
     padding: 20px;
+    /* Remove fixed height - let it grow with content */
+    height: auto;
+    overflow: visible;
+    /* Add some bottom padding for content */
+    padding-bottom: 40px;
 }
-.Admin-MainSec ::-webkit-scrollbar, .AdminContainer ::-webkit-scrollbar{
+
+.Admin-MainSec ::-webkit-scrollbar {
     display: none;
 }
 
@@ -82,11 +143,10 @@
     gap: 20px;
     width: 100%;
     margin-top: 25px;
-
 }
 
 .Admin-Overview-Container {
-    box-shadow: 0px 2px 6px 2px rgba(0, 0, 0, 0.15);;
+    box-shadow: 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -127,9 +187,7 @@
 .Admin-overview-cont {
     box-shadow: 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
     border-radius: 10px;
-    /* display: flex;
-    justify-content: center; */
-     flex: 1;
+    flex: 1;
 }
 
 .Admin-jobads-header {
@@ -152,7 +210,6 @@
 
 .Admin-view-btn {
     padding: 6px 14px;
-
     border-radius: 8px;
     border: 1px solid rgb(230, 227, 227);
     background: white;
@@ -216,7 +273,6 @@
 
 .Ads-Count-Cont {
     text-align: center;
-     
 }
 
 .Ads-Count {
@@ -234,7 +290,7 @@
 .Admin-Amount-bal-cont {
     display: flex;
     flex-direction: column;
-    gap: 1px; 
+    gap: 1px;
     justify-content: center;
 }
 
@@ -294,7 +350,8 @@
     color: #777;
 }
 
-.footer-link a, .card-desc a {
+.footer-link a,
+.card-desc a {
     color: #4a90e2;
     text-decoration: none;
 }
@@ -310,58 +367,63 @@
 }
 
 .Adminpending-container {
-  background:white;
-  border-radius: 10px;
-  padding-top: 16px;
-  padding-left: 10px;
-  padding-right: 10px;
+    background: white;
+    border-radius: 10px;
+    padding-top: 16px;
+    padding-left: 10px;
+    padding-right: 10px;
 }
- 
+
 .Adminpending-head h4 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color:rgb(68, 66, 66);
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: rgb(68, 66, 66);
 }
-  
+
 .Adminpending-subhead p {
-  margin: 4px 0 10px 0;
-  font-size: 13px;
-  color: rgb(126, 125, 125);
+    margin: 4px 0 10px 0;
+    font-size: 13px;
+    color: rgb(126, 125, 125);
 }
- 
+
 .Adminpending-container hr {
-  border: none;
-  border-top: 1px solid rgb(219, 218, 218);
-  margin: 0;
+    border: none;
+    border-top: 1px solid rgb(219, 218, 218);
+    margin: 0;
 }
 
 .Adminquiz-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
 }
- 
+
 .Adminquiz-content p {
-  margin: 0;
-  font-size: 14px;
-  color: rgb(65, 64, 64);
+    margin: 0;
+    font-size: 14px;
+    color: rgb(65, 64, 64);
 }
-.Adminpending-total{
+
+.Adminpending-total {
     box-shadow: 0px 2px 6px 2px rgba(0, 0, 0, 0.25);
     border-radius: 10px;
     padding: 10px;
     flex: 1;
 }
-.Admin-Experience{
+
+.Admin-Experience {
     flex: 1;
     box-shadow: 0px 2px 6px 2px rgba(0, 0, 0, 0.25);
     border-radius: 10px;
     padding: 10px;
 }
 
-/* Unauthorized Access Styles */
+/* ============================================ */
+/* UNAUTHORIZED ACCESS STYLES */
+/* ============================================ */
+
 .unauthorized-container {
     display: flex;
     justify-content: center;
@@ -404,9 +466,19 @@
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-10px);
+    }
+
+    75% {
+        transform: translateX(10px);
+    }
 }
 
 .unauthorized-title {
@@ -490,8 +562,13 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .loading-text {
@@ -500,7 +577,109 @@
     font-weight: 500;
 }
 
-/* Responsive Styles */
+/* PREMIUM CARD VARIANT */
+
+.unauthorized-card-premium {
+    position: relative;
+    overflow: hidden;
+}
+
+.unauthorized-card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff6b6b, #ff8e53, #ff6b6b);
+    background-size: 200% 100%;
+    animation: gradient 3s ease infinite;
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* ANALYTICAL REPORTS STYLES */
+
+.Admin-Reports-Overview {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+}
+
+.admin-dash-card-container {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0px 2px 6px 2px rgba(0, 0, 0, 0.10);
+    transition: transform 0.2s ease;
+}
+
+.admin-dash-card-container:hover {
+    transform: translateY(-2px);
+}
+
+.admin-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.admin-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.admin-divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 8px 0;
+}
+
+.admin-dash-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 5px;
+}
+
+.admin-dash-stat-value-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-dash-stat-value-group span:first-child {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.admin-dash-stat-value-group span:last-child {
+    font-size: 12px;
+    color: #888;
+}
+
+/* Responsive for reports */
+@media (max-width: 1024px) {
+    .Admin-Reports-Overview {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
     .unauthorized-card {
         padding: 32px 24px;
@@ -522,6 +701,26 @@
 
     .unauthorized-actions {
         gap: 12px;
+    }
+
+    .AdminContainer {
+        grid-template-columns: 200px Auto;
+        min-height: calc(100vh - 70px);
+    }
+
+    .Admin-Navbar,
+    .Admin-Active {
+        width: 170px;
+        padding-left: 10px;
+    }
+
+    .Admin-Overview {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .Admin-Reports-Overview {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -546,42 +745,90 @@
     .unauthorized-btn {
         width: 100%;
     }
+
+    .AdminContainer {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+        min-height: auto;
+    }
+
+    .Admin-Sidebar {
+        height: auto;
+        max-height: 300px;
+        border-radius: 10px;
+        position: relative;
+        top: 0;
+    }
+
+    .Admin-MainSec {
+        height: auto;
+        overflow: visible;
+        padding-bottom: 20px;
+    }
+
+    .Admin-Navbar,
+    .Admin-Active {
+        width: 90%;
+    }
+
+    .Admin-Overview {
+        grid-template-columns: 1fr;
+    }
+
+    .Admin-Reports-Overview {
+        grid-template-columns: 1fr;
+    }
 }
 
-/* Optional: Add a gradient border effect for premium look */
-.unauthorized-card-premium {
-    position: relative;
+/* Fix for grid layout on medium screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .Admin-Overview {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Ensure sidebar doesn't overlap content */
+.Admin-Sidebar {
+    align-self: flex-start;
+}
+
+/* Bottom padding for main content to ensure visibility */
+.Admin-MainSec>*:last-child {
+    margin-bottom: 30px;
+}
+
+.Admin-job-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 20px; 
+    margin-bottom: 7px;
+    border-radius: 12px;
+    border: 1px solid rgb(231, 230, 230);
+    gap: 15px; 
+}
+
+.Admin-job-left {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0; 
+}
+
+.Admin-job-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    color: black;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap; 
+    word-break: break-word; 
 }
 
-.unauthorized-card-premium::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #ff6b6b, #ff8e53, #ff6b6b);
-    background-size: 200% 100%;
-    animation: gradient 3s ease infinite;
-}
-
-@keyframes gradient {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
-}
-.Admin-Navbar {
-  cursor: pointer;
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-.Admin-Navbar:hover {
-  background-color: rgba(0, 102, 204, 0.35);
+.Admin-job-right {
+    display: flex;
+    gap: 20px; 
+    flex-shrink: 0; 
 }

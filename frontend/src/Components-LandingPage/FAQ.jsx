@@ -4,7 +4,8 @@ import faqImage from '../assets/FAQ.png';
 import BackIcon from '../assets/BackICON.png';
 import { Footer } from '../Components-LandingPage/Footer';
 import { useLocation } from 'react-router-dom';
-import { FHeader } from '../Components-Jobseeker/FHeader'
+import { FHeader } from '../Components-Jobseeker/FHeader';
+import { Helmet } from 'react-helmet-async';
 
 export const FAQ = () => {
     const FAQ_DATA = [
@@ -16,6 +17,7 @@ export const FAQ = () => {
         { id: 6, question: "How do I know if my application was received?", answer: "You will receive an email confirmation and see a status update in your dashboard." },
         { id: 7, question: "Can I upload multiple versions of my resume?", answer: "Yes, our platform allows you to manage and select different resumes for different applications." },
     ];
+    
     const location = useLocation();
     const [activeIndex, setActiveIndex] = useState(null);
 
@@ -30,27 +32,26 @@ export const FAQ = () => {
     }, [location.state]);
 
     return (
-        <div>
+        <>
+            <Helmet>
+                <link rel="preload" as="image" href={faqImage} />
+            </Helmet>
             <FHeader />
             <div className="FAQpage-main-wrapper">
                 <div className="faq-page-content">
-                    <img
-                        src={faqImage}
-                        alt=""
-                        loading="eager"
-                        fetchPriority="high"
-                        style={{ display: 'none' }}
-                    />
-
-                    <section
-                        className="FAQpage-section"
-
-                        style={{ backgroundImage: `url(${faqImage})` }}
-                    >
+                    <section className="FAQpage-section">
+                        <img 
+                            src={faqImage} 
+                            alt="FAQ background" 
+                            className="faq-bg"
+                            loading="eager"
+                            fetchPriority="high"
+                            width="1920"
+                            height="380"
+                        />
                         <div className="FAQpage-overlay-content">
                             <div className="FAQpage-stacked-container">
                                 <h1 className="FAQpage-title">Hello, how can we support you?</h1>
-
                             </div>
                         </div>
                     </section>
@@ -96,6 +97,6 @@ export const FAQ = () => {
                 </div>
             </div>
             <Footer />
-        </div>
+        </>
     );
 };

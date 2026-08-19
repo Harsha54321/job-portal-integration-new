@@ -40,7 +40,7 @@ export const JobPostingHelp = () => {
       {
         title: "3. Crafting the Description & Requirements",
         list: [
-          "<strong>The 'Day in the Life':</strong> Don’t just list tasks; explain the impact. Instead of 'Writes code,' try 'Collaborates with the design team to build user-facing features for 1 million monthly users.'",
+          "<strong>The 'Day in the Life':</strong> Don't just list tasks; explain the impact. Instead of 'Writes code,' try 'Collaborates with the design team to build user-facing features for 1 million monthly users.'",
           "<strong>Defining Must-Haves:</strong> List mandatory skills, experience levels (e.g., 2+ years), and education clearly. Distinguishing between <strong>Required</strong> and <strong>Preferred</strong> skills prevents overwhelming potential applicants.",
           "<strong>Keywords:</strong> Include specific tech stacks or tools (e.g., 'Python,' 'Django') within the description to improve your matching score."
         ]
@@ -82,44 +82,47 @@ export const JobPostingHelp = () => {
     <>
       <FHeader />
       <div className="jobemployerhelp-page">
+        <p className="jobemployerhelp-updated">{employerData.updatedDate}</p>
+
         <div className="jobemployerhelp-container">
           <h1 className="jobemployerhelp-title">{employerData.title}</h1>
-          <p className="jobemployerhelp-updated">{employerData.updatedDate}</p>
           <p className="jobemployerhelp-intro">{employerData.intro}</p>
 
-          <div className="jobemployerhelp-layout" style={{ display: 'flex', gap: '30px', marginBottom: '40px', flexWrap: 'wrap' }}>
-            <div className="jobemployerhelp-left" style={{ flex: '1 1 400px' }}>
-              <img
-                src={JobPostingImg}
-                alt="Job Posting Process"
-                className="jobemployerhelp-hero-img"
-                // style={{ width: '100%', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
-              />
-            </div>
+          {/* Centered Hero Image Section */}
+          <div className="jobemployerhelp-hero-section">
+            <img
+              src={JobPostingImg}
+              alt="Job Posting Process"
+              className="jobemployerhelp-hero-img"
+            />
+          </div>
 
-            <div className="jobemployerhelp-right" style={{ flex: '1 1 300px', backgroundColor: '#f9f9f9', padding: '25px', borderRadius: '12px', border: '1px solid #eee' }}>
-              <h2 style={{ marginTop: 0, color: '#333' }}>Posting Summary</h2>
-              <ul className="jobemployerhelp-summary-list" style={{ listStyle: 'none', padding: 0 }}>
+          {/* Posting Summary - Now moved down */}
+          <div className="jobemployerhelp-summary-section">
+            <div className="jobemployerhelp-steps-container">
+              <h2 className="jobemployerhelp-summary-title">Posting Summary</h2>
+              <ul className="jobemployerhelp-steps-list">
                 {employerData.summary.map((item, index) => (
-                  <li key={index} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start' }}>
-                    <span style={{ color: '#007bff', marginRight: '10px' }}>✓</span>
-                    <span dangerouslySetInnerHTML={{ __html: item }} />
-                  </li>
+                  <li
+                    key={index}
+                    dangerouslySetInnerHTML={{ __html: item }}
+                  />
                 ))}
               </ul>
             </div>
           </div>
 
-          <div className="jobemployerhelp-content">
+          {/* Detailed Steps */}
+          <div className="jobemployerhelp-detailed-steps">
+            <h2>Step-by-Step Job Posting Guide:</h2>
+
             {employerData.sections.map((section, index) => (
-              <div key={index} className="jobemployerhelp-section" style={{ marginBottom: '40px' }}>
-                <h2 style={{ borderBottom: '2px solid #007bff', display: 'inline-block', paddingBottom: '5px', marginBottom: '20px' }}>
-                  {section.title}
-                </h2>
+              <div key={index} className="jobemployerhelp-detailed-step">
+                <h3>{section.title}</h3>
                 {section.list && (
-                  <ul className="jobemployerhelp-list" style={{ listStyleType: 'circle', paddingLeft: '20px' }}>
+                  <ul>
                     {section.list.map((item, i) => (
-                      <li key={i} style={{ marginBottom: '15px', lineHeight: '1.7', color: '#444' }} dangerouslySetInnerHTML={{ __html: item }} />
+                      <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
                     ))}
                   </ul>
                 )}

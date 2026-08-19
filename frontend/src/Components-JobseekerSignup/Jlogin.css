@@ -96,12 +96,12 @@
   box-sizing: border-box;
 }
 
-.password-wrapper {
+.login-password-wrapper {
   position: relative;
   width: 100%;
 }
 
-.password-wrapper .eye-icon {
+.login-password-wrapper .login-eye-icon {
   position: absolute;
   right: 15px;
   top: 50%;
@@ -481,17 +481,17 @@
 }
 
 /* Adjust password wrapper to match */
-.login-form .password-wrapper {
+.login-form .login-password-wrapper {
   position: relative;
   width: 100%;
 }
 
-.login-form .password-wrapper input {
+.login-form .login-password-wrapper input {
   padding-right: 42px; /* space for eye icon */
 }
 
 /* Eye icon positioning */
-.login-form .password-wrapper .eye-icon {
+.login-form .login-password-wrapper .login-eye-icon {
   position: absolute;
   right: 14px;
   top: 50%;
@@ -501,13 +501,17 @@
   align-items: center;
   opacity: 0.6;
   transition: opacity 0.2s ease;
+
+  background: none;
+  border: none;
+  padding: 0;
 }
 
-.login-form .password-wrapper .eye-icon:hover {
+.login-form .login-password-wrapper .login-eye-icon:hover {
   opacity: 1;
 }
 
-.login-form .password-wrapper .show-icon {
+.login-form .login-password-wrapper .show-icon {
   height: 20px;
   width: auto;
 }
@@ -645,4 +649,13 @@
   .login-form .forgot-password {
     font-size: 13px;
   }
+}
+
+.eye-icon {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }

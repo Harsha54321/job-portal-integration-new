@@ -9,6 +9,18 @@ export const LoginIssuesHelp = () => {
     title: "Common Login Issues & Root Causes",
     updatedDate: "Updated 06 Feb 2026",
     intro: "Having trouble accessing your account? Review these common login difficulties and their technical root causes to get back online quickly.",
+
+    summary: [
+      "<strong>Incorrect Credentials:</strong> Double-check email and password for typos or caps lock.",
+      "<strong>Account Verification:</strong> Ensure you've clicked the verification link in your email.",
+      "<strong>Account Lockout:</strong> Wait 15-30 minutes after multiple failed login attempts.",
+      "<strong>OTP Issues:</strong> Check network, verify mobile number, or request a new OTP.",
+      "<strong>Browser Problems:</strong> Clear cache, disable ad-blockers, or try a different browser.",
+      "<strong>Session Timeout:</strong> Log in again if you've been inactive for too long.",
+      "<strong>Social Login:</strong> Allow pop-ups and ensure your social account is verified.",
+      "<strong>Access Restrictions:</strong> Complete your profile or contact support for role issues."
+    ],
+
     issues: [
       {
         problem: "Incorrect Email or Password",
@@ -64,36 +76,58 @@ export const LoginIssuesHelp = () => {
   };
 
   return (
-      <>
+    <>
       <FHeader />
       <div className="technicalhelp-page">
-      <div className="technicalhelp-container">
-        <h1 className="technicalhelp-title">{loginIssueData.title}</h1>
         <p className="technicalhelp-updated">{loginIssueData.updatedDate}</p>
-        <p className="technicalhelp-intro">{loginIssueData.intro}</p>
 
-        <div className="technicalhelp-hero">
-          <img
-            src={LoginSupportImg}
-            alt="Login Support Illustration"
-            className="technicalhelp-hero-img"
-          />
-        </div>
+        <div className="technicalhelp-container">
+          <h1 className="technicalhelp-title">{loginIssueData.title}</h1>
+          <p className="technicalhelp-intro">{loginIssueData.intro}</p>
 
-        <div className="technicalhelp-content">
-          <div className="technicalissue-grid">
-            {loginIssueData.issues.map((item, index) => (
-              <div key={index} className="technicalissue-card">
-                <h3>{item.problem}</h3>
-                <p><strong>Why this happens:</strong> {item.why}</p>
-                <p><strong>Root Cause:</strong> {item.rootCause}</p>
-              </div>
-            ))}
+          {/* Centered Hero Image Section */}
+          <div className="technicalhelp-hero">
+            <img
+              src={LoginSupportImg}
+              alt="Login Support Illustration"
+              className="technicalhelp-hero-img"
+            />
+          </div>
+
+          {/* Quick Summary - Now moved down */}
+          <div className="technicalhelp-summary-section">
+            <div className="technicalhelp-summary-container">
+              <h2 className="technicalhelp-summary-title">Quick Troubleshooting Summary</h2>
+              <ul className="technicalhelp-summary-list">
+                {loginIssueData.summary.map((item, index) => (
+                  <li
+                    key={index}
+                    dangerouslySetInnerHTML={{ __html: item }}
+                  />
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Detailed Issues List - One by One */}
+          <div className="technicalhelp-content">
+            <h2 className="technicalhelp-issues-title">Detailed Issue Breakdown</h2>
+            <div className="technicalissue-list">
+              {loginIssueData.issues.map((item, index) => (
+                <div key={index} className="technicalissue-item">
+                  <div className="technicalissue-number">{index + 1}</div>
+                  <div className="technicalissue-details">
+                    <h3>{item.problem}</h3>
+                    <p><strong>Why this happens:</strong> {item.why}</p>
+                    <p><strong>Root Cause:</strong> {item.rootCause}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
-      <Footer />
-    </div>
     </>
   );
-}
+};

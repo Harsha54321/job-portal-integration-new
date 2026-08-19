@@ -5,7 +5,6 @@ const JobContext = createContext();
 
 export const JobProvider = ({ children }) => {
 
-    // ================= STATE =================
     const [jobs, setJobs] = useState([]);
     const [appliedJobs, setAppliedJobs] = useState([]);
     const [savedJobs, setSavedJobs] = useState([]);
@@ -15,19 +14,15 @@ export const JobProvider = ({ children }) => {
     const [notificationsData, setNotificationsData] = useState([]);
     const [showNotification, setShowNotification] = useState(false);
 
-    // Jobseeker
     const [currentUser, setCurrentUser] = useState(null);
     const currentUserId = currentUser?.id || sessionStorage.getItem("user_id") || null;
 
-    // Employer
     const [currentEmployer, setCurrentEmployer] = useState(null);
     const [companyProfile, setCompanyProfile] = useState(null);
     const [employerNotifications, setEmployerNotifications] = useState([]);
 
-    // All jobseekers for employer
     const [Alluser, setAlluser] = useState([]);
 
-    // UI States
     const [activeMenuId, setActiveMenuId] = useState(null);
     const [employeractiveMenuId, setEmployerActiveMenuId] = useState(null);
     const [employershowNotification, setEmployerShowNotification] = useState(false);
@@ -35,11 +30,9 @@ export const JobProvider = ({ children }) => {
     const [activeSidebarUsers, setActiveSidebarUsers] = useState([]);
     const [onlineStatus, setOnlineStatus] = useState("yes");
 
-    // Cache for messages to prevent unnecessary updates
     const messagesCache = useRef(new Map());
     const isUpdatingMessages = useRef(false);
 
-    // ================= HELPER FUNCTIONS =================
     const getFormattedDate = () => {
         return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     };
@@ -84,7 +77,6 @@ export const JobProvider = ({ children }) => {
         }));
     };
 
-    // ================= NOTIFICATIONS =================
     const addNotification = (text) => {
         const newNotif = {
             id: Date.now(),
@@ -104,6 +96,8 @@ export const JobProvider = ({ children }) => {
                 id: notification.id,
                 text: notification.message,
                 isRead: notification.is_read,
+                related_obj_id: notification.related_object_id,
+                event_type: notification.event_type,
                 time: new Date(notification.created_at).toLocaleString('en-GB', {
                     day: 'numeric',
                     month: 'short',
@@ -112,11 +106,10 @@ export const JobProvider = ({ children }) => {
                     minute: '2-digit',
                     hour12: true
                 }),
-                targetId: notification.user
+                // targetId: notification.user
             }));
 
             const userType = sessionStorage.getItem("user_type");
-
             if (userType === "jobseeker") {
                 setNotificationsData(transformedData);
             } else if (userType === "employer") {
@@ -182,6 +175,9 @@ export const JobProvider = ({ children }) => {
             addNotification("Job saved successfully!");
         } catch (err) {
             console.error(err);
+            if (err.response.data?.error === 'Save jobs feature is disabled.') {
+                alert("Saving jobs is currently disabled. Please contact Admin");
+            }
         }
     };
 
@@ -255,8 +251,18 @@ export const JobProvider = ({ children }) => {
             return { success: true, data: response.data };
         } catch (error) {
             console.error("❌ Error posting job:", error);
-            addNotification("Failed to post job", "error");
-            return { success: false, error: error.message };
+
+            // ← CHANGE: Extract the actual backend error message
+            const backendMsg =
+                error?.response?.data?.error ||
+                error?.response?.data?.detail ||
+                error?.response?.data?.message ||
+                error?.response?.data?.is_highlighted ||
+                error?.message ||
+                "Failed to post job";
+
+            addNotification(backendMsg, "error");
+            return { success: false, error: backendMsg };  // ← was: error.message
         }
     };
 
@@ -439,6 +445,18 @@ export const JobProvider = ({ children }) => {
         }
     };
 
+    const fetchAllUsers = async () => {
+        try {
+            const res = await api.get('jobseekers/')
+            if (res.data)
+            {
+                setAlluser(res.data)
+            }
+        } catch (error) {
+            console.log(error.data)
+        }
+    }
+
     // ================= EMPLOYER DATA FETCH =================
     // ================= EMPLOYER DATA FETCH =================
     const fetchEmployerData = useCallback(async () => {
@@ -585,15 +603,162 @@ export const JobProvider = ({ children }) => {
 
     useEffect(() => {
         const token = sessionStorage.getItem("access");
- 
+
         if (!token) return;
- 
+
         const interval = setInterval(() => {
             fetchChats();
-        }, 3000);
- 
+        }, 30000);
+
         return () => clearInterval(interval);
     }, [fetchChats]);
+
+    // fetch only on page load
+    // useEffect(() => {
+    //     fetchChats();
+    // }, []);
+
+    // =============================Admin support hub==========================
+    // ================Admin tickets=================
+    const [raisedTickets, setRaisedTickets] = useState([]);
+    const [ticketsLoading, setTicketsLoading] = useState(false);
+
+    const fetchTickets = useCallback(async () => {
+        try {
+            setTicketsLoading(true);
+            const response = await api.get('/admin/tickets/');
+            console.log("Tickets API Response:", response.data);
+
+            if (response.data.status == true) {
+                setRaisedTickets(response.data.data);
+                console.log(`Loaded ${response.data.data.length} tickets`);
+                return response.data.data;
+            } else {
+                setRaisedTickets([]);
+                return [];
+            }
+        } catch (error) {
+            console.error(" Error fetching tickets:", error);
+            alert(error)
+            setRaisedTickets([])
+            return [];
+        } finally {
+            setTicketsLoading(false)
+        }
+    }, [])
+
+
+    // ================Admin Enquiries=================
+    const [enquiries, setEnquiries] = useState([]);
+    const [enquiriesLoading, setEnquiriesLoading] = useState(false);
+
+    const fetchEnquiries = useCallback(async () => {
+        try {
+            setEnquiriesLoading(true);
+            console.log("📡 Fetching enquiries from backend...");
+
+            const response = await api.get('/contact/list/');
+            console.log("Enquiries API Response:", response.data);
+
+            // Check if response has data (adjust based on your API response structure)
+            if (response.data && Array.isArray(response.data)) {
+                setEnquiries(response.data);
+                console.log(`✅ Loaded ${response.data.length} enquiries`);
+                return response.data;
+            } else if (response.data && response.data.status === true) {
+                setEnquiries(response.data.data || []);
+                console.log(`✅ Loaded ${response.data.data?.length || 0} enquiries`);
+                return response.data.data || [];
+            } else {
+                setEnquiries([]);
+                return [];
+            }
+        } catch (error) {
+            console.error("❌ Error fetching enquiries:", error);
+            setEnquiries([]);
+            return [];
+        } finally {
+            setEnquiriesLoading(false);
+        }
+    }, []);
+
+
+    // ================Admin Reports/Escalation=================
+    const [reports, setReports] = useState([]);
+    const [reportsLoading, setReportsLoading] = useState(false);
+
+    const fetchReports = useCallback(async () => {
+        try {
+            setReportsLoading(true);
+            console.log("📡 Fetching reports/complaints from backend...");
+
+            const response = await api.get('/admin/complaints/');
+            console.log("Reports API Response:", response.data);
+
+            // Check response structure - your API returns array directly
+            if (Array.isArray(response.data)) {
+                setReports(response.data);
+                console.log(`✅ Loaded ${response.data.length} reports`);
+                return response.data;
+            } else if (response.data && response.data.status === true) {
+                setReports(response.data.data || []);
+                console.log(`✅ Loaded ${response.data.data?.length || 0} reports`);
+                return response.data.data || [];
+            } else if (response.data && response.data.results) {
+                setReports(response.data.results);
+                console.log(`✅ Loaded ${response.data.results.length} reports`);
+                return response.data.results;
+            } else {
+                setReports([]);
+                return [];
+            }
+        } catch (error) {
+            console.error("❌ Error fetching reports:", error);
+            setReports([]);
+            return [];
+        } finally {
+            setReportsLoading(false);
+        }
+    }, []);
+
+    // ── BLOG STATE ──────────────────────────────────────────
+    const [publishedBlogs, setPublishedBlogs] = useState({});
+    const [blogsLoading, setBlogsLoading] = useState(false);
+
+    const fetchPublishedBlogs = useCallback(async () => {
+        setBlogsLoading(true);
+        try {
+            const res = await api.get('blogs/grouped/');
+            setPublishedBlogs(res.data || {});
+            console.log(res.data)
+        } catch (err) {
+            console.error('Failed to fetch blogs:', err);
+            setPublishedBlogs({});
+        } finally {
+            setBlogsLoading(false);
+        }
+    }, []);
+
+    const [blogStats, setBlogStats] = useState({ total: 0, published: 0, drafts: 0, trash: 0 });
+
+    const fetchBlogStats = useCallback(async () => {
+        try {
+            const res = await api.get('blog-stats/');
+            setBlogStats(res.data);
+        } catch (err) {
+            console.error('Failed to fetch blog stats:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchBlogStats();
+    }, [fetchBlogStats]);
+
+
+    useEffect(() => {
+        fetchPublishedBlogs();
+        fetchBlogStats();
+    }, [fetchPublishedBlogs, fetchBlogStats]);
 
     // ================= PROVIDER =================
     return (
@@ -650,10 +815,35 @@ export const JobProvider = ({ children }) => {
             showNotification, setShowNotification,
             addNotification,
             fetchNotifications,
-
+            fetchAllUsers,
             // Utils
             fetchAllJobs,
-            getFormattedDate
+            getFormattedDate,
+            //admin tickets
+            raisedTickets,
+            setRaisedTickets,
+            ticketsLoading,
+            fetchTickets,
+
+            // contact us
+            enquiries,
+            setEnquiries,
+            enquiriesLoading,
+            fetchEnquiries,
+
+            // Admin reports (Escalation)
+            reports,
+            setReports,
+            reportsLoading,
+            fetchReports,
+
+            // Blogs
+            publishedBlogs, setPublishedBlogs,
+            blogsLoading,
+            fetchPublishedBlogs,
+            blogStats, fetchBlogStats,
+
+
         }}>
             {children}
         </JobContext.Provider>

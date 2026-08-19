@@ -45,13 +45,59 @@
   color: #131a24;
 }
 
+.sort-select-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sort-label {
+  font-weight: 400;
+  color: #2d3748;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
 .sort-select {
-  border: none;
-  background: transparent;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-weight: 500;
   color: #2d3748;
   cursor: pointer;
   outline: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 150px;
+  transition: all 0.2s ease;
+}
+
+.sort-select:hover {
+  border-color: #4a90e2;
+}
+
+.sort-select:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.sort-select option {
+  padding: 8px;
+  font-weight: normal;
+}
+
+.sort-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 12px 0;
 }
 
 /* 3. The Table Container */
@@ -457,6 +503,7 @@
   font-size: 14px;
   line-height: 1.6;
   color: #475569;
+  word-wrap: break-word;
 }
 
 .job-preview-list {
@@ -523,13 +570,15 @@
 
 .status-pill.highlighted {
 
-    background: #fef3c7;   /* amber-100 */
+  background: #fef3c7;
+  /* amber-100 */
 
-   color: #92400e;         /* amber-800 */
+  color: #92400e;
+  /* amber-800 */
 
-   border: 1px solid #fcd34d;
+  border: 1px solid #fcd34d;
 
-    font-weight: 500;
+  font-weight: 500;
 
 }
 
@@ -544,19 +593,23 @@
   background-color: #fffbeb;
   border-left: 4px solid #f59e0b;
 }
+
 /* Container Box for Logo or Fallback Letter */
 .job-preview-logo-box {
   width: 60px;
   height: 60px;
-  min-width: 60px; /* Prevents compression inside flex containers */
+  min-width: 60px;
+  /* Prevents compression inside flex containers */
   min-height: 60px;
-  background-color: #f0f4f8; /* Soft background tint for fallback letter text */
+  background-color: #f0f4f8;
+  /* Soft background tint for fallback letter text */
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Clips breaking image borders */
+  overflow: hidden;
+  /* Clips breaking image borders */
   position: relative;
 }
 
@@ -564,7 +617,8 @@
 .job-logo-fallback-text {
   font-size: 24px;
   font-weight: 700;
-  color: #1e88e5; /* Primary brand blue coloring accent */
+  color: #1e88e5;
+  /* Primary brand blue coloring accent */
   text-transform: uppercase;
   user-select: none;
 }
@@ -573,8 +627,10 @@
 .job-preview-logo-img {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* Preserves brand icon structural aspect ratio */
-  background-color: #ffffff; /* Ensures contrast backgrounds behind custom logos */
+  object-fit: contain;
+  /* Preserves brand icon structural aspect ratio */
+  background-color: #ffffff;
+  /* Ensures contrast backgrounds behind custom logos */
   position: absolute;
   top: 0;
   left: 0;
@@ -591,5 +647,437 @@
   .highlighted-row {
     background-color: rgba(245, 158, 11, 0.08);
     border-left: 3px solid #f59e0b;
+  }
+}
+
+/* ============================================
+   FIXES FOR JOB TITLE OVERFLOW IN TABLE
+   ============================================ */
+
+/* Fix role column - allow text wrapping */
+.role-col .text-role {
+  display: inline-block;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  line-height: 1.4;
+}
+
+/* Fix the grid layout to handle long text */
+.table-header,
+.job-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 1fr 0.8fr;
+  align-items: center;
+  padding: 16px 24px;
+  gap: 15px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* Ensure all cells can wrap */
+.cell {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Role column specific */
+.role-col {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Company column */
+.company-col {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Status column */
+.status-col {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Date column */
+.date-col {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Actions column */
+.actions-col {
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Fix status pill to not overflow */
+.status-pill {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+  text-align: center;
+  min-width: 85px;
+  max-width: 100%;
+  word-break: break-word;
+  white-space: nowrap;
+}
+
+/* Fix highlighted badge in role */
+.role-col .highlighted-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-left: 6px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Flag indicator */
+.flag-indicator {
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   JOB PREVIEW MODAL - FIXES
+   ============================================ */
+
+/* Fix modal content width and overflow */
+.job-preview-content {
+  padding: 30px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fix header main section */
+.job-preview-header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.job-preview-title-section {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 80px);
+}
+
+/* Fix job role title */
+.job-preview-role {
+  font-size: 22px;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.3;
+}
+
+/* Fix company row */
+.job-preview-company-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+  word-break: break-word;
+}
+
+.job-preview-company-name {
+  color: #2e60a3;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* Fix meta grid */
+.job-preview-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px 20px;
+  margin: 15px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-word;
+}
+
+.meta-item .card-icons {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Fix tags */
+.job-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.tag-outline {
+  border: 1px solid #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #475569;
+  white-space: nowrap;
+}
+
+/* Fix logo box */
+.job-preview-logo-box {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  background-color: #f0f4f8;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Fix lists */
+.job-preview-list {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.job-preview-list li {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 8px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+}
+
+/* Fix skills cloud */
+.job-preview-skills-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skill-chip {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #64748b;
+  transition: all 0.2s;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* Fix header footer */
+.job-preview-header-footer {
+  margin-top: 25px;
+  padding-top: 15px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 20px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ============================================
+   RESPONSIVE FIXES
+   ============================================ */
+
+@media (max-width: 1024px) {
+
+  .table-header,
+  .job-row {
+    grid-template-columns: 1.8fr 1fr 1.2fr 0.8fr 0.6fr;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  .table-header,
+  .job-row {
+    grid-template-columns: 1.5fr 0.8fr 1fr 0.6fr 0.5fr;
+    padding: 12px 12px;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .text-role {
+    font-size: 12px;
+  }
+
+  .text-company {
+    font-size: 12px;
+  }
+
+  .text-date {
+    font-size: 11px;
+  }
+
+  .status-pill {
+    font-size: 9px;
+    padding: 4px 8px;
+    min-width: 60px;
+  }
+
+  .job-preview-role {
+    font-size: 18px;
+  }
+
+  .job-preview-header-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .job-preview-title-section {
+    max-width: 100%;
+  }
+
+  .job-preview-logo-box {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+  }
+
+  .job-preview-meta-grid {
+    font-size: 13px;
+    gap: 10px 15px;
+  }
+
+  .job-preview-content {
+    padding: 20px;
+  }
+
+  .job-preview-header-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .table-header,
+  .job-row {
+    grid-template-columns: 1.2fr 0.6fr 0.8fr 0.5fr 0.4fr;
+    padding: 10px 8px;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .text-role {
+    font-size: 11px;
+  }
+
+  .text-company {
+    font-size: 11px;
+  }
+
+  .text-date {
+    font-size: 10px;
+  }
+
+  .status-pill {
+    font-size: 8px;
+    padding: 3px 6px;
+    min-width: 45px;
+  }
+
+  .role-col .highlighted-badge {
+    font-size: 8px;
+    padding: 1px 4px;
+    margin-left: 3px;
+  }
+
+  .flag-indicator {
+    font-size: 10px;
+    margin-left: 2px;
+  }
+
+  .job-preview-role {
+    font-size: 16px;
+  }
+
+  .job-preview-company-name {
+    font-size: 13px;
+  }
+
+  .job-preview-meta-grid {
+    font-size: 12px;
+    gap: 8px 12px;
+  }
+
+  .job-preview-logo-box {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .job-preview-content {
+    padding: 15px;
+  }
+
+  .job-preview-header-card {
+    padding: 15px;
+  }
+
+  .job-preview-list {
+    padding-left: 16px;
+  }
+
+  .job-preview-list li {
+    font-size: 13px;
+  }
+
+  .skill-chip {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+
+  .job-preview-header-footer {
+    font-size: 11px;
+    gap: 12px;
+    flex-direction: column;
   }
 }

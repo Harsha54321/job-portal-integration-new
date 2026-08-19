@@ -3,6 +3,9 @@ import axios from "axios";
 const baseURL = "http://127.0.0.1:8000/api/";
 // const baseURL = "http://54.183.89.14/api/";
 
+// const baseURL= "https://jobportal.stacklycloud.com/api/"
+
+
 console.log("API Base URL:", baseURL);
 
 const api = axios.create({
@@ -20,7 +23,31 @@ const publicEndpoints = [
   "/token/refresh/",
   "/token/",
   "/companies/",
+  "/admin-login/",
+  "/admin/login/send-otp/",
+  "/admin-2fa/login/verify-otp/",
+  "/auth/forgot-password/",
+  "/auth/admin/forgot-password/",
 ];
+
+const redirectToHome = () => {
+  sessionStorage.removeItem("access");
+  sessionStorage.removeItem("refresh");
+  sessionStorage.removeItem("user_type");
+  sessionStorage.removeItem("user_data");
+  sessionStorage.removeItem("user_id");
+  sessionStorage.removeItem("userRole");
+  sessionStorage.removeItem("userData");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("access_token");
+  sessionStorage.removeItem("admin_id");
+  sessionStorage.removeItem("adminActiveTab");
+  sessionStorage.removeItem("adminSubTab");
+  sessionStorage.removeItem("umIsDetailView");
+  sessionStorage.removeItem("umSelectedUser");
+
+  window.location.href = "/";
+};
 
 // REQUEST interceptor
 api.interceptors.request.use(
@@ -32,7 +59,6 @@ api.interceptors.request.use(
       requestUrl.includes(endpoint)
     );
 
-    // Set content type only when caller didn't set one explicitly
     if (!config.headers["Content-Type"]) {
       if (config.data instanceof FormData) {
         config.headers["Content-Type"] = "multipart/form-data";
@@ -52,8 +78,14 @@ api.interceptors.request.use(
 
     console.log(`📤 ${config.method?.toUpperCase()} ${requestUrl}`);
 
-    if (config.data && !(config.data instanceof FormData)) {
+    const isSensitiveEndpoint = ["login", "register", "signup", "admin-login"].some((endpoint) =>
+      requestUrl.toLowerCase().includes(endpoint)
+    );
+
+    if (config.data && !(config.data instanceof FormData) && !isSensitiveEndpoint) {
       console.log("Request data:", config.data);
+    } else if (config.data && isSensitiveEndpoint) {
+      console.log("Request data: [PROTECTED - SENSITIVE DATA HIDDEN]");
     }
 
     return config;
@@ -81,27 +113,26 @@ api.interceptors.response.use(
     );
     console.error("Error details:", error.response?.data);
 
-    // If no request config exists, just reject
     if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    // Handle 401 once by trying refresh
+    const requestUrl = originalRequest.url || "";
+    const isPublicEndpoint = publicEndpoints.some((endpoint) =>
+      requestUrl.includes(endpoint)
+    );
+
+    if (isPublicEndpoint) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = sessionStorage.getItem("refresh");
-      const requestUrl = originalRequest.url || "";
-
-      // Do not force reload here
-      if (!refreshToken || requestUrl.includes("/token/refresh/")) {
-        console.log("No refresh token or refresh request failed");
-        sessionStorage.removeItem("access");
-        sessionStorage.removeItem("refresh");
-        sessionStorage.removeItem("user_type");
-        sessionStorage.removeItem("user_data");
-        sessionStorage.removeItem("user_id");
-        sessionStorage.removeItem("userRole");
+      let refreshToken = sessionStorage.getItem("refresh");
+      if (!refreshToken) {
+        console.log("No refresh token available - Redirecting to home page");
+        redirectToHome();
         return Promise.reject(error);
       }
 
@@ -113,26 +144,35 @@ api.interceptors.response.use(
         });
 
         const newAccessToken = response.data.access;
+        const newRefreshToken = response.data.refresh;
 
         sessionStorage.setItem("access", newAccessToken);
-        console.log("Token refreshed successfully");
+
+        // ✅ CRITICAL FIX: Update refresh token if backend returns new one
+        if (newRefreshToken) {
+          sessionStorage.setItem("refresh", newRefreshToken);
+          console.log("✅ Refresh token also updated (ROTATE_REFRESH_TOKENS enabled)");
+        }
+
+        console.log("✅ Token refreshed successfully");
 
         originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         return api(originalRequest);
       } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
+        console.error("❌ Token refresh failed:", refreshError);
 
-        sessionStorage.removeItem("access");
-        sessionStorage.removeItem("refresh");
-        sessionStorage.removeItem("user_type");
-        sessionStorage.removeItem("user_data");
-        sessionStorage.removeItem("user_id");
-        sessionStorage.removeItem("userRole");
-
+        // ✅ Clear tokens and redirect
+        redirectToHome();
         return Promise.reject(refreshError);
       }
+    }
+
+    if (error.response?.status === 401) {
+      console.error("Authentication failed - Redirecting to home page");
+      redirectToHome();
+      return Promise.reject(error);
     }
 
     if (error.response?.status === 403) {
@@ -167,6 +207,16 @@ export const logout = () => {
   sessionStorage.removeItem("user_data");
   sessionStorage.removeItem("user_id");
   sessionStorage.removeItem("userRole");
+  sessionStorage.removeItem("userData");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("access_token");
+  sessionStorage.removeItem("admin_id");
+  sessionStorage.removeItem("adminActiveTab");
+  sessionStorage.removeItem("adminSubTab");
+  sessionStorage.removeItem("umIsDetailView");
+  sessionStorage.removeItem("umSelectedUser");
+
+  window.location.href = "/";
 };
 
 export default api;

@@ -1,24 +1,23 @@
-
 .messages-container {
     display: flex;
     height: 100vh;
     background: #f5f6f8;
     font-family: "Segoe UI", sans-serif;
-    overflow: hidden; 
+    overflow: hidden;
 }
 
 
 .EChat-Mainsec {
     flex: 1;
     display: flex;
-    height: 100%; 
-    
+    height: 100%;
+
 }
 
 
 .E-chat-name {
     width: 320px;
-    background-color: #ffffff; 
+    background-color: #ffffff;
     border-right: 1px solid #e1e1e1;
     display: flex;
     flex-direction: column;
@@ -26,7 +25,7 @@
 
 .web-sidebar {
     flex: 1;
-    overflow-y: auto; 
+    overflow-y: auto;
     padding: 10px;
 }
 
@@ -94,7 +93,7 @@
     max-width: 65%;
     font-size: 15px;
     border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .web-me {
@@ -169,6 +168,30 @@
     height: 8px;
     background: #2e7d32;
     border-radius: 50%;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.status-dot.online {
+    background-color: #4caf50;
+}
+
+.status-dot.offline {
+    background-color: #f44336;
+}
+
+.status-text {
+    font-size: 12px;
+    font-weight: normal;
+    color: #666;
+    vertical-align: middle;
 }
 
 .E-End-Convo-Button {

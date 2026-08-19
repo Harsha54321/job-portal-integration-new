@@ -171,7 +171,7 @@
     padding: 0.75rem;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
-    
+
     transition: border-color 0.2s;
     background-color: #fff;
 
@@ -240,9 +240,14 @@
     font-size: 16px;
 }
 
+.reset-link:hover {
+    opacity: 0.6;
+}
+
 .profile-layout {
     display: flex;
     gap: 2rem;
+    align-items: flex-start;
 }
 
 .photo-uploader {
@@ -253,23 +258,23 @@
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
     align-items: center;
     padding: 10px;
+    box-sizing: border-box;
 }
 
 .photo-placeholder {
     width: 95%;
-    height: 240px;
+    height: 180px;
     background-color: #F2F2F2;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin-bottom: 1rem;
-    cursor: pointer;
     margin-top: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
 }
 
 .photo-placeholder-icon {
@@ -280,12 +285,15 @@
     font-size: 0.9rem;
     color: #666;
     margin-top: 10px;
+    margin-bottom: 0;
 }
 
 .photo-actions {
     display: flex;
     gap: 1.5rem;
-    margin-top: 2rem;
+    margin-top: 5px;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
 
 .photo-btn {
@@ -618,4 +626,274 @@ select,
 select:hover,
 select option {
     cursor: pointer;
+}
+
+.submenu-item::before {
+    content: "•";
+    color: #007bff;
+    font-size: 1.4rem;
+    margin-right: 0.75rem;
+    line-height: 0;
+}
+
+/* Education Degree Dropdown Styles */
+.education-degree-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.education-degree-dropdown .degree-dropdown-trigger {
+    height: 44px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.education-degree-dropdown .degree-dropdown-trigger:hover {
+    border-color: #007bff;
+}
+
+.education-degree-dropdown .degree-dropdown-trigger:focus-within {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
+}
+
+.education-degree-dropdown .degree-dropdown-trigger.input-error {
+    border-color: #FF6F61;
+    background-color: #fff8f8;
+}
+
+.education-degree-dropdown .degree-dropdown-trigger.input-error:focus-within {
+    box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.2);
+}
+
+.form-group .jobpost-dropdown-trigger {
+    color: #032240;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.form-group .jobpost-dropdown-trigger:hover {
+    border-color: #007bff;
+}
+
+.form-group .jobpost-dropdown:focus-within .jobpost-dropdown-trigger {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
+}
+
+.form-group .jobpost-dropdown-trigger.input-error {
+    border-color: #FF6F61 !important;
+    background-color: #fff8f8;
+}
+
+.photo-uploader-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 350px;
+    flex-shrink: 0;
+}
+
+.intro-video-btn {
+    width: 100%;
+    height: 90px;
+    /* was 110px */
+    padding: 12px 16px;
+    /* was 15px 20px */
+    border: 1px solid #007bff;
+    border-radius: 8px;
+    background: #fff;
+    color: #007bff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    box-sizing: border-box;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+/* --- Red styling for when video is uploaded --- */
+.intro-video-btn.uploaded {
+    border-color: #FF6F61;
+    color: #FF6F61;
+}
+
+.intro-video-btn.uploaded:hover {
+    background-color: #fff8f8;
+    border-color: #e65c50;
+}
+
+/* --- Welcome Video Modal Specifics --- */
+.video-modal-content {
+    max-width: 800px !important;
+    /* Increased the total width of the modal */
+    width: 90% !important;
+    /* Keeps it responsive on smaller screens */
+}
+
+.welcome-modal-body {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 25px;
+    padding-top: 15px;
+}
+
+/* Left Side - Image */
+.welcome-image-container {
+    flex: 0 0 280px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    padding-bottom: 10px;
+}
+
+.welcome-image {
+    width: 100%;
+    height: auto;
+}
+
+/* Slide Up Animation */
+.slide-up-animation {
+    animation: slideUpImage 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    transform: translateY(120px);
+    opacity: 0;
+}
+
+@keyframes slideUpImage {
+    0% {
+        transform: translateY(120px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Right Side - Text and Upload */
+.welcome-text-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+}
+
+/* Chat Bubble Styles */
+.welcome-message-box {
+    background-color: #f4f9ff;
+    border: 1px solid #d1e5ff;
+    padding: 16px 20px;
+    border-radius: 16px 16px 16px 0;
+    /* Flat corner on bottom-left pointing to the character */
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.05);
+}
+
+.welcome-message-box::before {
+    content: '';
+    position: absolute;
+    left: -11px;
+    bottom: -1px;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-right-color: #d1e5ff;
+    border-bottom-color: #d1e5ff;
+    z-index: 0;
+}
+
+.welcome-message-box::after {
+    content: '';
+    position: absolute;
+    left: -9px;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border: 9px solid transparent;
+    border-right-color: #f4f9ff;
+    border-bottom-color: #f4f9ff;
+    z-index: 1;
+}
+
+.welcome-text {
+    color: #032240;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.6;
+    margin: 0;
+    min-height: 44px;
+    /* Prevents the layout from jumping while typing */
+}
+
+.video-upload-wrapper {
+    width: 100%;
+}
+
+.video-upload-label {
+    min-height: 80px;
+    padding: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 0 !important;
+}
+
+/* --- New Video Choice & Recording Styles --- */
+
+.video-choice-container {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    width: 100%;
+}
+
+.video-choice-btn {
+    flex: 1;
+    margin: 0;
+    padding: 2rem 1rem;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.video-choice-text {
+    flex-direction: column;
+    font-size: 16px;
+}
+
+.video-choice-text i {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.video-choice-btn small {
+    color: #666;
+    display: block;
+    margin-top: 5px;
+}
+
+.live-video-preview {
+    width: 100%;
+    height: 180px;
+    background-color: #000;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 2px solid #dbe0e6;
 }

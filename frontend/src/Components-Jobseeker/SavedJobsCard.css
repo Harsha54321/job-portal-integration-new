@@ -9,7 +9,13 @@
   height: min-content;
   cursor: pointer;
 }
-
+.Opportunities-worktype-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
 .myjobs-card-header {
   display: flex;
   justify-content: space-between;
@@ -62,26 +68,135 @@
 }
 
 .Opportunities-job-type {
-    font-weight: 600;
-    font-size: 14px;
-}
- 
- 
-.Opportunities-job-type.full-time {
-    color: #1E88E5;
-}
- 
- 
-.Opportunities-job-type.internship {
-    color: #f7931a;
-}
- 
- 
-.Opportunities-job-type.part-time {
-    color: #2e7d32;
-}
- 
-.Opportunities-job-type.contract {
-    color: #7b1fa2;
+  font-weight: 600;
+  font-size: 14px;
 }
 
+
+.Opportunities-job-type.full-time {
+  color: #1E88E5;
+}
+
+
+.Opportunities-job-type.internship {
+  color: #f7931a;
+}
+
+
+.Opportunities-job-type.part-time {
+  color: #2e7d32;
+}
+
+.Opportunities-job-type.contract {
+  color: #7b1fa2;
+}
+
+
+
+/* ============================================
+   SAVED JOB CARD - POSITION RELATIVE FOR BADGE
+   ============================================ */
+.myjobs-job-card {
+  position: relative;
+  background-color: #ffffff;
+  border: 1px solid #e0e6f1;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: min-content;
+  cursor: pointer;
+}
+
+/* ============================================
+   HIGHLIGHTED JOB - PREMIUM GOLD STYLING
+   ============================================ */
+.myjobs-job-card.highlighted-job {
+  border: 2px solid #FFD700;
+  background: linear-gradient(145deg, #FFFDF5, #FFF8E1);
+  position: relative;
+  overflow: hidden;
+}
+
+.myjobs-job-card.highlighted-job .myjobs-job-title {
+  color: #B8860B;
+}
+
+.myjobs-job-card.highlighted-job .myjobs-btn {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  color: #5D4037;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+}
+
+.myjobs-job-card.highlighted-job .myjobs-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+}
+
+/* ============================================
+   RECENT JOB (within 2 days) - LIGHT BLUE
+   ============================================ */
+.myjobs-job-card.recent-job {
+  border: 1.5px solid #90CAF9;
+  background: linear-gradient(145deg, #F5FAFF, #E3F2FD);
+  box-shadow: 0 2px 12px rgba(30, 136, 229, 0.12);
+}
+
+.myjobs-job-card.recent-job .myjobs-job-title {
+  color: #0D47A1;
+}
+
+.myjobs-job-card.recent-job .myjobs-btn {
+  background: #42A5F5;
+  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
+}
+
+.myjobs-job-card.recent-job .myjobs-btn:hover {
+  background: #1E88E5;
+  transform: scale(1.05);
+}
+
+/* ============================================
+   BADGE STYLES
+   ============================================ */
+.myjobs-job-card .job-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  z-index: 2;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  color: #5D4037;
+  box-shadow: 0 2px 12px rgba(255, 215, 0, 0.4);
+}
+
+.recent-badge {
+  background: linear-gradient(135deg, #64B5F6, #1E88E5);
+  color: white;
+  box-shadow: 0 2px 10px rgba(30, 136, 229, 0.3);
+}

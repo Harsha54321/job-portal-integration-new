@@ -3,9 +3,24 @@ import './JobMonitoring.css';
 import place from '../assets/opportunity_location.png';
 import time from '../assets/opportunity_time.png';
 import starIcon from '../assets/Star_icon.png';
+import { LocationDisplay } from "../Components-Jobseeker/LocationDisplay";
 
 export const JobPreviewModal = ({ job, onClose }) => {
   if (!job) return null;
+
+const formatSalary = (salary) => {
+  if (!salary) return 'Not Disclosed';
+
+  // Extract only numbers and decimal points (e.g., "₹ 15" -> "15")
+  const numericVal = parseFloat(String(salary).replace(/[^0-9.]/g, ''));
+
+  if (isNaN(numericVal)) return salary;
+
+  // Format based on value
+  return numericVal > 100
+    ? `₹ ${numericVal} / month`
+    : `₹ ${numericVal} LPA`;
+};
 
   // Helper function to format date
   const getTimeAgo = (dateString) => {
@@ -26,6 +41,52 @@ export const JobPreviewModal = ({ job, onClose }) => {
     return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
+  // Safely get location
+  const getLocation = () => {
+    if (typeof job.location === 'string') {
+      return job.location;
+    }
+    if (Array.isArray(job.location)) {
+      return job.location.join(', ');
+    }
+    return job.location || 'N/A';
+  };
+
+  // Safely get skills
+  const getSkills = () => {
+    if (Array.isArray(job.skills) && job.skills.length > 0) {
+      return job.skills;
+    }
+    if (typeof job.skills === 'string') {
+      return job.skills.split(',').map(s => s.trim());
+    }
+    return ['Figma', 'Wireframing', 'UI Design'];
+  };
+
+  // Safely get highlights
+  const getHighlights = () => {
+    if (Array.isArray(job.job_highlights) && job.job_highlights.length > 0) {
+      return job.job_highlights;
+    }
+    if (Array.isArray(job.highlights) && job.highlights.length > 0) {
+      return job.highlights;
+    }
+    return null;
+  };
+
+  // Safely get responsibilities
+  const getResponsibilities = () => {
+    if (Array.isArray(job.responsibilities) && job.responsibilities.length > 0) {
+      return job.responsibilities;
+    }
+    return null;
+  };
+
+  const highlights = getHighlights();
+  const responsibilities = getResponsibilities();
+  const skills = getSkills();
+  const location = getLocation();
+
   return (
     <div className="job-preview-overlay" onClick={onClose}>
       <div className="job-preview-modal" onClick={(e) => e.stopPropagation()}>
@@ -41,23 +102,33 @@ export const JobPreviewModal = ({ job, onClose }) => {
           <div className="job-preview-header-card">
             <div className="job-preview-header-main">
               <div className="job-preview-title-section">
-                <h2 className="job-preview-role">{job.role}</h2>
+                <h2 className="job-preview-role">{job.role || job.job_title || 'N/A'}</h2>
                 <div className="job-preview-company-row">
-                  <span className="job-preview-company-name">{job.company}</span>
+                  <span className="job-preview-company-name">{job.company || 'N/A'}</span>
                   <span className="job-preview-rating">4.3 ★</span>
                   <span className="job-preview-reviews">55k+ reviews</span>
                 </div>
 
+
                 <div className="job-preview-meta-grid">
-                  <div className="meta-item"><img src={time} className='card-icons' alt="time" /> {job.experience || ''}</div>
-                  <div className="meta-item"> {job.salary}LPA</div>
-                  <div className="meta-item"><img src={place} className='card-icons' alt="loc" /> {job.location || ''}</div>
+                  <div className="meta-item">
+                    <img src={time} className='card-icons' alt="time" />
+                    {job.experience || job.work_duration || 'N/A'}
+                  </div>
+                  <div className="meta-item">{formatSalary(job.salary)}</div>
+                  <div className="meta-item">
+                    <img src={place} className='card-icons' alt="loc" />
+                    <LocationDisplay locations={location} />
+                  </div>
                 </div>
 
                 <div className="job-preview-tags">
-                  <span className="tag-outline">{job.type || ''}</span>
+                  {job.type && <span className="tag-outline">{job.type}</span>}
                   {job.shift && <span className="tag-outline">{job.shift} Shift</span>}
-                  {job.work_duration && <span className="tag-outline">{job.work_duration}</span>}
+                  {job.work_duration && job.work_duration !== job.experience && (
+                    <span className="tag-outline">{job.work_duration}</span>
+                  )}
+                  {job.job_category && <span className="tag-outline">{job.job_category}</span>}
                 </div>
               </div>
               <div className="job-preview-logo-box">
@@ -67,7 +138,6 @@ export const JobPreviewModal = ({ job, onClose }) => {
                     className="job-preview-logo-img"
                     alt={`${job.company || 'Company'} logo`}
                     onError={(e) => {
-                      // Fallback placeholder fallback behavior if the image link breaks
                       e.target.style.display = 'none';
                       e.target.parentNode.classList.add('use-fallback-text');
                     }}
@@ -91,14 +161,14 @@ export const JobPreviewModal = ({ job, onClose }) => {
             <section className="job-preview-section">
               <h3 className="section-title">Job highlights</h3>
               <ul className="job-preview-list">
-                {job.job_highlights && job.job_highlights.length > 0 ? (
-                  job.job_highlights.map((highlight, index) => (
+                {highlights ? (
+                  highlights.map((highlight, index) => (
                     <li key={index}>{highlight}</li>
                   ))
                 ) : (
                   <>
                     <li>Candidates With {job.experience || 'Relevant'} Experience Preferred.</li>
-                    <li>Proven Work Experience As A {job.role} Or In A Similar Role.</li>
+                    <li>Proven Work Experience As A {job.role || 'Professional'} Or In A Similar Role.</li>
                     <li>Strong Communication Skills</li>
                   </>
                 )}
@@ -108,15 +178,15 @@ export const JobPreviewModal = ({ job, onClose }) => {
             <section className="job-preview-section">
               <h3 className="section-title">Job description</h3>
               <p className="job-preview-text">
-                {job.job_description || `We Are Looking For A Talented ${job.role} To Join Our Growing Team. The Ideal Candidate Should Have A Strong Portfolio Showcasing User-Centric Design Solutions.`}
+                {job.job_description || `We Are Looking For A Talented ${job.role || 'Professional'} To Join Our Growing Team. The Ideal Candidate Should Have A Strong Portfolio Showcasing User-Centric Design Solutions.`}
               </p>
             </section>
 
             <section className="job-preview-section">
               <h3 className="section-title">Responsibilities</h3>
               <ul className="job-preview-list">
-                {job.responsibilities && job.responsibilities.length > 0 ? (
-                  job.responsibilities.map((item, index) => (
+                {responsibilities ? (
+                  responsibilities.map((item, index) => (
                     <li key={index}>{item}</li>
                   ))
                 ) : (
@@ -125,22 +195,10 @@ export const JobPreviewModal = ({ job, onClose }) => {
               </ul>
             </section>
 
-            {/* Optional: Education Section */}
-            {/* {job.education && job.education.length > 0 && (
-              <section className="job-preview-section">
-                <h3 className="section-title">Education Required</h3>
-                <ul className="job-preview-list">
-                  {job.education.map((edu, index) => (
-                    <li key={index}>{edu}</li>
-                  ))}
-                </ul>
-              </section>
-            )} */}
-
             <section className="job-preview-section">
               <h3 className="section-title">Key Skills</h3>
               <div className="job-preview-skills-cloud">
-                {(job.skills && job.skills.length > 0 ? job.skills : ['Figma', 'Wireframing', 'UI Design']).map((skill, index) => (
+                {skills.map((skill, index) => (
                   <span key={index} className="skill-chip">{skill}</span>
                 ))}
               </div>

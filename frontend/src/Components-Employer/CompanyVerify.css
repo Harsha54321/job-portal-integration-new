@@ -1,4 +1,3 @@
-
 .company-verify-container {
   /* max-width: 800px; */
   margin: 102px 200px 40px;
@@ -54,6 +53,7 @@
 
 .company-verify-input-with-btn input {
   width: 100%;
+  box-sizing: border-box; /* Added to prevent jumping on focus */
   padding: 10px 100px 10px 12px; 
   border-radius: 6px;
   border: 1px solid #dcdcdc;
@@ -64,7 +64,7 @@
   position: absolute;
   right: 6px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) !important; /* Force center position */
   background: #1e88e5;
   color: white;
   border: none;
@@ -72,10 +72,15 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.2s ease; /* Prevent transform transitions from jumping */
 }
 
-.company-small-verify-btn:hover {
+/* Prevents global hover/focus rules from dropping the button */
+.company-small-verify-btn:hover,
+.company-small-verify-btn:active,
+.company-small-verify-btn:focus {
   background: #1565c0;
+  transform: translateY(-50%) !important; 
 }
 
 
@@ -149,4 +154,65 @@
 
 .company-main-verify-btn:hover {
   background: #1565c0;
+}
+/* Upload button inside input */
+.company-small-upload-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%) !important;
+  background: #eaf2f8;
+  border: 1px solid #d0d9e8;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.company-small-upload-btn:hover {
+  background: #d0d9e8;
+}
+
+/* File upload section */
+.company-verify-file-upload-box {
+  border: 1px dashed #ccc;
+  padding: 15px;
+  border-radius: 8px;
+  background: #fafafa;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.company-verify-file-upload-box:hover {
+  background: #f0f4fa;
+}
+
+.company-verify-file-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+.company-verify-file-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.file-remove-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 8px;
+}
+.file-remove-btn:hover {
+  color: #b71c1c;
 }

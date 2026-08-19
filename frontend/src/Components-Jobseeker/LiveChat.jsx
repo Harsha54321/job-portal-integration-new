@@ -6,7 +6,7 @@ import GoldStar from "../assets/GoldStar.png"
 import SendIcon from "../assets/SendIcon.png"
 import api from "../api/axios";
 import { FHeader } from "../Components-Jobseeker/FHeader";
- 
+
 const TypingDots = () => {
   return (
     <div className="Livechat-chat-msg bot typing">
@@ -16,103 +16,102 @@ const TypingDots = () => {
     </div>
   );
 };
- 
+
 export const LiveChat = () => {
   const chatBodyRef = useRef(null);
   const inputRef = useRef(null);
   const [step, setStep] = useState("INIT");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
- 
+
   const [isTyping, setIsTyping] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
- 
+
   useEffect(() => {
-  if (step === "CHAT" && !isTyping) {
-    inputRef.current?.focus();
-  }
-}, [step, isTyping]);
- 
+    if (step === "CHAT" && !isTyping) {
+      inputRef.current?.focus();
+    }
+  }, [step, isTyping]);
+
   useEffect(() => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop =
         chatBodyRef.current.scrollHeight;
     }
   }, [messages, isTyping, step]);
- 
- 
-    const startConversation = () => {
-      setStep("CHAT");
-      setMessages([
-        {
-          from: "bot",
-          text: "Hi, How can I help you..."
-        }
-      ]);
- 
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 1);
-    };
- 
+
+  const startConversation = () => {
+    setStep("CHAT");
+    setMessages([
+      {
+        from: "bot",
+        text: "Hi there! I'm your Job Portal assistant. Ask me anything about our platform!"
+      }
+    ]);
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 1);
+  };
+
   const handleSend = () => {
     if (!input.trim() || isTyping) return;
- 
+
     const userMsg = {
       from: "user",
       text: input
     };
- 
+
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
- 
-  //   simulateBotReply(input);
-  // };
- 
-  // const simulateBotReply = (userText) => {
-  //   setIsTyping(true);
- 
-  //   setTimeout(() => {
-  //     let reply =
-  //       "Please tell me more so I can assist you better.";
- 
-  //     if (userText.toLowerCase().includes("login")) {
-  //       reply =
-  //         "You can login as a jobseeker by clicking Login → Jobseeker and using your registered email and password.";
-  //     }
- 
-  //     setIsTyping(false);
-  //     setMessages((prev) => [
-  //       ...prev,
-  //       { from: "bot", text: reply }
-  //     ]);
-  //   }, 1500);
+
+    //   simulateBotReply(input);
     // };
- 
+
+    // const simulateBotReply = (userText) => {
+    //   setIsTyping(true);
+
+    //   setTimeout(() => {
+    //     let reply =
+    //       "Please tell me more so I can assist you better.";
+
+    //     if (userText.toLowerCase().includes("login")) {
+    //       reply =
+    //         "You can login as a jobseeker by clicking Login → Jobseeker and using your registered email and password.";
+    //     }
+
+    //     setIsTyping(false);
+    //     setMessages((prev) => [
+    //       ...prev,
+    //       { from: "bot", text: reply }
+    //     ]);
+    //   }, 1500);
+    // };
+
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
-      sendToBackend(input);
+    sendToBackend(input);
   };
- 
+
   const sendToBackend = async (text) => {
     try {
       setIsTyping(true);
- 
+
       const res = await api.post(
         "chat/",
         {
           message: text
         }
       );
- 
+
       setIsTyping(false);
- 
+
       // Backend returns:
       // { user:{}, bot:{} }
- 
+
       setMessages((prev) => [
         ...prev,
         {
@@ -120,10 +119,10 @@ export const LiveChat = () => {
           text: res.data.bot.message
         }
       ]);
- 
+
     } catch (err) {
       setIsTyping(false);
- 
+
       setMessages((prev) => [
         ...prev,
         {
@@ -134,20 +133,20 @@ export const LiveChat = () => {
       console.error(err);
     }
   };
- 
+
   const endConversation = () => {
     setShowFeedback(true);
   };
- 
+
   const handleFeedbackSubmit = () => {
     setShowFeedback(false);
     setStep("ENDED");
   };
- 
+
   return (
     <>
       <FHeader />
- 
+
       <div className="Livechat-chat-wrapper">
         <div className="Livechat-chat-box">
           {step === "INIT" && (
@@ -157,14 +156,14 @@ export const LiveChat = () => {
                 Start conversation <img className="Livechat-send-icon" src={SendIcon} alt="SendTo" />
               </button>
             </div>
- 
+
           )}
- 
+
           {step !== "INIT" && (
             <>
               <div className="Livechat-chat-body" ref={chatBodyRef}>
                 <div className="Livechat-chat-spacer" />
- 
+
                 {messages.map((msg, i) => (
                   <div
                     key={i}
@@ -173,9 +172,9 @@ export const LiveChat = () => {
                     <span>{msg.text}</span>
                   </div>
                 ))}
- 
+
                 {isTyping && <TypingDots />}
- 
+
                 {step === "ENDED" && (
                   <div className="Livechat-chat-complete">
                     <p>Bot has ended your conversation</p>
@@ -183,7 +182,7 @@ export const LiveChat = () => {
                 )}
                 {/* <div ref={chatBodyRef} /> */}
               </div>
- 
+
               {step === "CHAT" && (
                 <div className="Livechat-chat-input">
                   <input
@@ -208,7 +207,7 @@ export const LiveChat = () => {
                   </button>
                 </div>
               )}
- 
+
               {step === "ENDED" && (
                 <div className="Livechat-chat-end-bar">
                   <button onClick={startConversation}>
@@ -219,17 +218,17 @@ export const LiveChat = () => {
               )}
             </>
           )}
- 
- 
- 
- 
+
+
+
+
         </div>
- 
+
         {showFeedback && (
           <div className="Livechat-modal-overlay">
             <div className="Livechat-modal">
               <h3>Share your feedback</h3>
- 
+
               <div className="Livechat-stars">
                 {[1, 2, 3, 4, 5].map((num) => (
                   <span
@@ -244,26 +243,25 @@ export const LiveChat = () => {
                   </span>
                 ))}
               </div>
- 
- 
+
+
               <textarea
                 placeholder="Your feedback..."
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
               />
- 
+
               <button
-              onClick={handleFeedbackSubmit}>
+                onClick={handleFeedbackSubmit}>
                 Submit
               </button>
             </div>
           </div>
         )}
       </div>
- 
+
       <Footer />
     </>
   );
 };
- 
- 
+

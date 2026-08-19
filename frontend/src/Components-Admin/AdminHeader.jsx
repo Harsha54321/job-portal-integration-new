@@ -1,25 +1,237 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './AdminHeader.css'
 import { useNavigate } from 'react-router-dom'
 import ProfileIcon from "../assets/icon_profile.png"
 import Arrow from "../assets/AdminAssets/DownArrow.png"
-import UploadIcon from "../assets/AdminAssets/UserManage.png" 
+import UploadIcon from "../assets/AdminAssets/UserManage.png"
 import AdminLogout from '../assets/AdminAssets/Logout.png'
+import DeleteIcon from "../assets/DeleteIcon.png"
+import api from '../api/axios'
+
+import AdminNotification from './AdminNotification'
+import bell from "../assets/header_bell.png"
+import bell_dot from "../assets/header_bell_dot.png"
+import { resolveAdminNotificationTarget } from '../utils/adminNotificationRouter'
+
+// Converts an ISO timestamp from the backend into a relative "x minutes ago" label
+const formatTimeAgo = (isoString) => {
+    if (!isoString) return "";
+
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffSec = Math.floor((now - date) / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffSec < 60) return "Just now";
+    if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? "" : "s"} ago`;
+    if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? "" : "s"} ago`;
+    if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+
+    return date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+    });
+};
 
 export const AdminHeader = ({ onLogoutClick }) => {
     const [showDropdown, setShowDropdown] = useState(false)
     const [showUploadModal, setShowUploadModal] = useState(false)
+    const [showNotification, setShowNotification] = useState(false)
     const [selectedImage, setSelectedImage] = useState(null)
     const [previewUrl, setPreviewUrl] = useState(() => {
-        // Keeps the uploaded picture visible even on page refreshes
         return sessionStorage.getItem('admin_avatar') || null
     })
     const [fileError, setFileError] = useState('')
-    
+    const [isUploading, setIsUploading] = useState(false)
+
+    // ================= NOTIFICATIONS STATE (lifted so the bell icon can react) =================
+    const [notifications, setNotifications] = useState([])
+    const [notifLoading, setNotifLoading] = useState(false)
+    const [notifError, setNotifError] = useState(null)
+
+    const unreadNotificationsCount = notifications.filter(n => !n.isRead).length
+
     const dropdownRef = useRef(null)
     const fileInputRef = useRef(null)
     const navigate = useNavigate()
-    
+
+    // Get auth token from storage
+    const getAuthToken = () => {
+        return localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
+    }
+
+    // Fetch profile photo from API on component mount
+    useEffect(() => {
+        fetchProfilePhoto()
+    }, [])
+
+    const fetchProfilePhoto = async () => {
+        try {
+            const token = getAuthToken()
+            if (!token) return
+
+            const response = await api.get('/admin/profile/photo/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (response.data.photo_url) {
+                setPreviewUrl(response.data.photo_url)
+                sessionStorage.setItem('admin_avatar', response.data.photo_url)
+            }
+        } catch (error) {
+            console.error('Error fetching profile photo:', error)
+            const cachedAvatar = sessionStorage.getItem('admin_avatar')
+            if (cachedAvatar) {
+                setPreviewUrl(cachedAvatar)
+            }
+        }
+    }
+
+    // ================= FETCH NOTIFICATIONS =================
+    const fetchNotifications = useCallback(async () => {
+        setNotifLoading(true)
+        setNotifError(null)
+
+        try {
+            const res = await api.get("/notifications/")
+
+            const transformed = res.data.map(notification => ({
+                id: notification.id,
+                text: notification.message,
+                time: formatTimeAgo(notification.created_at),
+                isRead: notification.is_read,
+                event_type: notification.event_type,
+                notification_type: notification.notification_type,
+                related_object_id: notification.related_object_id,
+            }))
+
+            setNotifications(transformed)
+        } catch (err) {
+            console.error("Error fetching admin notifications:", err)
+            setNotifError("Couldn't load notifications. Please try again.")
+        } finally {
+            setNotifLoading(false)
+        }
+    }, [])
+
+    // Fetch once on mount so the bell dot is correct even before the panel is opened,
+    // then poll periodically to keep it fresh.
+    useEffect(() => {
+        fetchNotifications()
+
+        const intervalId = setInterval(fetchNotifications, 30000)
+        return () => clearInterval(intervalId)
+    }, [fetchNotifications])
+
+    // Mark as read
+    const handleMarkAsRead = async (id) => {
+        setNotifications(prev =>
+            prev.map(n => (n.id === id ? { ...n, isRead: true } : n))
+        )
+
+        try {
+            await api.patch(`/notifications/${id}/read/`, {})
+        } catch (err) {
+            console.error("Error marking notification as read:", err)
+            setNotifications(prev =>
+                prev.map(n => (n.id === id ? { ...n, isRead: false } : n))
+            )
+        }
+    }
+
+    // Mark as unread
+    const handleMarkAsUnread = async (id) => {
+        setNotifications(prev =>
+            prev.map(n => (n.id === id ? { ...n, isRead: false } : n))
+        )
+
+        try {
+            await api.patch(`/notifications/${id}/unread/`, {})
+        } catch (err) {
+            console.error("Error marking notification as unread:", err)
+            setNotifications(prev =>
+                prev.map(n => (n.id === id ? { ...n, isRead: true } : n))
+            )
+        }
+    }
+
+    // Delete notification
+    const handleDeleteNotification = async (id) => {
+        const previous = notifications
+        setNotifications(prev => prev.filter(n => n.id !== id))
+
+        try {
+            await api.delete(`/notifications/${id}/delete/`)
+        } catch (err) {
+            console.error("Error deleting notification:", err)
+            setNotifications(previous)
+        }
+    }
+
+    // Clear all
+    const handleClearAllNotifications = async () => {
+        const previous = notifications
+        setNotifications([])
+
+        try {
+            await api.delete("/notifications/clear-all/")
+        } catch (err) {
+            console.error("Error clearing all notifications:", err)
+            setNotifications(previous)
+        }
+    }
+
+    // Click on a notification -> figure out which admin page it belongs to
+    // and jump there. Uses the same sessionStorage + reload pattern the
+    // sidebar/logo navigation already relies on (see AdminDashboard's
+    // 'adminActiveTab' / 'adminSubTab' init and handleLogoClick below).
+    const handleNotificationNavigate = (notification) => {
+        const target = resolveAdminNotificationTarget(notification)
+
+        sessionStorage.setItem('adminActiveTab', target.tab)
+
+        if (target.subTab) {
+            sessionStorage.setItem('adminSubTab', target.subTab)
+        } else {
+            sessionStorage.removeItem('adminSubTab')
+        }
+
+        if (target.supportHubTab) {
+            sessionStorage.setItem('adminSupportHubTab', target.supportHubTab)
+        } else {
+            sessionStorage.removeItem('adminSupportHubTab')
+        }
+
+        if (target.membershipTab) {
+            sessionStorage.setItem('adminMembershipTab', target.membershipTab)
+        } else {
+            sessionStorage.removeItem('adminMembershipTab')
+        }
+
+        if (target.highlightType && target.highlightId) {
+            sessionStorage.setItem('adminNotifHighlightType', target.highlightType)
+            sessionStorage.setItem('adminNotifHighlightId', String(target.highlightId))
+        } else {
+            sessionStorage.removeItem('adminNotifHighlightType')
+            sessionStorage.removeItem('adminNotifHighlightId')
+        }
+
+        if (target.searchTerm) {
+            sessionStorage.setItem('adminNotifSearchTerm', target.searchTerm)
+        } else {
+            sessionStorage.removeItem('adminNotifSearchTerm')
+        }
+
+        setShowNotification(false)
+        navigate('/Job-portal/admin/Dashboard')
+        window.location.reload()
+    }
+
     const today = new Date()
     const day = today.toLocaleDateString('en-US', { weekday: 'long' })
     const date = `${today.getDate()}${getDaySuffix(today.getDate())} ${today.toLocaleString('en-US', { month: 'long' })} ${today.getFullYear()}`
@@ -53,12 +265,13 @@ export const AdminHeader = ({ onLogoutClick }) => {
         if (!file) return
 
         // Validate File Type
-        if (!file.type.startsWith('image/')) {
-            setFileError('Invalid file format. Please upload an image file (PNG, JPG, JPEG).')
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
+        if (!allowedTypes.includes(file.type)) {
+            setFileError('Invalid file format. Please upload JPG, JPEG, PNG, or WEBP.')
             return
         }
 
-        // Validate File Size (5MB = 5 * 1024 * 1024 Bytes)
+        // Validate File Size (5MB)
         const maxFileSize = 5 * 1024 * 1024
         if (file.size > maxFileSize) {
             setFileError('File is too large. Maximum allowed size is 5MB.')
@@ -66,8 +279,8 @@ export const AdminHeader = ({ onLogoutClick }) => {
         }
 
         setSelectedImage(file)
-        
-        // Use FileReader to create a persistent base64 string
+
+        // Create preview
         const reader = new FileReader()
         reader.onloadend = () => {
             setPreviewUrl(reader.result)
@@ -81,47 +294,137 @@ export const AdminHeader = ({ onLogoutClick }) => {
         }
     }
 
-    const handleUploadSubmit = (e) => {
+    // Delete photo from server when delete icon is clicked
+    const handleDeletePhoto = async (e) => {
+        e.stopPropagation()
+
+        if (!window.confirm('Are you sure you want to remove your profile photo?')) {
+            return
+        }
+
+        setIsUploading(true)
+
+        try {
+            const token = getAuthToken()
+            if (!token) {
+                throw new Error('No authentication token found')
+            }
+
+            await api.delete('/admin/profile/photo/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            // Reset to default icon
+            setPreviewUrl(null)
+            setSelectedImage(null)
+            sessionStorage.removeItem('admin_avatar')
+            window.dispatchEvent(new Event('avatarChanged'))
+            setShowUploadModal(false)
+            setFileError('')
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""
+            }
+        } catch (error) {
+            console.error('Error deleting photo:', error)
+            if (error.response) {
+                setFileError(error.response.data.error || 'Failed to remove photo. Please try again.')
+            } else {
+                setFileError('An error occurred. Please try again.')
+            }
+        } finally {
+            setIsUploading(false)
+        }
+    }
+
+    // Upload to server
+    const handleUploadSubmit = async (e) => {
         e.preventDefault()
-        if (!previewUrl) {
+
+        if (!selectedImage) {
             setFileError('Please select an image file first.')
             return
         }
-        
-        // Save base64 image data to state storage
-        sessionStorage.setItem('admin_avatar', previewUrl)
-        
-        // Fallback placeholder dispatch event to alert other listening elements if needed
-        window.dispatchEvent(new Event('avatarChanged'))
-        
-        setShowUploadModal(false)
-        setSelectedImage(null)
+
+        setIsUploading(true)
+        setFileError('')
+
+        try {
+            const token = getAuthToken()
+            if (!token) {
+                throw new Error('No authentication token found')
+            }
+
+            const formData = new FormData()
+            formData.append('photo', selectedImage)
+
+            const response = await api.post('/admin/profile/photo/', formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+
+            if (response.data.photo_url) {
+                setPreviewUrl(response.data.photo_url)
+                sessionStorage.setItem('admin_avatar', response.data.photo_url)
+                window.dispatchEvent(new Event('avatarChanged'))
+                setShowUploadModal(false)
+                setSelectedImage(null)
+            }
+        } catch (error) {
+            console.error('Error uploading photo:', error)
+            if (error.response) {
+                setFileError(error.response.data.error || 'Failed to upload photo. Please try again.')
+            } else if (error.request) {
+                setFileError('Network error. Please check your connection.')
+            } else {
+                setFileError('An error occurred. Please try again.')
+            }
+        } finally {
+            setIsUploading(false)
+        }
     }
 
     const closeUploadModal = () => {
         setShowUploadModal(false)
         setSelectedImage(null)
-        // If they cancel, restore the previously saved image or default
-        setPreviewUrl(sessionStorage.getItem('admin_avatar') || null)
         setFileError('')
+        // Restore the saved image or fetch from API
+        const cachedAvatar = sessionStorage.getItem('admin_avatar')
+        if (cachedAvatar) {
+            setPreviewUrl(cachedAvatar)
+        } else {
+            fetchProfilePhoto()
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""
+        }
     }
 
-    // Secure logout routing fallback connection handler
     const handleLogoutAction = () => {
         setShowDropdown(false)
         if (typeof onLogoutClick === 'function') {
             onLogoutClick()
         } else {
-            // Default structural fallback if prop context injection breaks
             sessionStorage.clear()
+            localStorage.removeItem('access_token')
             navigate("/")
         }
+    }
+
+    const handleLogoClick = () => {
+        sessionStorage.setItem('adminActiveTab', 'Dashboard');
+        navigate('/Job-portal/admin/Dashboard');
+        window.location.reload();
     }
 
     return (
         <div className="Admin-header">
             <div className="Admin-header-left">
-                <div className="logo" onClick={() => navigate('/Job-portal/admin/Dashboard')} style={{ cursor: 'pointer' }}>
+                <div className="logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
                     Job Portal
                 </div>
             </div>
@@ -133,12 +436,29 @@ export const AdminHeader = ({ onLogoutClick }) => {
                     </div>
                 </div>
 
+                <div className="Admin-notification-icon-wrapper">
+
+                    <button
+                        type="button"
+                        className="Admin-notification-btn"
+                        onClick={() => setShowNotification(true)}
+                        aria-label={`Open notifications ${unreadNotificationsCount > 0 ? `(${unreadNotificationsCount} unread)` : ''}`}
+                    >
+                        <img
+                            src={unreadNotificationsCount > 0 ? bell_dot : bell}
+                            alt="Notifications"
+                            className="Admin-notification-icon"
+                        />
+                    </button>
+
+                </div>
+
                 <div className="Admin-profile-section" ref={dropdownRef}>
-                    <img 
-                        onClick={() => setShowDropdown(!showDropdown)} 
-                        src={previewUrl || ProfileIcon} 
-                        alt="Profile" 
-                        className="Admin-profile-icon" 
+                    <img
+                        onClick={() => setShowDropdown(!showDropdown)}
+                        src={previewUrl || ProfileIcon}
+                        alt="Profile"
+                        className="Admin-profile-icon"
                     />
 
                     <div className="Admin-dropdown-arrow" onClick={() => setShowDropdown(!showDropdown)}>
@@ -172,40 +492,79 @@ export const AdminHeader = ({ onLogoutClick }) => {
                         <form onSubmit={handleUploadSubmit}>
                             <div className="admin-modal-body">
                                 <div className="admin-upload-dropzone" onClick={triggerFileInput}>
-                                    <input 
-                                        type="file" 
-                                        ref={fileInputRef} 
-                                        onChange={handleFileChange} 
-                                        accept="image/*" 
-                                        style={{ display: 'none' }} 
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                                        style={{ display: 'none' }}
                                     />
                                     {previewUrl && !fileError ? (
-                                        <div className="admin-image-preview-container">
-                                            <img src={previewUrl} alt="Preview" className="admin-uploaded-image-preview" />
+                                        <div className="admin-image-preview-container" onClick={(e) => e.stopPropagation()}>
+                                            <img
+                                                src={previewUrl}
+                                                alt="Preview"
+                                                className="admin-uploaded-image-preview"
+                                                onClick={triggerFileInput}
+                                                title="Click to change image"
+                                            />
+                                            {/* Delete Icon - Calls API directly */}
+                                            <button
+                                                type="button"
+                                                className="admin-delete-image-btn"
+                                                onClick={handleDeletePhoto}
+                                                title="Remove image"
+                                                disabled={isUploading}
+                                            >
+                                                <img src={DeleteIcon} alt="Delete" />
+                                            </button>
                                         </div>
                                     ) : (
                                         <div className="admin-upload-placeholder">
                                             <img src={UploadIcon} alt="Placeholder" className="admin-placeholder-svg" />
                                             <p>Click to browse images</p>
-                                            <span>Supports JPG, JPEG, PNG (Max 5MB)</span>
+                                            <span>Supports JPG, JPEG, PNG, WEBP (Max 5MB)</span>
                                         </div>
                                     )}
                                 </div>
-                                
+
                                 {fileError && <div className="admin-upload-error-msg">{fileError}</div>}
                             </div>
                             <div className="admin-modal-footer">
-                                <button type="button" className="admin-modal-btn cancel-btn" onClick={closeUploadModal}>
+                                <button
+                                    type="button"
+                                    className="admin-modal-btn cancel-btn"
+                                    onClick={closeUploadModal}
+                                    disabled={isUploading}
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="admin-modal-btn save-btn" disabled={!!fileError || (!selectedImage && !previewUrl)}>
-                                    Save Changes
+                                <button
+                                    type="submit"
+                                    className="admin-modal-btn save-btn"
+                                    disabled={!!fileError || !selectedImage || isUploading}
+                                >
+                                    {isUploading ? 'Uploading...' : 'Save Changes'}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            <AdminNotification
+                showNotification={showNotification}
+                setShowNotification={setShowNotification}
+                notifications={notifications}
+                loading={notifLoading}
+                error={notifError}
+                onRetry={fetchNotifications}
+                onMarkAsRead={handleMarkAsRead}
+                onMarkAsUnread={handleMarkAsUnread}
+                onDelete={handleDeleteNotification}
+                onClearAll={handleClearAllNotifications}
+                onNavigate={handleNotificationNavigate}
+            />
         </div>
     )
 }

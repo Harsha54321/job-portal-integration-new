@@ -1,69 +1,47 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Joblisting.css';
+import place from '../assets/opportunity_location.png';
+import { LocationDisplay } from '../Components-Jobseeker/LocationDisplay';
+import { PublicOpportunityOverview } from './PublicOpportunityOverview';
  
 export const JoblistingCard = ({ job }) => {
   const navigate = useNavigate();
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [showPublicPopup, setShowPublicPopup] = useState(false);
  
   const title = job.job_title || job.title;
   const companyName = job.company?.company_name || job.company;
   const type = job.job_type || job.type;
   const tags = job.tags || [];
  
-  const redirectPath = `/Job-portal/jobseeker/OpportunityOverview/${job.id}`;
- 
-  const handleOpenPopup = () => {
+  const handleViewDetails = () => {
     const isLoggedIn =
       !!sessionStorage.getItem("access") &&
       sessionStorage.getItem("userRole") === "jobseeker";
  
     if (isLoggedIn) {
-      navigate(redirectPath);
-      return;
+      navigate(`/Job-portal/jobseeker/OpportunityOverview/${job.id}`);
+    } else {
+      setShowPublicPopup(true);
     }
- 
-    setShowLoginPopup(true);
   };
  
-  const handleClosePopup = () => {
-    setShowLoginPopup(false);
+  const handleClosePublicPopup = () => {
+    setShowPublicPopup(false);
   };
- 
-  const handleLoginClick = () => {
-    setShowLoginPopup(false);
-    navigate("/Job-portal/jobseeker/login", {
-      state: { redirectTo: redirectPath }
-    });
-  };
- 
-  const handleSignupClick = () => {
-    setShowLoginPopup(false);
-    navigate("/Job-portal/jobseeker/signup", {
-      state: { redirectTo: redirectPath }
-    });
-  };
-
-  const formatLocation = (location) => {
-
-        if (!location) return "Location not specified";
-
-        if (Array.isArray(location)) {
-            return location.join(", ");
-        }
-        return location;
-    };
-
-    const locationDisplay = formatLocation(job.location);
  
   return (
     <>
       <div className="joblisting-card">
         <h3 className="joblisting-card-title">{title}</h3>
  
-        <p className="joblisting-card-company">
-          {companyName} • {locationDisplay}
-        </p>
+        <div className="joblisting-card-company">
+          <b>{companyName}</b>
+          <div className='Opportunities-detail-line'>
+            <img src={place} className='card-icons' alt="location" />
+            <LocationDisplay locations={job.location} />
+          </div>
+        </div>
  
         <p className="joblisting-card-type">{type}</p>
  
@@ -77,38 +55,19 @@ export const JoblistingCard = ({ job }) => {
  
         <button
           className="view-joblisting-button"
-          onClick={handleOpenPopup}
+          onClick={handleViewDetails}
         >
           View details
         </button>
       </div>
  
-      {showLoginPopup && (
-        <div className="login-popup-overlay" onClick={handleClosePopup}>
-          <div
-            className="login-popup-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3>Login or sign up to view job details</h3>
- 
-            <div className="login-popup-actions">
-              <button
-                className="login-popup-login-btn"
-                onClick={handleLoginClick}
-              >
-                Login
-              </button>
- 
-              <button
-                className="login-popup-signup-btn"
-                onClick={handleSignupClick}
-              >
-                Sign Up
-              </button>
-            </div>
-          </div>
-        </div>
+      {showPublicPopup && (
+        <PublicOpportunityOverview
+          job={job}
+          onClose={handleClosePublicPopup}
+        />
       )}
     </>
   );
 };
+ 

@@ -1,0 +1,724 @@
+/* JobMonitorOverview.css - Complete Fixed Version */
+
+/* Key Skills Tags */
+.opp-key-skills-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.opp-key-skill-tag {
+    background: #f0f0f0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+    cursor: default;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.opp-key-skill-tag:hover {
+    background: #e8e8e8;
+    border-color: #ccc;
+}
+
+/* ============================================
+   JOB MONITOR OVERVIEW - HIGHLIGHTED STYLING
+   ============================================ */
+.opp-overview-job-card {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 30px;
+}
+
+.opp-overview-job-card.highlighted-job {
+    border: 2px solid #FFD700;
+    background: linear-gradient(145deg, #FFFDF5, #FFF8E1);
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.opp-overview-job-card.highlighted-job .opp-topcard-job-title {
+    color: #B8860B;
+}
+
+.opp-overview-job-card.highlighted-job .Opportunities-job-company {
+    color: #8D6E1A;
+}
+
+.opp-overview-job-card.highlighted-job .Opportunities-detail-line {
+    color: #6D5A1A;
+}
+
+.opp-overview-job-card.highlighted-job .Opportunities-job-tag {
+    border-color: #FFD700;
+    color: #B8860B;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.opp-overview-job-card.highlighted-job .opp-job-highlights {
+    background: rgba(255, 215, 0, 0.08);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.opp-overview-job-card.highlighted-job .opp-job-highlights h3 {
+    color: #B8860B;
+}
+
+.opp-overview-job-card.highlighted-job .opp-job-highlights ul li {
+    color: #6D5A1A;
+}
+
+.opp-overview-job-card.highlighted-job .opp-key-skill-tag {
+    border-color: #FFD700;
+    color: #B8860B;
+    background: rgba(255, 215, 0, 0.08);
+}
+
+.opp-overview-job-card.highlighted-job .opp-key-skill-tag:hover {
+    background: rgba(255, 215, 0, 0.15);
+}
+
+.opp-overview-job-card.highlighted-job h3 {
+    color: #B8860B;
+}
+
+.opp-overview-job-card.highlighted-job p strong {
+    color: #8D6E1A;
+}
+
+/* Badge for highlighted jobs */
+.opp-overview-job-card .job-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    position: absolute;
+    top: -6px;
+    right: 14px;
+    z-index: 2;
+    animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.opp-overview-job-card .premium-badge {
+    background: linear-gradient(135deg, #FFD700, #FFA000);
+    color: #5D4037;
+    box-shadow: 0 2px 12px rgba(255, 215, 0, 0.4);
+    margin-top: 15px;
+}
+
+/* ============================================
+   TEXT WRAP FIXES
+   ============================================ */
+
+/* Fix job title overflow */
+.opp-topcard-job-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #0F2A4A;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    line-height: 1.3;
+    margin: 0 0 4px 0;
+    hyphens: auto;
+}
+
+/* Fix company name overflow */
+.Opportunities-job-company {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 14px;
+    color: #4B5563;
+    margin: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.Opportunities-divider {
+    color: #D1D5DB;
+    margin: 0 4px;
+}
+
+.Opportunities-job-company .star {
+    display: inline-flex;
+    align-items: center;
+}
+
+.Opportunities-job-company .star img {
+    width: 14px;
+    height: 14px;
+}
+
+.opp-reviews {
+    color: #6B7280;
+}
+
+/* Fix job header layout */
+.opp-overview-job-card .Opportunities-job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.opp-overview-job-card .Opportunities-job-header>div:first-child {
+    flex: 1;
+    min-width: 0;
+    max-width: calc(100% - 80px);
+}
+
+/* Fix job logo container */
+.opp-overview-job-card .Opportunities-job-logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.opp-overview-job-card .Opportunities-job-logo-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    background: #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #6B7280;
+    flex-shrink: 0;
+}
+
+/* Fix detail lines */
+.Opportunities-detail-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    margin: 4px 0;
+    font-size: 14px;
+    color: #4B5563;
+}
+
+.Opportunities-detail-line .card-icons {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Fix location text */
+.location-text-wrap {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Fix show more link */
+.opp-show-more-link {
+    color: #007bff;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: underline;
+    margin-left: 4px;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.opp-show-more-link:hover {
+    color: #0056b3;
+}
+
+/* Fix tags section */
+.Opportunities-details-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.Opportunities-job-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+}
+
+.Opportunities-job-tag {
+    white-space: nowrap;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #F3F4F6;
+    color: #4B5563;
+}
+
+.Opportunities-job-tag.full-time {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.Opportunities-job-tag.remote {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.Opportunities-job-tag.part-time {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.Opportunities-job-tag.contract {
+    background: #FCE4EC;
+    color: #C62828;
+}
+
+/* Fix job type */
+.Opportunities-job-type {
+    font-size: 13px;
+    color: #4B5563;
+    font-weight: 500;
+    padding: 4px 12px;
+    background: #F3F4F6;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Fix highlights and lists */
+.opp-job-highlights ul,
+.opp-overview-job-card ul {
+    padding-left: 20px;
+    margin: 8px 0;
+}
+
+.opp-job-highlights ul li,
+.opp-overview-job-card ul li {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+/* Fix paragraphs */
+.opp-overview-job-card p {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.6;
+    margin: 8px 0;
+}
+
+.opp-overview-job-card h3 {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    margin: 16px 0 8px 0;
+}
+
+/* Action Buttons Container */
+.monitoring-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Base Button Styles */
+.monitoring-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: white;
+}
+
+.monitoring-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.monitoring-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Delete Button */
+.monitoring-btn-delete {
+    background: #dc3545;
+}
+
+.monitoring-btn-delete:not(:disabled):hover {
+    background: #c82333;
+}
+
+/* Flag Button */
+.monitoring-btn-flag {
+    background: #fdc01b;
+    color: #333;
+}
+
+.monitoring-btn-flag:not(:disabled):hover {
+    background: #f0b800;
+}
+
+.monitoring-btn-flag.flagged {
+    background: #d9a111;
+    color: white;
+}
+
+.monitoring-btn-flag.flagged:not(:disabled):hover {
+    background: #c4900e;
+}
+
+/* Reject Button */
+.monitoring-btn-reject {
+    background: #6c757d;
+}
+
+.monitoring-btn-reject:not(:disabled):hover {
+    background: #5a6268;
+}
+
+.monitoring-btn-reject.rejected {
+    background: #495057;
+}
+
+/* Approve Button */
+.monitoring-btn-approve {
+    background: #28a745;
+}
+
+.monitoring-btn-approve:not(:disabled):hover {
+    background: #218838;
+}
+
+.monitoring-btn-approve.approved {
+    background: #1e7e34;
+}
+
+/* Spinner Animation */
+.monitoring-btn-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   LOCATION MODAL STYLES
+   ============================================ */
+
+.opp-loc-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: oppFadeIn 0.3s ease;
+    overflow: hidden;
+}
+
+.opp-loc-modal-content {
+    background-color: white;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: oppSlideUp 0.3s ease;
+    overscroll-behavior: contain;
+}
+
+.opp-loc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.opp-loc-modal-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.opp-loc-modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0 8px;
+    transition: color 0.2s ease;
+    line-height: 1;
+}
+
+.opp-loc-modal-close:hover {
+    color: #1f2937;
+}
+
+.opp-loc-modal-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 5px 0;
+}
+
+.opp-loc-chip {
+    background-color: #f3f4f6;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: #1f2937;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.opp-loc-chip:hover {
+    background-color: #e5e7eb;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+}
+
+@keyframes oppFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes oppSlideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   RESPONSIVE FIXES
+   ============================================ */
+
+@media (max-width: 768px) {
+    .opp-topcard-job-title {
+        font-size: 18px;
+    }
+
+    .opp-overview-job-card .Opportunities-job-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .opp-overview-job-card .Opportunities-job-header>div:first-child {
+        max-width: 100%;
+    }
+
+    .opp-overview-job-card .Opportunities-job-logo,
+    .opp-overview-job-card .Opportunities-job-logo-placeholder {
+        width: 50px;
+        height: 50px;
+    }
+
+    .Opportunities-job-company {
+        font-size: 13px;
+    }
+
+    .Opportunities-detail-line {
+        font-size: 13px;
+    }
+
+    .Opportunities-details-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .Opportunities-job-tags {
+        width: 100%;
+    }
+
+    .Opportunities-job-type {
+        width: 100%;
+        text-align: center;
+    }
+
+    .opp-key-skill-tag {
+        font-size: 12px;
+        padding: 4px 12px;
+    }
+
+    .opp-overview-job-card.highlighted-job {
+        padding: 15px;
+    }
+
+    .monitoring-action-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .monitoring-btn {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .opp-loc-modal-content {
+        padding: 20px;
+        margin: 0 10px;
+        max-height: 70vh;
+    }
+
+    .opp-loc-modal-header h3 {
+        font-size: 18px;
+    }
+
+    .opp-loc-chip {
+        font-size: 13px;
+        padding: 6px 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .opp-topcard-job-title {
+        font-size: 16px;
+    }
+
+    .Opportunities-job-company {
+        font-size: 12px;
+        gap: 2px 6px;
+    }
+
+    .Opportunities-detail-line {
+        font-size: 12px;
+    }
+
+    .opp-overview-job-card .Opportunities-job-logo,
+    .opp-overview-job-card .Opportunities-job-logo-placeholder {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .opp-key-skill-tag {
+        font-size: 11px;
+        padding: 3px 10px;
+    }
+
+    .opp-overview-job-card.highlighted-job {
+        padding: 12px;
+    }
+
+    .opp-show-more-link {
+        font-size: 12px;
+    }
+
+    .opp-overview-job-card ul {
+        padding-left: 16px;
+    }
+
+    .opp-overview-job-card ul li {
+        font-size: 13px;
+    }
+
+    .opp-overview-job-card p {
+        font-size: 13px;
+    }
+
+    .opportunities-detail-line span {
+        font-size: 12px;
+    }
+
+    .opp-loc-modal-content {
+        padding: 16px;
+        max-height: 60vh;
+    }
+
+    .opp-loc-chip {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .opp-loc-modal-header h3 {
+        font-size: 16px;
+    }
+
+    .opp-loc-modal-close {
+        font-size: 24px;
+    }
+
+    .monitoring-btn {
+        font-size: 13px;
+        padding: 8px 16px;
+    }
+}

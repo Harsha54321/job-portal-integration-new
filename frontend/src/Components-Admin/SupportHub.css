@@ -1,11 +1,11 @@
-.SupportHub-container{
+.SupportHub-container {
     width: 100%;
     display: flex;
     flex-direction: column;
     gap: 24px;
 }
- 
-.SupportHub-tabs{
+
+.SupportHub-tabs {
     display: flex;
     justify-content: space-around;
     gap: 10px;
@@ -14,8 +14,8 @@
     border-radius: 12px;
     background: #fff;
 }
- 
-.Ad-Settings-select{
+
+.Ad-Settings-select {
     border: none;
     background: #f3f4f6;
     padding: 12px 30px;
@@ -25,40 +25,40 @@
     font-weight: 500;
     /* transition: 0.3s step-end; */
 }
- 
+
 /* .Ad-Settings-select:hover{
     background: #e5e7eb;
 }
   */
-.Ad-Settings-active{
+.Ad-Settings-active {
     background: #2563eb;
     color: #fff;
 }
 
-.Ad-Settings-active:hover{
+.Ad-Settings-active:hover {
     background: #e5e7eb;
     color: #000;
 }
-.SupportHub-content{
+
+.SupportHub-content {
     width: 100%;
 }
- 
-.SupportHub-placeholder{
+
+.SupportHub-placeholder {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 14px;
     padding: 50px 30px;
     text-align: center;
 }
- 
-.SupportHub-placeholder h2{
+
+.SupportHub-placeholder h2 {
     font-size: 24px;
     color: #111827;
     margin-bottom: 10px;
 }
- 
-.SupportHub-placeholder p{
+
+.SupportHub-placeholder p {
     color: #6b7280;
     font-size: 15px;
 }
- 

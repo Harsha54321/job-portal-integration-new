@@ -12,11 +12,15 @@ def send_password_reset_email(user, token, request):
     """Send password reset email with different links based on user type"""
    
     frontend_url = settings.FRONTEND_URL
+    # Remove trailing slash if present
+    frontend_url = frontend_url.rstrip('/')
    
     if user.user_type == 'employer':
         reset_page = f"{frontend_url}/Job-portal/employer/login/forgotpassword/createpassword?token={token}"
     elif user.user_type == 'jobseeker':
         reset_page = f"{frontend_url}/Job-portal/jobseeker/login/forgotpassword/createpassword?token={token}"
+    elif user.user_type == 'admin':
+        reset_page = f"{frontend_url}/Job-portal/admin/login/forgotpassword/createpassword?token={token}"
     else:
         reset_page = f"{frontend_url}/Job-portal/login/forgotpassword/createpassword?token={token}"
    
@@ -26,13 +30,10 @@ Hello {user.username},
  
 We received a request to reset your password for your {user.get_user_type_display()} account: {user.email}
  
-Please visit this link:
+Please click the link below to reset your password:
 {reset_page}
  
-And enter this token on the page:
- 
- 
-This token will expire in 24 hours.
+This link will expire in 24 hours.
  
 If you didn't request this, please ignore this email.
 """
@@ -94,52 +95,22 @@ def send_email_otp(email, otp, purpose="signup"):
         subject = "Email Verification OTP"
         expiry = "10 minutes"
         digits = "6-digit"
-        message = f"""
-Hello,
- 
-Your {digits} OTP for email verification is: {otp}
- 
-This OTP will expire in {expiry}.
- 
-If you didn't request this, please ignore this email.
-"""
+        message = f"Hello,\n\nYour {digits} OTP for email verification is: {otp}\n\nThis OTP will expire in {expiry}.\n\nIf you didn't request this, please ignore this email."
     elif purpose == "login":
         subject = "Login OTP"
         expiry = "5 minutes"
         digits = "4-digit"
-        message = f"""
-Hello,
- 
-Your {digits} OTP for login is: {otp}
- 
-This OTP will expire in {expiry}.
- 
-If you didn't request this, please ignore this email.
-"""
-    elif purpose == "admin_2fa":
-        subject = "Admin 2FA OTP"
+        message = f"Hello,\n\nYour {digits} OTP for login is: {otp}\n\nThis OTP will expire in {expiry}.\n\nIf you didn't request this, please ignore this email."
+    elif purpose in ["admin_2fa", "jobseeker_2fa"]:
+        subject = "Your 2FA Verification Code"
         expiry = "5 minutes"
         digits = "6-digit"
-        message = f"""
-Hello,
- 
-Your {digits} OTP for admin two-factor authentication is: {otp}
- 
-This OTP will expire in {expiry}.
- 
-If you didn't request this, please secure your account immediately.
-"""
+        message = f"Hello,\n\nYour {digits} OTP for two-factor authentication is: {otp}\n\nThis OTP will expire in {expiry}.\n\nIf you didn't request this, please secure your account immediately."
     else:
         subject = "OTP Verification"
         expiry = "10 minutes"
-        message = f"""
-Hello,
- 
-Your OTP is: {otp}
- 
-This OTP will expire in {expiry}.
-"""
- 
+        message = f"Hello,\n\nYour OTP is: {otp}\n\nThis OTP will expire in {expiry}."
+
     send_mail(
         subject,
         message,
@@ -704,3 +675,50 @@ def get_priority_from_reason(reason):
  
     # Default fallback
     return "Low"
+
+# jobapp/utils.py (FAQ Matching Functions)
+
+import re
+from .models import FAQ
+
+def get_best_faq_match(user_message):
+    """
+    Find the best matching FAQ based on keywords
+    """
+    user_message = user_message.lower()
+    
+    # Remove common words and extract keywords
+    stop_words = ['hi', 'hello', 'please', 'help', 'want', 'need', 'how', 'what', 
+                  'where', 'when', 'why', 'is', 'are', 'am', 'the', 'a', 'an', 'for']
+    words = re.findall(r'\b\w+\b', user_message)
+    keywords = [word for word in words if word not in stop_words and len(word) > 2]
+    
+    if not keywords:
+        return None
+    
+    # Find best match from FAQ
+    all_faqs = FAQ.objects.all()
+    best_match = None
+    best_score = 0
+    
+    for faq in all_faqs:
+        faq_keywords = faq.keywords.lower().split(',')
+        faq_keywords = [k.strip() for k in faq_keywords]
+        
+        # Calculate match score
+        score = 0
+        for keyword in keywords:
+            if keyword in ' '.join(faq_keywords):
+                score += 2
+            if keyword in faq.question.lower():
+                score += 1
+        
+        if score > best_score:
+            best_score = score
+            best_match = faq
+    
+    # Return if score is significant (at least 2 matches)
+    if best_score >= 2:
+        return best_match
+    
+    return None

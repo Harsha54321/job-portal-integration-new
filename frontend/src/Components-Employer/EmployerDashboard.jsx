@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import './EmployerDashboard.css'
 import DashboardIC from '../assets/Employer/DashboardIC.png'
@@ -37,15 +37,26 @@ import { LogoutModal } from '../Components-Jobseeker/LogoutModal'
 import { AnalyticsPage } from './AnalyticsPage'
 import { PlansBilling } from './PlansBilling'
 import api from "../api/axios";
+import AdminManager from '../assets/Employer/User.png'
+import { AddManagerSupport } from './AddManagerSupport'
+import { LocationDisplay } from '../Components-Jobseeker/LocationDisplay';
+// import { MyTickets } from './MyTickets'
+import RaisedTickets from '../Components-Jobseeker/RaisedTickets'
+import TicketIcon from '../assets/AdminAssets/Tickets.png'
 
 export const EmployerDashboard = () => {
     const { currentEmployer, getJobStats, refreshEmployerData } = useJobs();
 
     // ============ ALL HOOKS AT THE TOP ============
+    const contentTopRef = useRef(null);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [applications, setApplications] = useState([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [isDataLoading, setIsDataLoading] = useState(true);
+    const [editJobData, setEditJobData] = useState(null);
+    const [allowEditAfterApproval, setAllowEditAfterApproval] = useState(true);
+    const [pendingTargetApplicationId, setPendingTargetApplicationId] = useState(null);
+    const [pendingTargetTicketId, setPendingTargetTicketId] = useState(null);
 
     const [verificationStatus, setVerificationStatus] = useState({
         isLoading: true,
@@ -59,6 +70,22 @@ export const EmployerDashboard = () => {
     });
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [selectedJob, setSelectedJob] = useState(null);
+    const [pendingTargetManagerId, setPendingTargetManagerId] = useState(null);
+
+
+    // --- NEW SCROLL EFFECT ---
+    // This ensures EVERY time you change a tab, the dashboard content scrolls to the top
+    useEffect(() => {
+        setTimeout(() => {
+            // 1. Keep the main window locked at the top so your header stays visible
+            window.scrollTo(0, 0);
+
+            // 2. Scroll ONLY the inside of the dashboard container
+            if (contentTopRef.current) {
+                contentTopRef.current.scrollTop = 0;
+            }
+        }, 10);
+    }, [activetab, selectedJob]);
 
     useEffect(() => {
         if (
@@ -68,6 +95,18 @@ export const EmployerDashboard = () => {
             setActiveTab("My job post");
         }
     }, [activetab, selectedJob]);
+
+    useEffect(() => {
+        const fetchEditPermission = async () => {
+            try {
+                const res = await api.get('/subscription/');
+                setAllowEditAfterApproval(res.data?.allow_edit_after_approval ?? false);
+            } catch (error) {
+                console.error("Error fetching edit-after-approval permission:", error);
+            }
+        };
+        fetchEditPermission();
+    }, []);
 
 
     // const PostedJob = currentEmployer?.jobPosted || [];
@@ -181,44 +220,36 @@ export const EmployerDashboard = () => {
 
     // Add this hook layout inside your Jobseeker Dashboard view file
     useEffect(() => {
-        if (location.state?.targetTab) {
-            setActiveTab(location.state.targetTab);
+        const targetTab = location.state?.targetTab;
+        const targetJobId = location.state?.targetJobId;
+        const targetApplicationId = location.state?.targetApplicationId;
+        const targetManagerId = location.state?.targetManagerId;
+        const targetTicketId = location.state?.targetTicketId;
 
-            // Wipe path records cleanly so future user actions function natively
-            window.history.replaceState({ ...window.history.state, targetTab: undefined }, document.title);
-        }
-    }, [location.state]);
+        if (!targetTab) return;
 
-    // ============ HANDLE TARGET TAB FROM FOOTER ============
-// ============ HANDLE TARGET TAB FROM FOOTER ============
-    useEffect(() => {
-        // 1. Define the handler at the top level of the useEffect so cleanup can see it
-        const handleStateRefresh = () => {
-            // Read directly from window history to bypass race-condition wipes
-            const currentHistoryState = window.history.state;
-            if (currentHistoryState?.targetTab) {
-                setActiveTab(currentHistoryState.targetTab);
-                sessionStorage.setItem("employerActiveTab", currentHistoryState.targetTab);
+        if (targetTab === 'ViewApplicants' && targetJobId) {
+            const job = PostedJob.find(j => String(j.id) === String(targetJobId));
+            if (job) {
+                setSelectedJob(job);
+                setActiveTab('ViewApplicants');
+                setPendingTargetApplicationId(targetApplicationId ?? null);
+            } else {
+                // job not loaded yet, or doesn't exist -> fall back to the list
+                setActiveTab('My job post');
             }
-        };
-
-        // 2. Attach the window event listener
-        window.addEventListener('popstate', handleStateRefresh);
-
-        // 3. Process the state values
-        if (location.state?.targetTab) {
-            const targetTab = location.state.targetTab;
-            
-            setActiveTab(targetTab);
-            sessionStorage.setItem("employerActiveTab", targetTab);
-            
-            window.history.replaceState({ ...window.history.state, targetTab: undefined }, document.title);
         } else {
-            handleStateRefresh();
+            setActiveTab(targetTab);
+            if (targetTab === 'AccountManager') {
+                setPendingTargetManagerId(targetManagerId ?? null);   // ← add this
+            }
+            if (targetTab === 'MyTickets') {
+                setPendingTargetTicketId(targetTicketId ?? null);
+            }
         }
 
-        return () => window.removeEventListener('popstate', handleStateRefresh);
-    }, [location.state, location.pathname]);
+        navigate(location.pathname, { replace: true, state: {} });
+    }, [location.state, PostedJob]);
 
     // ============ MEMOIZED STATS ============
     const jobStats = useMemo(() => {
@@ -266,6 +297,24 @@ export const EmployerDashboard = () => {
             interview: jobApplications.filter(app => app.status?.toLowerCase() === 'interview_called').length,
             rejected: jobApplications.filter(app => app.status?.toLowerCase() === 'rejected').length
         };
+    };
+
+    const handleDeleteClick = async (jobId) => {
+        setActiveMenu(null);
+        const isConfirmed = window.confirm("Are you sure you want to delete this job post?");
+        if (!isConfirmed) return;
+
+        try {
+            // CORRECTED ENDPOINT
+            await api.delete(`/jobs/${jobId}/delete/`);
+            alert("Job post deleted successfully!");
+            if (refreshEmployerData) {
+                await refreshEmployerData();
+            }
+        } catch (error) {
+            console.error("Error deleting job:", error);
+            alert("Failed to delete the job. Please try again.");
+        }
     };
 
     const activeJobsCount = PostedJob.length;
@@ -336,6 +385,19 @@ export const EmployerDashboard = () => {
         setActiveTab('ViewApplicants');
     };
 
+
+    const handleEditJob = (job) => {
+        setActiveMenu(null);
+        if (job.approval_status === 'approved' && !allowEditAfterApproval) return;
+        setEditJobData(job);
+        setActiveTab('Post a Job');
+    };
+
+    const goToPostJobTab = () => {
+        setEditJobData(null);
+        setActiveTab('Post a Job');
+    };
+
     // ============ LOADING SPINNER COMPONENT ============
     const LoadingSpinner = () => (
         <>
@@ -404,6 +466,20 @@ export const EmployerDashboard = () => {
                                     {activetab === 'My Profile' ? <img src={ProfileAct} height={15} width={15} alt="My Profile" /> : <img src={Profile} height={15} width={15} alt="My Profile" />}
                                     <div className='Enav-item'>My Profile</div>
                                 </div>
+                                <div onClick={() => setActiveTab('AccountManager')}
+                                    className={activetab === 'AccountManager' ? "Active" : 'Navbox'}>
+                                    {activetab === 'AccountManager' ? (
+                                        <img src={AdminManager} height={15} width={15} alt="Account Manager" />
+                                    ) : (
+                                        <img src={AdminManager} height={15} width={15} alt="Account Manager" />
+                                    )}
+                                    <div className='Enav-item'>Account Manager</div>
+                                </div>
+                                <div onClick={() => setActiveTab('MyTickets')} className={activetab === 'MyTickets' ? "Active" : 'Navbox'}>
+                                    <img src={TicketIcon} height={15} width={15} alt="My Tickets" />
+                                    <div className='Enav-item'>My Tickets</div>
+                                </div>
+
                                 <div onClick={() => setShowLogoutModal(true)} className={activetab === 'Logout' ? "Active" : 'Navbox'} >
                                     {activetab === 'Logout' ? <img src={LogoutAct} height={15} width={15} alt="Logout" /> : <img src={Logout} height={15} width={15} alt="Logout" />}
                                     <div className='Enav-item'>Logout</div>
@@ -440,6 +516,18 @@ export const EmployerDashboard = () => {
                                 <div onClick={() => setActiveTab('My Profile')} className={activetab === 'My Profile' ? "Active1" : 'Navbox1'} title="View and edit your profile">
                                     {activetab === 'My Profile' ? <img src={ProfileAct} height={15} width={15} alt="My Profile" /> : <img src={Profile} height={15} width={15} alt="My Profile" />}
                                 </div>
+                                <div onClick={() => setActiveTab('AccountManager')}
+                                    className={activetab === 'AccountManager' ? "Active1" : 'Navbox1'}
+                                    title="Account Manager">
+                                    {activetab === 'AccountManager' ? (
+                                        <img src={AdminManager} height={15} width={15} alt="Account Manager" />
+                                    ) : (
+                                        <img src={AdminManager} height={15} width={15} alt="Account Manager" />
+                                    )}
+                                </div>
+                                <div onClick={() => setActiveTab('MyTickets')} className={activetab === 'MyTickets' ? "Active1" : 'Navbox1'} title="My Tickets">
+                                    <img src={TicketIcon} height={15} width={15} alt="My Tickets" />
+                                </div>
                                 <div onClick={() => setShowLogoutModal(true)} className={activetab === 'Logout' ? "Active1" : 'Navbox1'} style={{ cursor: 'pointer' }} title="Logout from your account">
                                     {activetab === 'Logout' ? <img src={LogoutAct} height={15} width={15} alt="Logout" /> : <img src={Logout} height={15} width={15} alt="Logout" />}
                                 </div>
@@ -449,6 +537,9 @@ export const EmployerDashboard = () => {
                 )}
 
                 <div className={isSidebarOpen ? 'Emainsec' : 'Emainsec2'}>
+                    {/* Anchor element to target the top of the content view */}
+                    <div ref={contentTopRef}></div>
+
                     {activetab === 'Dashboard' && (
                         <>
                             <div className="employer-dashboard-relative-container">
@@ -533,53 +624,122 @@ export const EmployerDashboard = () => {
                                                 <div className='ERecent-Post-Cont'>
                                                     <h3 style={{ marginleft: "40px" }}>Recently Posted Jobs</h3>
                                                     <div className='ERecent-Post-Table-Container'>
-                                                        {PostedJob.length > 0 ? (<>
-                                                            <div className="postedjobs-grid-layout postedjobs-table-header">
-                                                                <div />
-                                                                <span className="postedjobs-label">Applicants</span>
-                                                                <span className="postedjobs-label" title="Candidates who applied but not yet reviewed">
-                                                                    New ⓘ
-                                                                </span>
-                                                                <span className="postedjobs-label">Shortlisted</span>
-                                                                <span className="postedjobs-label">Interview</span>
-                                                                <span className="postedjobs-label">Rejected</span>
-                                                                <div />
-                                                            </div>
-                                                            <div className="postedjobs-list">
-                                                                {PostedJob.slice(0, 5).map((job) => {
-                                                                    const stats = getJobApplicationStats(job.id);
-                                                                    return (
-                                                                        <div key={job.id} className="postedjobs-grid-layout postedjobs-card">
-                                                                            <div className="postedjobs-info">
-                                                                                <h3>{job.job_title || job.title}</h3>
-                                                                                <p className="postedjobs-loc flex items-center gap-2">
-                                                                                    <img src={place} alt="location" className="post-job-locationicon" />
-                                                                                    {Array.isArray(job.location)
-                                                                                        ? job.location.join(", ")
-                                                                                        : job.location || "N/A"}
-                                                                                </p>
-                                                                                <small>Created on: {new Date(job.created_at || job.posted_date).toLocaleDateString()}</small>
-                                                                            </div>
-                                                                            <span className="postedjobs-badge">{stats.total}</span>
-                                                                            <span className="postedjobs-badge">{stats.new}</span>
 
-                                                                            <span className="postedjobs-badge">{stats.shortlisted}</span>
-                                                                            <span className="postedjobs-badge">{stats.interview}</span>
-                                                                            <span className="postedjobs-badge">{stats.rejected}</span>
-                                                                            <div className="postedjobs-actions">
-                                                                                <button className="postedjobs-view-btn" onClick={() => handleViewApplicants(job)}>
-                                                                                    View applicants
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </>
-                                                        ) : (
+                                                        {PostedJob.length > 0 ? (
                                                             <>
-                                                                <h2 style={{ display: "flex", justifyContent: "center", alignItems: "center", height: '50vh' }}>No Jobs posted by you</h2>
+                                                                <div className="postedjobs-grid-layout postedjobs-table-header">
+                                                                    <div />
+                                                                    <span className="postedjobs-label">Applicants</span>
+                                                                    <span className="postedjobs-label" title="Candidates who applied but not yet reviewed">
+                                                                        New ⓘ
+                                                                    </span>
+                                                                    <span className="postedjobs-label">Shortlisted</span>
+                                                                    <span className="postedjobs-label">Interview</span>
+                                                                    <span className="postedjobs-label">Rejected</span>
+                                                                    <div />
+                                                                </div>
+                                                                <div className="postedjobs-list">
+                                                                    {PostedJob.slice(0, 5).map((job) => {
+                                                                        const stats = getJobApplicationStats(job.id);
+
+                                                                        // ONLY highlighted jobs get styling
+                                                                        const isHighlighted = job.is_highlighted === true;
+
+                                                                        let rowClassName = "postedjobs-grid-layout postedjobs-card";
+                                                                        if (isHighlighted) {
+                                                                            rowClassName += " highlighted-job";
+                                                                        }
+
+                                                                        return (
+                                                                            //   <div key={job.id} className={rowClassName} style={{ position: 'relative', overflow: 'visible' }}>
+                                                                            // replace with
+                                                                            <div key={job.id} className={rowClassName} style={{ position: 'relative', overflow: 'visible', zIndex: activeMenu === job.id ? 1000 : 1 }}>
+                                                                                {/* Badge only for highlighted jobs */}
+                                                                                {isHighlighted && <span className="job-badge premium-badge">⭐ Highlighted job</span>}
+
+                                                                                <div className="postedjobs-info">
+                                                                                    <h3>{job.job_title || job.title}</h3>
+                                                                                    <p className="postedjobs-loc flex items-center gap-2">
+                                                                                        <img src={place} alt="location" className="post-job-locationicon" />
+                                                                                        <LocationDisplay locations={job.location} />
+                                                                                    </p>
+                                                                                    <small>Created on: {new Date(job.created_at || job.posted_date).toLocaleDateString()}</small>
+                                                                                </div>
+                                                                                <span className="postedjobs-badge">{stats.total}</span>
+                                                                                <span className="postedjobs-badge">{stats.new}</span>
+                                                                                <span className="postedjobs-badge">{stats.shortlisted}</span>
+                                                                                <span className="postedjobs-badge">{stats.interview}</span>
+                                                                                <span className="postedjobs-badge">{stats.rejected}</span>
+                                                                                <div className="postedjobs-actions" style={{ position: 'relative' }}>
+                                                                                    <button className="postedjobs-view-btn" onClick={() => handleViewApplicants(job)}>
+                                                                                        View applicants
+                                                                                    </button>
+                                                                                    <div className="postedjobs-menu-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                setActiveMenu(activeMenu === job.id ? null : job.id);
+                                                                                            }}
+                                                                                            className="postedjobs-dots"
+                                                                                            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '5px 10px', color: '#94a3b8' }}
+                                                                                        >
+                                                                                            ⋮
+                                                                                        </button>
+                                                                                        {activeMenu === job.id && (
+                                                                                            <div
+                                                                                                className="postedjobs-dropdown"
+                                                                                                style={{
+                                                                                                    position: 'absolute',
+                                                                                                    right: 0,
+                                                                                                    top: '30px',
+                                                                                                    background: 'white',
+                                                                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                                                                                    borderRadius: '8px',
+                                                                                                    zIndex: 99999,
+                                                                                                    overflow: 'hidden',
+                                                                                                    minWidth: '130px'
+                                                                                                }}
+                                                                                            >
+                                                                                                <button
+                                                                                                    onClick={() => {
+                                                                                                        setActiveMenu(null);
+                                                                                                        navigate('/Job-portal/Employer/EditJob', { state: job });
+                                                                                                    }}
+                                                                                                    style={{ display: 'block', width: '100%', padding: '12px 15px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '14px' }}
+                                                                                                >
+                                                                                                    Edit Status
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    onClick={() => handleEditJob(job)}
+                                                                                                    disabled={job.approval_status === 'approved' && !allowEditAfterApproval}
+                                                                                                    title={job.approval_status === 'approved' && !allowEditAfterApproval ? 'Editing approved jobs is disabled' : undefined}
+                                                                                                    style={{
+                                                                                                        display: 'block', width: '100%', padding: '12px 15px', border: 'none', background: 'none', textAlign: 'left', fontSize: '14px',
+                                                                                                        cursor: (job.approval_status === 'approved' && !allowEditAfterApproval) ? 'not-allowed' : 'pointer',
+                                                                                                        color: (job.approval_status === 'approved' && !allowEditAfterApproval) ? '#a0aab5' : 'inherit'
+                                                                                                    }}
+                                                                                                >
+                                                                                                    Edit Job
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    onClick={() => handleDeleteClick(job.id)}
+                                                                                                    className="delete-opt"
+                                                                                                    style={{ display: 'block', width: '100%', padding: '12px 15px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '14px', color: '#d9534f', fontWeight: '600' }}
+                                                                                                >
+                                                                                                    Delete
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
                                                             </>
+                                                        ) : (
+                                                            <h2 style={{ display: "flex", justifyContent: "center", alignItems: "center", height: '50vh' }}>
+                                                                No Jobs posted by you
+                                                            </h2>
                                                         )}
                                                         {PostedJob.length > 0 && (
                                                             <div style={{ textAlign: 'center', marginTop: '20px' }}>
@@ -603,13 +763,14 @@ export const EmployerDashboard = () => {
 
                     {activetab === 'Post a Job' && verificationStatus.isVerified && (
                         <PostJobForm
-                            onCancel={() => setActiveTab('Dashboard')}
+                            onCancel={() => { setEditJobData(null); setActiveTab('Dashboard'); }}
                             showHomeIcon={location.state?.fromFooter}
+                            editJobData={editJobData}
                         />
                     )}
 
                     {activetab === 'My job post' && verificationStatus.isVerified && (
-                        <PostedJobs onViewApplicants={(job) => { setSelectedJob(job); setActiveTab('ViewApplicants'); }} />
+                        <PostedJobs onViewApplicants={(job) => { setSelectedJob(job); setActiveTab('ViewApplicants'); }} onEditJob={handleEditJob} allowEditAfterApproval={allowEditAfterApproval} />
                     )}
 
                     {activetab === 'ViewApplicants' &&
@@ -618,9 +779,9 @@ export const EmployerDashboard = () => {
                             <ViewApplicants
                                 job={selectedJob}
                                 onBack={() => setActiveTab('My job post')}
+                                targetApplicationId={pendingTargetApplicationId}
                             />
                         )}
-
                     {activetab === 'Find Talent' && verificationStatus.isVerified && (
                         <FindTalent showHomeIcon={location.state?.fromFooter} />
                     )}
@@ -635,6 +796,10 @@ export const EmployerDashboard = () => {
 
                     {activetab === 'My Profile' && (
                         <AboutYourCompany hideNavigation={true} setActiveTab={setActiveTab} />
+                    )}
+                    {activetab === 'AccountManager' && <AddManagerSupport targetManagerId={pendingTargetManagerId} />}
+                    {activetab === 'MyTickets' && (
+                        <RaisedTickets role="employer" onBack={() => setActiveTab('Dashboard')} targetTicketId={pendingTargetTicketId} />
                     )}
                 </div>
             </div>

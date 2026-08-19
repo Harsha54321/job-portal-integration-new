@@ -4,8 +4,9 @@ import { EHeader } from './EHeader';
 import { Footer } from '../Components-LandingPage/Footer';
 import './PostJobForm.css';
 import { locationsList } from "../Locations";
+import api from '../api/axios';
 
-const availableSkills = ["UI & UX", "UI/UX Design", "UI Design", "UX Design", "User Interface", "User Experience", "Figma", "Adobe XD", "Sketch", "Photoshop", "Illustrator", "InDesign", "Wireframing", "Prototyping",
+const availableSkills = ["UI & UX", "UI/UX Design", "UI Design", "UX Design", "Figma", "Adobe XD", "Sketch", "Photoshop", "Illustrator", "InDesign", "Wireframing", "Prototyping",
   "HTML", "HTML5", "CSS", "CSS3", "JavaScript", "TypeScript", "React", "React Native", "Angular", "Vue.js", "Next.js", "Nuxt.js", "Svelte", "SASS", "LESS", "Tailwind CSS", "Bootstrap", "Material UI", "Redux", "Webpack", "Babel", "DOM Manipulation", "AJAX", "JSON",
   "Node.js", "Express.js", "Python", "Django", "Flask", "FastAPI", "Java", "Spring Boot", "Hibernate", "C", "C++", "C#", ".NET", "ASP.NET", "PHP", "Laravel", "Symfony", "Ruby", "Ruby on Rails", "Go", "Rust", "Swift", "Kotlin", "Scala", "Elixir", "Erlang",
   "SQL", "MySQL", "PostgreSQL", "SQLite", "MongoDB", "Mongoose", "Redis", "Cassandra", "DynamoDB", "Firebase", "Oracle", "Microsoft SQL Server", "GraphQL", "REST API", "Prisma",
@@ -15,23 +16,103 @@ const availableSkills = ["UI & UX", "UI/UX Design", "UI Design", "UX Design", "U
   "Agile", "Scrum", "Kanban", "Jira", "Trello", "Asana", "Git", "GitHub", "GitLab", "Bitbucket", "Postman", "Swagger",
   "Cybersecurity", "Penetration Testing", "Ethical Hacking", "Cryptography", "Blockchain", "Web3", "Smart Contracts", "Solidity", "QA Testing", "Selenium", "Jest", "Mocha", "Chai", "Cypress", "Puppeteer", "Project Management", "Product Management", "Digital Marketing", "SEO", "SEM", "Content Writing", "Copywriting", "Sales", "Business Development", "Customer Success", "Technical Support"];
 
-export const PostJobForm = ({ onCancel }) => {
+export const PostJobForm = ({ onCancel, editJobData }) => {
   const navigate = useNavigate();
   const formRef = useRef(null);
+  const isEditMode = Boolean(editJobData?.id);
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      navigate(-1);
+  // ============================================
+  // PLAN ACCESS STATE
+  // ============================================
+  const [accessState, setAccessState] = useState({
+    hasAccess: false,
+    isExpired: false,
+    isCancelled: false,
+    planName: null,
+    message: null,
+    loading: true
+  });
+
+  const [isChecking, setIsChecking] = useState(false);
+
+  // ============================================
+  // CHECK PLAN ACCESS - ONLY ONCE ON MOUNT
+  // ============================================
+  const checkPlanAccess = async () => {
+    if (isChecking) return;
+
+    try {
+      setIsChecking(true);
+      setAccessState(prev => ({ ...prev, loading: true }));
+
+      console.log('🔍 Checking plan access for job posting...');
+
+      const subRes = await api.get('/subscription/');
+      const subscription = subRes.data;
+      const plan = subscription?.plan;
+
+      console.log('📊 Job posting access:', {
+        status: subscription?.status,
+        is_expired: subscription?.is_expired,
+        plan_name: plan?.name
+      });
+
+      const isExpired = subscription?.is_expired === true;
+      const isCancelled = subscription?.status === 'cancelled';
+      const isActive = subscription?.status === 'active';
+
+      const hasAccess = isActive && !isExpired;
+
+      let message = '';
+      if (isCancelled) {
+        message = `Your ${plan?.name || 'current'} plan has been cancelled. Please reactivate to post jobs.`;
+      } else if (isExpired) {
+        message = `Your ${plan?.name || 'current'} plan has expired. Please renew to post jobs.`;
+      } else if (!isActive) {
+        message = `Your subscription is not active. Please contact support.`;
+      }
+
+      setAccessState({
+        hasAccess,
+        isExpired,
+        isCancelled,
+        planName: plan?.name,
+        message,
+        loading: false
+      });
+
+    } catch (error) {
+      console.error('❌ Error checking plan access:', error);
+      setAccessState({
+        hasAccess: false,
+        isExpired: false,
+        isCancelled: false,
+        planName: null,
+        message: 'Unable to verify access. Please try again.',
+        loading: false
+      });
+    } finally {
+      setIsChecking(false);
     }
   };
 
+  // ============================================
+  // ONLY ON MOUNT - No intervals, no re-checks
+  // ============================================
+  useEffect(() => {
+    checkPlanAccess();
+  }, []);
 
+  // ============================================
+  // ORIGINAL FORM STATE
+  // ============================================
   const categoryOptions = ["Aerospace & Defense", "Ai/MI", "Analytics", "Artificial Intelligence", "Automotive", "Big Data", "Biotechnology", "Business Consulting", "Business Intelligence", "Cloud Computing", "Cloud Services", "Construction", "Consulting", "Consumer Goods", "Consumer Tech", "Corporate", "Corporate Functions", "Customer Support", "Cybersecurity", "Data Infrastructure", "Data Science", "Design", "Digital Marketing", "Digital Media", "E-Commerce", "Ed-Tech", "Energy", "Enterprise Software", "Entertainment", "Finance", "Financial Services", "Fintech", "Fmcg", "Healthcare", "Hospital", "Hr Services", "Human Resources", "Internet", "It Consulting", "It Networking", "IT Services", "Logistics", "Marketing", "Marketing & Advertising", "Martech", "Mobile App Development", "Mobile Development", "Pharmaceutical", "Pharma", "Product Development", "Project Management", "Real Estate", "Recruitment", "Regional Sales", "Renewable Power", "Research", "Retail", "Retail Tech", "Saas", "Sales", "Site Reliability Engineering", "Software Development", "Software Product", "Software Testing", "Subscription Service", "Supply Chain", "Technology", "Telecommunications"];
+
   const educationOptions = [
-    "BS", "B.A", "CA", "B.Ed", "M.Com", "B.Sc", "MCA", "BCA", "LLM", "MS/M.Sc", "Diploma", "B.Com", "M.Tech", "MBA/PGDM", "PG Diploma", "B.B.A/ B.M.S", "Medical-MS/MD", "B.Tech/B.E.", "Any Graduate", "Other Post Graduate", "ITI Certification", "Any Postgraduate", "Graduation Not Required", "Post Graduation Not Required", "Bachelor Of Science", "Business Economics"
+    "BS", "B.A", "CA", "B.Ed", "M.Com", "B.Sc", "MCA", "BCA", "LLM", "MS/M.Sc", "Diploma", "B.Com", "M.Tech", "MBA/PGDM", "PG Diploma", "B.B.A/ B.M.S", "Medical-MS/MD", "B.Tech/B.E.", "Any Graduate", "Other Post Graduate", "ITI Certification", "Any Postgraduate", "Bachelor Of Science", "Business Economics", "Artificial Intelligence (AI)", "Machine Learning", "Data Science",
+    "Cyber Security", "Cloud Computing",
   ];
+
   const departmentOptions = [
     "Engineering", "Marketing", "Sales", "Human Resources", "Finance",
     "Operations", "Product Management", "Customer Success", "Design",
@@ -56,20 +137,20 @@ export const PostJobForm = ({ onCancel }) => {
     job_highlights: [''],
     job_description: '',
     responsibilities: ['']
-
   });
-  console.log(formData)
 
-  const [skillInput, setSkillInput] = useState(""); // Track what user types
+  const [skillInput, setSkillInput] = useState("");
   const [filteredSkills, setFilteredSkills] = useState([]);
   const [skillsList, setSkillsList] = useState([]);
   const [locationList, setLocationList] = useState([]);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [errors, setErrors] = useState({});
 
+  // ============================================
+  // ORIGINAL FORM FUNCTIONS
+  // ============================================
   useEffect(() => {
     const handleClickOutside = (event) => {
-
       if (!event.target.closest('.jobpost-dropdown')) {
         setOpenDropdown(null);
       }
@@ -85,15 +166,18 @@ export const PostJobForm = ({ onCancel }) => {
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
-  // Handle Skill Input Change
   const handleSkillChange = (e) => {
     const value = e.target.value;
     setSkillInput(value);
 
+    if (errors.key_skills) {
+      setErrors({ ...errors, key_skills: "" });
+    }
+
     if (value.trim()) {
       const filtered = availableSkills.filter(skill =>
         skill.toLowerCase().includes(value.toLowerCase()) &&
-        !skillsList.includes(skill)
+        !skillsList.some(s => s.toLowerCase() === skill.toLowerCase())
       );
       setFilteredSkills(filtered);
     } else {
@@ -101,7 +185,6 @@ export const PostJobForm = ({ onCancel }) => {
     }
   };
 
-  // Select Skill from Suggestion
   const selectSkill = (skill) => {
     setSkillsList([...skillsList, skill]);
     setSkillInput("");
@@ -110,25 +193,20 @@ export const PostJobForm = ({ onCancel }) => {
   };
 
   const validateForm = () => {
-
     const newErrors = {};
     const jobTitleRegex = /^[a-zA-Z][a-zA-Z0-9\s&/_@.+()!-]{3,}$/;
-
     const durationRegex = /^(\d+\s*(month|months|year|years)|permanent)$/i;
-
     const openingsRegex = /^[1-9][0-9]{0,2}$/;
-
     const contentRegex = /^(?=.*[a-zA-Z])[a-zA-Z0-9\s.,-]{5,}$/;
-
-    // Updated experience regex to accept formats like 0, 0-12 (without years)
     const expRegex = /^(\d{1,2})(\s*-\s*(\d{1,2}))?$/;
 
-    // --- VALIDATION LOGIC ---
-
     // Job Title
-    if (!formData.job_title.trim()) {
+    const titleTrimmed = formData.job_title.trim();
+    if (!titleTrimmed) {
       newErrors.job_title = "Job title is required";
-    } else if (!jobTitleRegex.test(formData.job_title.trim())) {
+    } else if (titleTrimmed.length > 50) {
+      newErrors.job_title = "Job title cannot exceed 50 characters";
+    } else if (!jobTitleRegex.test(titleTrimmed)) {
       newErrors.job_title = "Minimum 3 characters; letters, numbers, and common symbols allowed)";
     }
 
@@ -139,44 +217,38 @@ export const PostJobForm = ({ onCancel }) => {
       newErrors.work_duration = "Enter e.g. '6 Months' or 'Permanent'";
     }
 
-    // 5. Salary (Advanced Format Validation)
+    // Salary
     const salaryInput = formData.salary.trim();
-
     const salaryRegex = /^(\d{3,7})(\s?\/-\s?)?\s?(per\s?month|\/month|pm)$|^(\d+(\.\d{1,2})?)\s?(lpa)$|^(\d+(\.\d{1,2})?)\s?(cr|crore)\s?(per\s?year)?$/i;
 
     if (!salaryInput) {
       newErrors.salary = "Salary is required";
     } else if (!salaryRegex.test(salaryInput)) {
-
       if (/^\d+$/.test(salaryInput)) {
         newErrors.salary = "Please specify unit (e.g., 'LPA' or 'per month')";
-      }
-      else if (/[^\w\s./-]/.test(salaryInput)) {
+      } else if (/[^\w\s./-]/.test(salaryInput)) {
         newErrors.salary = "Invalid characters not allowed";
-      }
-      else if (/lpa/i.test(salaryInput) && /(month|pm)/i.test(salaryInput)) {
+      } else if (/lpa/i.test(salaryInput) && /(month|pm)/i.test(salaryInput)) {
         newErrors.salary = "Do not mix LPA with monthly format";
-      }
-      else {
+      } else {
         newErrors.salary = "Invalid format (e.g., 15000 per month, 5 LPA, 1 cr per year)";
       }
     }
 
+    // Fresher
     if (!formData.fresher) {
       newErrors.fresher = "Please select whether fresher is allowed or not";
     }
 
-    // Experience validation - conditional based on fresher
+    // Experience
     const expStr = formData.experience.trim();
 
     if (formData.fresher === 'no') {
-      // Experience is REQUIRED when fresher = no
       if (!expStr) {
         newErrors.experience = "Experience is required";
       } else if (!expRegex.test(expStr)) {
         newErrors.experience = "Invalid format (e.g., '0', '0-6', '3-12')";
       } else {
-        // Additional validation for range values
         if (expStr.includes('-')) {
           const [start, end] = expStr.split('-').map(num => parseInt(num.trim()));
           if (end <= start) {
@@ -193,12 +265,11 @@ export const PostJobForm = ({ onCancel }) => {
         }
       }
     } else if (formData.fresher === 'yes') {
-      // Experience is OPTIONAL when fresher = yes
-      // Only validate format if user entered something
       if (expStr && !expRegex.test(expStr)) {
         newErrors.experience = "Invalid format (e.g., '0', '0-6', '3-12')";
       }
     }
+
     // Openings
     const openingsStr = String(formData.openings).trim();
     if (!openingsStr || openingsStr === '0') {
@@ -211,17 +282,17 @@ export const PostJobForm = ({ onCancel }) => {
     if (!formData.job_highlights[0]?.trim()) {
       newErrors.job_highlights = "First highlight is required";
     } else if (!contentRegex.test(formData.job_highlights[0])) {
-      newErrors.job_highlights = "Must contain letters (no symbols)";
+      newErrors.job_highlights = "Must be at least 5 characters";
     }
 
     // Responsibilities
     if (!formData.responsibilities[0]?.trim()) {
       newErrors.responsibilities = "First responsibility is required";
     } else if (!contentRegex.test(formData.responsibilities[0])) {
-      newErrors.responsibilities = "Must contain letters (no symbols)";
+      newErrors.responsibilities = "Must be at least 5 characters";
     }
 
-    // Standard checks for the rest
+    // Standard checks
     if (formData.industry_type.length === 0) newErrors.industry_type = "Select industrial type";
     if (formData.department.length === 0) newErrors.department = "Select department";
     if (formData.education.length === 0) newErrors.education = "Select education";
@@ -244,8 +315,6 @@ export const PostJobForm = ({ onCancel }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-
-
   const handleCheckboxChange = (name, value, allOptions = []) => {
     setErrors({ ...errors, [name]: "" });
 
@@ -263,10 +332,14 @@ export const PostJobForm = ({ onCancel }) => {
     });
   };
 
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setErrors({ ...errors, [name]: "" });
+
+    if (name === 'work_duration') {
+      setFormData((prev) => ({ ...prev, work_duration: value.replace(/\s{2,}/g, ' ') }));
+      return;
+    }
 
     if (type === 'checkbox') {
       if (name.includes('.')) {
@@ -282,14 +355,32 @@ export const PostJobForm = ({ onCancel }) => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && e.target.name === 'key_skills_input') {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      const newSkill = e.target.value.trim();
-      if (newSkill && !skillsList.includes(newSkill)) {
-        setSkillsList([...skillsList, newSkill]);
-        setFormData({ ...formData, key_skills_input: '' });
-        setErrors({ ...errors, key_skills: "" });
+      const newSkill = skillInput.trim();
+
+      if (!newSkill) return;
+
+      if (skillsList.length >= 20) {
+        setErrors({ ...errors, key_skills: "You can add a maximum of 20 skills." });
+        return;
       }
+
+      const hasLetter = /[a-zA-Z]/.test(newSkill);
+      if (!hasLetter) {
+        setErrors({ ...errors, key_skills: "Invalid skill name. Must contain at least one alphabetical letter." });
+        return;
+      }
+
+      if (skillsList.some(s => s.toLowerCase() === newSkill.toLowerCase())) {
+        setErrors({ ...errors, key_skills: "This skill has already been added." });
+        return;
+      }
+
+      setSkillsList([...skillsList, newSkill]);
+      setSkillInput('');
+      setFilteredSkills([]);
+      setErrors({ ...errors, key_skills: "" });
     }
   };
 
@@ -332,7 +423,6 @@ export const PostJobForm = ({ onCancel }) => {
     });
   };
 
-  // Handle removing a responsibility
   const removeResponsibilityField = (index) => {
     if (formData.responsibilities.length > 1) {
       const newRes = formData.responsibilities.filter((_, i) => i !== index);
@@ -340,7 +430,6 @@ export const PostJobForm = ({ onCancel }) => {
     }
   };
 
-  // Function to combine fresher and experience fields
   const combineExperienceData = () => {
     const fresherValue = formData.fresher === 'yes' ? 'Fresher' : '';
     const experienceValue = formData.experience.trim();
@@ -355,20 +444,72 @@ export const PostJobForm = ({ onCancel }) => {
     return '';
   };
 
+  const parseExperienceData = (expStr) => {
+    if (!expStr) return { fresher: '', experience: '' };
+    const isFresher = /fresher/i.test(expStr);
+    const numMatch = expStr.match(/(\d+(?:\s*-\s*\d+)?)\s*years?/i);
+    const experience = numMatch ? numMatch[1].replace(/\s+/g, '') : '';
+    return { fresher: isFresher ? 'yes' : (experience ? 'no' : ''), experience };
+  };
+
+  useEffect(() => {
+    if (!editJobData) return;
+    const { fresher, experience } = parseExperienceData(editJobData.experience);
+    setFormData({
+      job_title: editJobData.job_title || '',
+      industry_type: editJobData.industry_type || [],
+      department: editJobData.department || [],
+      education: editJobData.education || [],
+      work_type: editJobData.work_type || '',
+      shift: Array.isArray(editJobData.shift) ? editJobData.shift[0] : (editJobData.shift || ''),
+      work_duration: editJobData.work_duration || '',
+      salary: editJobData.salary || '',
+      fresher,
+      experience,
+      location: editJobData.location || [],
+      openings: editJobData.openings ?? '',
+      job_category: editJobData.job_category || '',
+      key_skills: editJobData.key_skills || [],
+      job_highlights: editJobData.job_highlights?.length ? editJobData.job_highlights : [''],
+      job_description: editJobData.job_description || '',
+      responsibilities: editJobData.responsibilities?.length ? editJobData.responsibilities : ['']
+    });
+    setSkillsList(editJobData.key_skills || []);
+    setLocationList(editJobData.location || []);
+  }, [editJobData]);
+
+  // ============================================
+  // HANDLE SUBMIT WITH PLAN CHECK
+  // ============================================
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
-    if (!validateForm()) {
-      return false; // stops form submit if errors
+
+    // ✅ Check if plan is cancelled or expired
+    if (!accessState.hasAccess) {
+      const isExpired = accessState.isExpired;
+      const isCancelled = accessState.isCancelled;
+
+      alert(
+        isCancelled
+          ? 'Your plan has been cancelled. Please reactivate to post jobs.'
+          : isExpired
+            ? 'Your plan has expired. Please renew to post jobs.'
+            : 'Your subscription is not active. Please contact support.'
+      );
+
+      navigate('/Job-portal/Employer/Dashboard', {
+        state: { targetTab: 'Billing' }
+      });
+      return false;
     }
 
-    // Convert location array to comma-separated string
-    const locationString = locationList.join(', ');
+    // Proceed with validation
+    if (!validateForm()) {
+      return false;
+    }
 
-    // Combine fresher and experience data
-    const combinedExperience = combineExperienceData();
-
-    // Prepare data for backend - match PostAJob model exactly
     const submissionData = {
+      ...(isEditMode && { id: editJobData.id }),
       job_title: formData.job_title,
       industry_type: formData.industry_type,
       department: formData.department,
@@ -376,8 +517,8 @@ export const PostJobForm = ({ onCancel }) => {
       shift: formData.shift,
       work_duration: formData.work_duration,
       salary: formData.salary || 0,
-      experience: combinedExperience, // Send combined data
-      location: locationList,  // Send as string, not array
+      experience: combineExperienceData(),
+      location: locationList,
       openings: parseInt(formData.openings) || 0,
       job_category: formData.job_category,
       education: formData.education,
@@ -391,9 +532,146 @@ export const PostJobForm = ({ onCancel }) => {
     navigate('/Job-portal/Employer/PostJobpreview', { state: submissionData });
   };
 
+  // ============================================
+  // RENDER - LOADING
+  // ============================================
+  if (accessState.loading) {
+    return (
+      <div className="jobpost-page-title">
+        <main className="jobpost-main-content">
+          <div style={{ textAlign: "center", padding: "80px 20px" }}>
+            <div className="spinner" style={{
+              width: "40px",
+              height: "40px",
+              border: "4px solid #f3f3f3",
+              borderTop: "4px solid #007bff",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              margin: "0 auto 20px"
+            }}></div>
+            <p style={{ color: "#64748b" }}>Checking plan access...</p>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ============================================
+  // RENDER - NO ACCESS (LOCK PAGE)
+  // ============================================
+  if (!accessState.hasAccess) {
+    const isExpired = accessState.isExpired;
+    const isCancelled = accessState.isCancelled;
+
+    return (
+      <div className="jobpost-page-title">
+        <main className="jobpost-main-content">
+          <header className="jobpost-form-header">
+            <h1>Post a Job</h1>
+
+            <p>Complete the steps below to reach thousands of qualified candidates</p>
+          </header>
+
+          <div style={{
+            textAlign: "center",
+            padding: "60px 20px",
+            maxWidth: "550px",
+            margin: "20px auto",
+            background: "#fff",
+            borderRadius: "12px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
+          }}>
+            <div style={{ fontSize: "72px", marginBottom: "20px" }}>
+              {isCancelled ? '🚫' : '⏰'}
+            </div>
+            <h2 style={{ color: "#1e293b", marginBottom: "15px", fontSize: "28px" }}>
+              {isCancelled ? 'Plan Cancelled' : 'Access Expired'}
+            </h2>
+            <p style={{ color: "#64748b", marginBottom: "25px", lineHeight: "1.6", fontSize: "16px" }}>
+              {accessState.message}
+            </p>
+
+            <div style={{
+              background: isCancelled ? "#fee2e2" : "#fee2e2",
+              border: isCancelled ? "1px solid #fecaca" : "1px solid #fecaca",
+              borderRadius: "12px",
+              padding: "20px",
+              marginBottom: "30px",
+              fontSize: "14px",
+              color: "#991b1b",
+              textAlign: "left"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                <span style={{ fontSize: "20px" }}>⚠️</span>
+                <strong style={{ fontSize: "15px" }}>
+                  {isCancelled ? 'What you lost:' : 'What you lose:'}
+                </strong>
+              </div>
+              <ul style={{ margin: "10px 0 0 20px", padding: 0 }}>
+                <li style={{ marginBottom: "8px" }}>✓ Post new job openings</li>
+                <li style={{ marginBottom: "8px" }}>✓ Reach thousands of candidates</li>
+                <li style={{ marginBottom: "8px" }}>✓ Manage job applications</li>
+                <li style={{ marginBottom: "8px" }}>✓ Track hiring progress</li>
+              </ul>
+            </div>
+
+            <div style={{ display: "flex", gap: "15px", justifyContent: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={() => {
+                  navigate('/Job-portal/Employer/Dashboard', {
+                    state: { targetTab: 'Billing' }
+                  });
+                }}
+                style={{
+                  padding: "12px 30px",
+                  background: "#007bff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  cursor: "pointer"
+                }}
+              >
+                {isCancelled ? 'Reactivate Plan Now' : 'Renew Plan Now'}
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/Job-portal/Employer/Dashboard', {
+                    state: { targetTab: 'Dashboard' }
+                  });
+                }}
+                style={{
+                  padding: "12px 30px",
+                  background: "#f1f5f9",
+                  color: "#475569",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  cursor: "pointer"
+                }}
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ============================================
+  // RENDER - HAS ACCESS (SHOW FORM)
+  // ============================================
   return (
     <>
-      {/* <EHeader />  */}
       <div className="jobpost-page-title">
         <main className="jobpost-main-content">
           <header className="jobpost-form-header">
@@ -403,14 +681,16 @@ export const PostJobForm = ({ onCancel }) => {
 
           <div className="jobpost-form-container">
             <form className="jobpost-form" onSubmit={handleSubmit}>
+              {/* Job Title */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Job title</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <input className={`jobpost-input ${errors.job_title ? "input-error" : ""}`} type="text" name="job_title" placeholder="e.g., Fullstack Developer" value={formData.job_title} onChange={handleChange} />
+                  <input className={`jobpost-input ${errors.job_title ? "input-error" : ""}`} type="text" name="job_title" placeholder="e.g., Fullstack Developer" value={formData.job_title} onChange={handleChange} maxLength="50" />
                   {errors.job_title && <span className="error-msg">{errors.job_title}</span>}
                 </div>
               </div>
 
+              {/* Industrial Type */}
               <div className="jobpost-form-row jobpost-top-align">
                 <label className="jobpost-label">Industrial type</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -438,6 +718,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Department */}
               <div className="jobpost-form-row jobpost-top-align">
                 <label className="jobpost-label">Department</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -473,6 +754,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Work Type */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Work type</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -491,6 +773,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Shift */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Shift</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -509,6 +792,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Work Duration */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Work duration</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -517,6 +801,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Salary */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Salary</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -525,6 +810,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Fresher */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Fresher</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -552,7 +838,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
-              {/* Modified Experience Field */}
+              {/* Experience */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Experience (in years)</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -569,17 +855,15 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Location */}
               <div className="jobpost-form-row jobpost-top-align">
                 <label className="jobpost-label">Location</label>
-
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div className={`jobpost-dropdown ${openDropdown === 'location' ? 'jobpost-is-active' : ''} ${errors.location ? "input-error" : ""}`}>
-
                     <div className="jobpost-dropdown-trigger" onClick={() => toggleDropdown('location')}>
                       {locationList.length > 0 ? locationList.join(', ') : 'Select Locations'}
                       <i className="fas fa-angle-down jobpost-arrow"></i>
                     </div>
-
                     <div className="jobpost-dropdown-panel">
                       <label className="jobpost-select-all">
                         <input
@@ -599,8 +883,6 @@ export const PostJobForm = ({ onCancel }) => {
                         />
                         <strong>Select all Locations</strong>
                       </label>
-
-                      {/* Options */}
                       <div className="jobpost-options-grid">
                         {locationsList.map((loc) => (
                           <label key={loc} className="jobpost-option-item">
@@ -611,7 +893,6 @@ export const PostJobForm = ({ onCancel }) => {
                                 const updated = locationList.includes(loc)
                                   ? locationList.filter(l => l !== loc)
                                   : [...locationList, loc];
-
                                 setLocationList(updated);
                                 setErrors({ ...errors, location: "" });
                               }}
@@ -619,15 +900,14 @@ export const PostJobForm = ({ onCancel }) => {
                             {loc}
                           </label>
                         ))}
-
                       </div>
                     </div>
                   </div>
-
                   {errors.location && <span className="error-msg">{errors.location}</span>}
                 </div>
               </div>
 
+              {/* Openings */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Openings</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -636,6 +916,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Job Category */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Job category</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -651,6 +932,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Education */}
               <div className="jobpost-form-row jobpost-top-align">
                 <label className="jobpost-label">Education</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -673,6 +955,7 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Key Skills */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Key skills</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -682,12 +965,11 @@ export const PostJobForm = ({ onCancel }) => {
                       style={errors.key_skills ? { borderColor: '#d93025' } : {}}
                       type="text"
                       name="keySkills"
-                      placeholder="Press Enter to add skills  (e.g., Python, AWS, React etc...)"
+                      placeholder="Press Enter to add skills (e.g., Python, AWS, React etc...)"
                       value={skillInput}
                       onChange={handleSkillChange}
                       onKeyDown={handleKeyDown}
                     />
-                    {/* SUGGESTIONS LIST */}
                     {filteredSkills.length > 0 && (
                       <ul className="skills-suggestions-list">
                         {filteredSkills.map((skill, index) => (
@@ -709,12 +991,12 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Job Highlights */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Job highlights</label>
                 <div className="highlights-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   {formData.job_highlights.map((highlight, index) => (
                     <div key={index} className="jobpost-input-icon-titile">
-
                       <input
                         className={`jobpost-input ${errors.job_highlights && index === 0 ? "input-error" : ""}`}
                         type="text"
@@ -722,32 +1004,18 @@ export const PostJobForm = ({ onCancel }) => {
                         value={highlight}
                         onChange={(e) => handleHighlightChange(index, e.target.value)}
                       />
-
                       {index === 0 ? (
-                        <span
-                          className="jobpost-plus-icon"
-                          onClick={addHighlightField}
-                        >
-                          +
-                        </span>
+                        <span className="jobpost-plus-icon" onClick={addHighlightField}>+</span>
                       ) : (
-                        /* Every item after the first shows a clean Delete/Minus button */
-                        <span
-                          className="jobpost-minus-icon"
-                          onClick={() => removeHighlightField(index)}
-                        >
-                          -
-                        </span>
+                        <span className="jobpost-minus-icon" onClick={() => removeHighlightField(index)}>-</span>
                       )}
                     </div>
                   ))}
-
-                  {errors.job_highlights && (
-                    <span className="error-msg">{errors.job_highlights}</span>
-                  )}
+                  {errors.job_highlights && <span className="error-msg">{errors.job_highlights}</span>}
                 </div>
               </div>
 
+              {/* Job Description */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Job description</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -756,12 +1024,12 @@ export const PostJobForm = ({ onCancel }) => {
                 </div>
               </div>
 
+              {/* Responsibilities */}
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Responsibilities</label>
                 <div className="responsibilities-list" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   {formData.responsibilities.map((res, index) => (
                     <div key={index} className="jobpost-input-icon-titile">
-
                       <input
                         className={`jobpost-input ${errors.responsibilities && index === 0 ? "input-error" : ""}`}
                         type="text"
@@ -769,42 +1037,27 @@ export const PostJobForm = ({ onCancel }) => {
                         value={res}
                         onChange={(e) => handleResponsibilityChange(index, e.target.value)}
                       />
-
                       {index === 0 ? (
-                        <span
-                          className="jobpost-plus-icon"
-                          onClick={addResponsibilityField}
-                        >
-                          +
-                        </span>
+                        <span className="jobpost-plus-icon" onClick={addResponsibilityField}>+</span>
                       ) : (
-                        /* Sub-fields cleanly shift into place with Minus icon badges */
-                        <span
-                          className="jobpost-minus-icon"
-                          onClick={() => removeResponsibilityField(index)}
-                        >
-                          -
-                        </span>
+                        <span className="jobpost-minus-icon" onClick={() => removeResponsibilityField(index)}>-</span>
                       )}
                     </div>
                   ))}
-
-                  {errors.responsibilities && (
-                    <span className="error-msg">{errors.responsibilities}</span>
-                  )}
+                  {errors.responsibilities && <span className="error-msg">{errors.responsibilities}</span>}
                 </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="jobpost-actions">
+                <button type="button" className="jobpost-btn-cancel" onClick={onCancel || (() => navigate(-1))}>Cancel</button>
+                {/* <button type="button" className="jobpost-btn-preview" onClick={handleSubmit}>Preview</button> */}
+                <button type="button" className="jobpost-btn-preview" onClick={handleSubmit}>{isEditMode ? 'Preview Changes' : 'Preview'}</button>
               </div>
             </form>
           </div>
-
-          <div className="jobpost-actions">
-            <button type="button" className="jobpost-btn-cancel" onClick={handleCancel}>Cancel</button>
-            <button type="button" className="jobpost-btn-preview" onClick={handleSubmit}>Preview</button>
-          </div>
         </main>
-
       </div>
-      {/* <Footer /> */}
     </>
   );
 };

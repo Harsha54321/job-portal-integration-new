@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import './AboutUs.css'
 import WorkLife from "../assets/WorkLifeBet.png"
 import forjobseekers from '../assets/jobSeeker.png'
@@ -14,6 +14,23 @@ import Research from '../assets/Research.png'
 import { FHeader } from '../Components-Jobseeker/FHeader'
 
 export const AboutUs = () => {
+    const [imagesLoaded, setImagesLoaded] = useState(false);
+
+    // Preload critical images (hero section)
+    useEffect(() => {
+        const preloadImages = [
+            WorkLife,
+            forjobseekers,
+            forEmployers,
+            forEmployees
+        ];
+
+        preloadImages.forEach(src => {
+            const img = new Image();
+            img.src = src;
+        });
+    }, []);
+
     return (
         <>
             <FHeader />
@@ -29,7 +46,13 @@ export const AboutUs = () => {
                     <p>But the way we do it? That's not so simple. Every day, we're inspired to build a healthier, more transparent work community for all and we're committed to your trust. Through the products we make and the communities we create, we give people an inside look at companies and careers, so they can find the right job and workplace for them. Together, we're fostering a world where people have the support and resources they need to make the most of their worklife.</p>
                 </div>
                 <div className='Aboutus-Desc-Container'>
-                    <img className='Aboutus-Images' src={WorkLife} alt='workLife' />
+                    <img
+                        className='Aboutus-Images'
+                        src={WorkLife}
+                        alt='workLife'
+                        loading="eager"
+                        onLoad={() => console.log('Hero image loaded')}
+                    />
                 </div>
             </div>
 
@@ -37,21 +60,39 @@ export const AboutUs = () => {
             <div className='Aboutus-Types'>
                 <div className='Aboutus-TypeDesc'>
                     <div className='Aboutus-Mid-Images'>
-                        <img className='Aboutus-types-Images' src={forjobseekers} alt='jobseekers' />
+                        <img
+                            className='Aboutus-types-Images'
+                            src={forjobseekers}
+                            alt='jobseekers'
+                            loading="lazy"
+                            decoding="async"
+                        />
                     </div>
                     <h4>For JobSeekers</h4>
                     <p>We simplify your search, so you can apply for jobs with confidence. Filter millions of jobs and ratings, talk to professionals, and get smart on salary—then apply with ease.</p>
                 </div>
                 <div className='Aboutus-TypeDesc'>
                     <div className='Aboutus-Mid-Images'>
-                        <img className='Aboutus-types-Images' src={forEmployees} alt='Employees' />
+                        <img
+                            className='Aboutus-types-Images'
+                            src={forEmployees}
+                            alt='Employees'
+                            loading="lazy"
+                            decoding="async"
+                        />
                     </div>
-                    <h4>For Employees</h4>
+                    <h4>Review Your Workplace</h4>
                     <p>We amplify your voice, so you can enhance your workplace experience. Leave reviews, search and post salaries, and join candid conversations about life at work.</p>
                 </div>
                 <div className='Aboutus-TypeDesc'>
                     <div className='Aboutus-Mid-Images'>
-                        <img className='Aboutus-types-Images' src={forEmployers} alt='Employers' />
+                        <img
+                            className='Aboutus-types-Images'
+                            src={forEmployers}
+                            alt='Employers'
+                            loading="lazy"
+                            decoding="async"
+                        />
                     </div>
                     <h4>For Employers</h4>
                     <p>We give you a place to shape and share your story, so you can find and keep the best talent. Post jobs, respond to reviews, and gain insights to shape your messaging.</p>
@@ -61,7 +102,13 @@ export const AboutUs = () => {
             {/* Third Section - Work at JobPortal */}
             <div className='Aboutus-Midsec'>
                 <div className='Aboutus-Midsec-Desc-Container'>
-                    <img className='Aboutus-Midsec-Images' src={WorkatJP} alt='workLife' />
+                    <img
+                        className='Aboutus-Midsec-Images'
+                        src={WorkatJP}
+                        alt='workLife'
+                        loading="lazy"
+                        decoding="async"
+                    />
                 </div>
                 <div className='Aboutus-Midsec-Desc-Container'>
                     <div className='Aboutus-midseccontent'>
@@ -75,21 +122,39 @@ export const AboutUs = () => {
             <div className='Aboutus-Types'>
                 <div className='Aboutus-TypeDesc'>
                     <div className='Aboutus-Mid-Images'>
-                        <img className='Aboutus-types-Images' src={News} alt='NewsRoom' />
+                        <img
+                            className='Aboutus-types-Images'
+                            src={News}
+                            alt='NewsRoom'
+                            loading="lazy"
+                            decoding="async"
+                        />
                     </div>
                     <h4>NewsRoom</h4>
                     <p>Check out our latest press releases and media appearances, or search our archive.</p>
                 </div>
                 <div className='Aboutus-TypeDesc'>
                     <div className='Aboutus-Mid-Images'>
-                        <img className='Aboutus-types-Images' src={Blogs} alt='Blogs' />
+                        <img
+                            className='Aboutus-types-Images'
+                            src={Blogs}
+                            alt='Blogs'
+                            loading="lazy"
+                            decoding="async"
+                        />
                     </div>
                     <h4>Blogs</h4>
                     <p>We amplify your voice, so you can enhance your workplace experience. Leave reviews, search and post salaries, and join candid conversations about life at work.</p>
                 </div>
                 <div className='Aboutus-TypeDesc'>
                     <div className='Aboutus-Mid-Images'>
-                        <img className='Aboutus-types-Images' src={Research} alt='Research' />
+                        <img
+                            className='Aboutus-types-Images'
+                            src={Research}
+                            alt='Research'
+                            loading="lazy"
+                            decoding="async"
+                        />
                     </div>
                     <h4>Our Research</h4>
                     <p>We give you a place to shape and share your story, so you can find and keep the best talent. Post jobs, respond to reviews, and gain insights to shape your messaging.</p>
@@ -103,7 +168,13 @@ export const AboutUs = () => {
                     <p>Hiring on a job portal website is a strategic, technology-driven process of identifying, evaluating, and securing top-tier talent to fill vacant positions. Unlike broad recruitment—which focuses on attracting a large talent pool—hiring on modern platforms is a "selective and reactive" phase where hiring managers make definitive decisions about specific individuals from a pre-vetted list.</p>
                 </div>
                 <div className='Aboutus-Desc-Container'>
-                    <img className='Aboutus-Images' src={HiringJobs} alt='Hiring Jobs' />
+                    <img
+                        className='Aboutus-Images'
+                        src={HiringJobs}
+                        alt='Hiring Jobs'
+                        loading="lazy"
+                        decoding="async"
+                    />
                 </div>
             </div>
 
@@ -114,7 +185,13 @@ export const AboutUs = () => {
                     <p>Success in a job portal is defined as maintaining an optimized, results-oriented profile that consistently translates search visibility into interview invitations. This is achieved by crafting a concise professional summary—typically two to four sentences—that combines a strong job title, years of relevant experience, and measurable achievements, such as "increased efficiency by 20%" or "boosted sales by 15%". A successful profile also strategically incorporates industry-specific keywords from job descriptions to pass through Applicant Tracking Systems (ATS), while highlighting both technical expertise and essential soft skills like leadership and problem-solving to appeal to human recruiters. Ultimately, a "successful" portal presence serves as a high-impact digital handshake that clearly communicates your unique value proposition and alignment with an employer's goals, resulting in an interview conversion rate significantly higher than the industry average.</p>
                 </div>
                 <div className='Aboutus-Success-Desc-Container'>
-                    <img className='Aboutus-Success-Images' src={Success} alt='Success' />
+                    <img
+                        className='Aboutus-Success-Images'
+                        src={Success}
+                        alt='Success'
+                        loading="lazy"
+                        decoding="async"
+                    />
                 </div>
             </div>
 

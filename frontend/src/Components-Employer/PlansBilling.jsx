@@ -4,6 +4,7 @@ import FileIcon from '../assets/Billing/File_icon.png';
 import DeleteIcon from '../assets/Billing/Delete_icon.png';
 import { MembershipPlans } from './MembershipPlans';
 import { PaymentMethods } from './PaymentMethods';
+import { PlanExpiryPopup } from './PlanExpiryPopup';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import api from '../api/axios';
@@ -13,6 +14,7 @@ export const PlansBilling = () => {
     const [view, setView] = useState('overview');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [planStatus, setPlanStatus] = useState('ACTIVE');
+    const [isExpired, setIsExpired] = useState(false);
     const [paymentTab, setPaymentTab] = useState('card');
     const [isCardOnly, setIsCardOnly] = useState(false);
     const [cardToDelete, setCardToDelete] = useState(null);
@@ -23,6 +25,25 @@ export const PlansBilling = () => {
     const [activePlan, setActivePlan] = useState(null);
     const [savedCards, setSavedCards] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showExpiryPopup, setShowExpiryPopup] = useState(false);
+
+    const handleUpgradeFromExpiry = () => {
+        setShowExpiryPopup(false);
+        setView('upgrade');
+    };
+
+    useEffect(() => {
+        // Check if user just logged in and show expiry popup if needed
+        const lastExpiryCheck = sessionStorage.getItem('lastExpiryCheck');
+        const now = Date.now();
+
+        if (!lastExpiryCheck || (now - parseInt(lastExpiryCheck)) > 3600000) { // Check every hour
+            sessionStorage.setItem('lastExpiryCheck', now.toString());
+        }
+    }, []);
+
+
+
 
     useEffect(() => {
         fetchRealData();
@@ -188,6 +209,117 @@ export const PlansBilling = () => {
     // };
 
 
+    // const fetchRealData = async () => {
+    //     setIsLoading(true);
+    //     try {
+    //         const subRes = await api.get('/subscription/');
+    //         const invRes = await api.get('/invoices/');
+
+    //         let latestPaidPrice = null;
+    //         let latestPaidPlan = null;
+
+    //         if (invRes.data && invRes.data.length > 0) {
+    //             const formatted = invRes.data.map(inv => ({
+    //                 id: inv.invoice_number,
+    //                 plan: normalizePlanName(inv.plan_name),
+    //                 date: new Date(inv.invoice_date).toLocaleDateString('en-US', {
+    //                     month: 'long', day: 'numeric', year: 'numeric'
+    //                 }).toUpperCase(),
+    //                 price: inv.total,
+    //                 status: inv.payment_status.toUpperCase(),
+    //                 method: inv.payment_method,
+    //                 subtotal: inv.subtotal,
+    //                 cgst: inv.gst / 2,
+    //                 sgst: inv.gst / 2,
+    //                 company_name: inv.company_name,
+    //                 email: inv.email,
+    //                 phone: inv.phone,
+    //                 transaction_id: inv.transaction_id,
+    //                 duration: inv.duration,
+    //                 start_date: inv.start_date,
+    //                 end_date: inv.end_date,
+    //                 db_id: inv.id
+    //             }));
+    //             setBillingHistory(formatted);
+
+    //             const paidInvoices = formatted.filter(inv => inv.status === 'PAID');
+    //             if (paidInvoices.length > 0) {
+    //                 paidInvoices.sort((a, b) => b.db_id - a.db_id);
+    //                 latestPaidPrice = paidInvoices[0].price;
+    //                 latestPaidPlan = paidInvoices[0].plan;
+    //             }
+    //         }
+
+    //         if (subRes.data && subRes.data.plan) {
+    //             const currentPlan = subRes.data.plan;
+    //             const normalizedPlanName = normalizePlanName(currentPlan.name);
+
+    //             const displayPrice = latestPaidPrice || 0;
+
+    //             setActivePlan({
+    //                 id: currentPlan.id,
+    //                 name: normalizedPlanName,
+    //                 price: displayPrice,
+    //                 status: subRes.data.status.toUpperCase(),
+    //                 features: currentPlan.features || [],
+    //                 price: parseFloat(currentPlan.monthly_price) || 0,
+    //                 nextInvoice: new Date(subRes.data.end_date).toLocaleDateString('en-US', {
+    //                     month: 'long', day: 'numeric', year: 'numeric'
+    //                 }),
+    //                 planType: subRes.data.duration === '6_months' ? '6 Months' :
+    //                     subRes.data.duration === 'yearly' ? 'Yearly' : 'Monthly'
+    //             });
+    //             setPlanStatus(subRes.data.status.toUpperCase());
+    //             setIsExpired(subRes.data.is_expired || false);
+
+    //             if (displayPrice > 0 && subRes.data.status === 'active') {
+    //                 setPendingInvoices([{
+    //                     id: `INV-NEXT-${Date.now()}`,
+    //                     plan: latestPaidPlan || normalizedPlanName,
+    //                     price: displayPrice,
+    //                     dueDate: new Date(subRes.data.end_date).toLocaleDateString('en-US', {
+    //                         month: 'long', day: 'numeric', year: 'numeric'
+    //                     })
+    //                 }]);
+    //             } else {
+    //                 setPendingInvoices([]);
+    //             }
+    //         }
+
+    //         // Payment methods
+    //         const payRes = await api.get('/payment-methods/');
+    //         if (payRes.data && payRes.data.length > 0) {
+    //             const uniqueCards = [];
+    //             const seenLast4 = new Set();
+    //             payRes.data
+    //                 .filter(m => m.method_type === 'card')
+    //                 .forEach(m => {
+    //                     if (!seenLast4.has(m.card_last4)) {
+    //                         seenLast4.add(m.card_last4);
+    //                         uniqueCards.push({
+    //                             id: m.id,
+    //                             name: m.card_holder_name || 'Card Holder',
+    //                             number: `**** ${m.card_last4 || '0000'}`,
+    //                             expiry: m.expiry_date || 'N/A',
+    //                             type: m.method_type,
+    //                             isDefault: m.is_default
+    //                         });
+    //                     }
+    //                 });
+    //             setSavedCards(uniqueCards);
+    //         }
+
+    //         // Available plans
+    //         const plansRes = await api.get('/plans/');
+    //         setAvailablePlans(plansRes.data);  // raw data
+
+    //     } catch (error) {
+    //         console.error('Error fetching billing data:', error);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
     const fetchRealData = async () => {
         setIsLoading(true);
         try {
@@ -221,7 +353,6 @@ export const PlansBilling = () => {
                 }));
                 setBillingHistory(formatted);
 
-                // ✅ Latest paid invoice నుండి price తీసుకోండి
                 const paidInvoices = formatted.filter(inv => inv.status === 'PAID');
                 if (paidInvoices.length > 0) {
                     paidInvoices.sort((a, b) => b.db_id - a.db_id);
@@ -234,24 +365,33 @@ export const PlansBilling = () => {
                 const currentPlan = subRes.data.plan;
                 const normalizedPlanName = normalizePlanName(currentPlan.name);
 
-                // ✅ Invoice price వాడండి — backend monthly_price కాదు
                 const displayPrice = latestPaidPrice || 0;
+
+                // ✅ Determine correct status
+                const isExpired = subRes.data.is_expired || false;
+                let statusDisplay = subRes.data.status.toUpperCase();
+
+                // ✅ If plan is expired, override status to 'EXPIRED'
+                if (isExpired) {
+                    statusDisplay = 'EXPIRED';
+                }
 
                 setActivePlan({
                     id: currentPlan.id,
                     name: normalizedPlanName,
-                    price: displayPrice,  // ✅ ₹1180 వస్తుంది
-                    status: subRes.data.status.toUpperCase(),
+                    price: displayPrice,
+                    status: statusDisplay,
+                    features: currentPlan.features || [],
                     nextInvoice: new Date(subRes.data.end_date).toLocaleDateString('en-US', {
                         month: 'long', day: 'numeric', year: 'numeric'
                     }),
                     planType: subRes.data.duration === '6_months' ? '6 Months' :
                         subRes.data.duration === 'yearly' ? 'Yearly' : 'Monthly'
                 });
-                setPlanStatus(subRes.data.status.toUpperCase());
+                setPlanStatus(statusDisplay);
+                setIsExpired(isExpired);
 
-                // ✅ Next invoice set చేయండి
-                if (displayPrice > 0 && subRes.data.status === 'active') {
+                if (displayPrice > 0 && subRes.data.status === 'active' && !isExpired) {
                     setPendingInvoices([{
                         id: `INV-NEXT-${Date.now()}`,
                         plan: latestPaidPlan || normalizedPlanName,
@@ -290,7 +430,7 @@ export const PlansBilling = () => {
 
             // Available plans
             const plansRes = await api.get('/plans/');
-            setAvailablePlans(plansRes.data);  // raw data
+            setAvailablePlans(plansRes.data);
 
         } catch (error) {
             console.error('Error fetching billing data:', error);
@@ -424,79 +564,39 @@ export const PlansBilling = () => {
     };
 
     const handleUpgrade = async (newPlan, billingCycle) => {
-
         console.log('billingCycle received:', billingCycle);
-        const normalizedName = normalizePlanName(newPlan.name);
-        // const isStarterPlan = normalizedName === 'STARTER PLAN' || newPlan.price === 0;
 
-        // if (isStarterPlan) {
-        //     setIsProcessing(true);
+        // Normalize duration for backend
+        let durationParam = 'monthly';
+        let planType = 'Monthly';
 
-        //     const activePlanData = {
-        //         id: newPlan.id,
-        //         name: 'STARTER PLAN',
-        //         price: 0,
-        //         status: 'ACTIVE',
-        //         planType: billingCycle === 'monthly' ? 'Monthly' :
-        //             billingCycle === '6 Months' ? '6 Months' : 'Yearly',
-        //         nextInvoice: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-        //             month: 'long', day: 'numeric', year: 'numeric'
-        //         })
-        //     };
+        if (billingCycle === '6 Months') {
+            durationParam = '6_months';
+            planType = '6 Months';
+        } else if (billingCycle === 'yearly') {
+            durationParam = 'yearly';
+            planType = 'Yearly';
+        }
 
-        //     setActivePlan(activePlanData);
-        //     setPlanStatus('ACTIVE');
-        //     setPendingInvoices([]);
-
-        //     alert('STARTER PLAN activated successfully!');
-        //     setView('overview');
-        //     setIsProcessing(false);
-        //     await fetchRealData();
-        //     return;
-        // }
-
-        // const calculateNextInvoice = (cycle) => {
-        //     const date = new Date();
-        //     if (cycle === 'Yearly') date.setFullYear(date.getFullYear() + 1);
-        //     else if (cycle === '6 Months') date.setMonth(date.getMonth() + 6);
-        //     else date.setMonth(date.getMonth() + 1);
-        //     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        // };
-        const calculateNextInvoice = (cycle) => {
-            const date = new Date();
-            if (cycle === 'Yearly' || cycle === 'yearly') {
-                date.setFullYear(date.getFullYear() + 1);
-            } else if (cycle === '6 Months' || cycle === '6_months') {
-                date.setMonth(date.getMonth() + 6);
-            } else {
-                date.setMonth(date.getMonth() + 1);
-            }
-            return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        };
-
-
+        // Store plan details for payment
         setAdditionalPlan({
             id: newPlan.id,
-            name: normalizedName,
+            name: newPlan.name,
             price: newPlan.price,
-            subtotal: newPlan.subtotal,
-            cgst: newPlan.cgst,
-            sgst: newPlan.sgst,
-            planType: billingCycle,
-            nextInvoice: calculateNextInvoice(billingCycle)
+            color: newPlan.color,
+            summary: newPlan.summary,
+            planType: planType,
+            duration: durationParam,
+            price_breakdown: newPlan.price_breakdown
         });
 
         setView('payment');
-        setIsCardOnly(false);
-        setPaymentTab('card');
     };
 
     const processPaymentWithRazorpay = async (paymentMethodType) => {
+        if (isProcessing) return;
         setIsProcessing(true);
         try {
-            // const plan = availablePlans.find(p =>
-            //     normalizePlanName(p.name) === normalizePlanName(additionalPlan.name)
-            // );
             const plan = availablePlans.find(p => p.id === additionalPlan.id);
 
             if (!plan) {
@@ -505,24 +605,12 @@ export const PlansBilling = () => {
                 return;
             }
 
-            // let durationParam = 'monthly';
-            // if (additionalPlan.planType === '6 Months') {
-            //     durationParam = '6_months';
-            // } else if (additionalPlan.planType === 'Yearly') {
-            //     durationParam = 'yearly';
-            // }
-            let durationParam = 'monthly';
-            if (additionalPlan.planType === '6 Months' || additionalPlan.planType === '6_months') {
-                durationParam = '6_months';
-            } else if (additionalPlan.planType === 'Yearly' || additionalPlan.planType === 'yearly') {
-                durationParam = 'yearly';
-            }
-
+            // Send correct duration parameter
             const orderRes = await api.post('/create-order/', {
                 plan_id: plan.id,
-                duration: durationParam
+                duration: additionalPlan.duration  // 'monthly', '6_months', or 'yearly'
             });
-            const { order_id, amount, currency, razorpay_key } = orderRes.data;
+            const { order_id, amount, currency, razorpay_key, price_breakdown } = orderRes.data;
 
             const options = {
                 key: razorpay_key,
@@ -537,7 +625,7 @@ export const PlansBilling = () => {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
-                            duration: durationParam,
+                            duration: additionalPlan.duration,
                             payment_method: paymentMethodType
                         });
 
@@ -632,11 +720,28 @@ export const PlansBilling = () => {
     //     setView('upgrade');
     // };
     const handleReactivate = async () => {
+
+        if (isExpired) {
+            setView('upgrade');
+            return;
+        }
+
         try {
             await api.patch('/cancel/');
             await fetchRealData();
             alert('Plan reactivated successfully!');
         } catch (error) {
+
+            if (
+                error?.response?.data?.is_expired
+            ) {
+                alert(
+                    'Subscription expired. Please upgrade again.'
+                );
+                setView('upgrade');
+                return;
+            }
+
             alert('Failed to reactivate');
         }
     };
@@ -686,6 +791,7 @@ export const PlansBilling = () => {
         if (!cardToDelete) return null;
 
         return (
+
             <div className="PlansBilling-modal-overlay">
                 <div className="PlansBilling-modal-content">
                     <h2 className="PlansBilling-modal-title">DELETE CARD?</h2>
@@ -735,19 +841,30 @@ export const PlansBilling = () => {
     }
 
     return (
-        <div className="PlansBilling-container">
-            <div className="PlansBilling-header-box">
-                <h1 className="PlansBilling-main-title">Plans & Billing</h1>
-                <p className="PlansBilling-sub-title">Manage your details and personal preferences here</p>
-            </div>
+        <>
+            {view === 'overview' && <PlanExpiryPopup
+                onUpgrade={handleUpgradeFromExpiry}
+                onClose={() => setShowExpiryPopup(false)}
+                onReactivateSuccess={fetchRealData}
+            />}
+            <div className="PlansBilling-container">
+                <div className="PlansBilling-header-box">
+                    <h1 className="PlansBilling-main-title">Plans & Billing</h1>
+                    <p className="PlansBilling-sub-title">Manage your details and personal preferences here</p>
+                </div>
 
-            <div className="PlansBilling-card PlansBilling-current-plan">
+                {/* <div className="PlansBilling-card PlansBilling-current-plan">
                 <div className="PlansBilling-plan-info">
                     <p className="PlansBilling-label">Current Plan</p>
                     <div className="PlansBilling-title-row">
                         <h2 className="PlansBilling-plan-name">{activePlan?.name || 'No Active Plan'}</h2>
-                        <span className={`PlansBilling-status-badge ${planStatus === 'ACTIVE' ? 'PlansBilling-status-active' : 'PlansBilling-status-cancelled'}`}>
-                            {planStatus}
+                        <span className={`PlansBilling-status-badge ${planStatus === 'ACTIVE'
+                            ? 'PlansBilling-status-active'
+                            : isExpired
+                                ? 'PlansBilling-status-expired'
+                                : 'PlansBilling-status-cancelled'
+                            }`}>
+                            {isExpired ? 'EXPIRED' : planStatus}
                         </span>
                     </div>
                     <p className="PlansBilling-plan-desc">Providing the core tools and services you need at an affordable price</p>
@@ -757,136 +874,262 @@ export const PlansBilling = () => {
                         ₹ {activePlan?.price || '0'} <small>/{activePlan?.planType === 'Monthly' ? 'month' : activePlan?.planType === '6 Months' ? '6 months' : 'year'}</small>
                     </span>
                     <div className="PlansBilling-button-group">
+
                         {planStatus === 'ACTIVE' ? (
-                            <button className="PlansBilling-btn PlansBilling-btn-outline" onClick={handleToggleModal}>Cancel Plan</button>
+
+                            <>
+                                <button
+                                    className="PlansBilling-btn PlansBilling-btn-outline"
+                                    onClick={handleToggleModal}
+                                >
+                                    Cancel Plan
+                                </button>
+
+                                <button
+                                    className="PlansBilling-btn PlansBilling-btn-upgrade"
+                                    onClick={() => setView('upgrade')}
+                                >
+                                    Upgrade Plan
+                                </button>
+                            </>
+
+                        ) : !isExpired ? (
+
+                            <>
+                                <button
+                                    className="PlansBilling-btn PlansBilling-btn-primary"
+                                    onClick={handleReactivate}
+                                >
+                                    Reactivate Plan
+                                </button>
+
+                                <button
+                                    className="PlansBilling-btn PlansBilling-btn-upgrade"
+                                    onClick={() => setView('upgrade')}
+                                >
+                                    Upgrade Plan
+                                </button>
+                            </>
+
                         ) : (
-                            <button className="PlansBilling-btn PlansBilling-btn-primary" onClick={handleReactivate}>Reactivate Plan</button>
+
+                            <button
+                                className="PlansBilling-btn PlansBilling-btn-upgrade"
+                                onClick={() => setView('upgrade')}
+                            >
+                                Upgrade Plan
+                            </button>
+
                         )}
-                        <button className="PlansBilling-btn PlansBilling-btn-upgrade" onClick={() => setView('upgrade')}>Upgrade Plan</button>
+
                     </div>
                 </div>
-            </div>
+            </div> */}
 
-            <div className="PlansBilling-grid-row">
-                <div className="PlansBilling-card PlansBilling-invoice-box">
-                    <h3 className="PlansBilling-section-title">Next Invoices</h3>
-                    {pendingInvoices.length > 0 ? (
-                        <>
-                            <p className="PlansBilling-invoice-price">
-                                ₹ {pendingInvoices[0].price}/-
-                            </p>
-                            <div className="PlansBilling-invoice-details">
-                                <div className="PlansBilling-detail-item">
-                                    <span className="PlansBilling-detail-label">Plan Type</span>
-                                    <span className="PlansBilling-detail-value">: {pendingInvoices[0].plan || activePlan?.name || '-'}</span>
-                                </div>
-                                <div className="PlansBilling-detail-item">
-                                    <span className="PlansBilling-detail-label">Next Date</span>
-                                    <span className="PlansBilling-detail-value">: {pendingInvoices[0].dueDate || activePlan?.nextInvoice || 'N/A'}</span>
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <p className="PlansBilling-no-invoice" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                            No upcoming invoices. You are on free plan.
-                        </p>
-                    )}
-                </div>
+                <div className="PlansBilling-card PlansBilling-current-plan">
+                    <div className="PlansBilling-plan-info">
+                        <p className="PlansBilling-label">Current Plan</p>
+                        <div className="PlansBilling-title-row">
+                            <h2 className="PlansBilling-plan-name">{activePlan?.name || 'No Active Plan'}</h2>
+                            <span className={`PlansBilling-status-badge ${planStatus === 'ACTIVE'
+                                ? 'PlansBilling-status-active'
+                                : isExpired
+                                    ? 'PlansBilling-status-expired'
+                                    : 'PlansBilling-status-cancelled'
+                                }`}>
+                                {isExpired ? 'EXPIRED' : planStatus}
+                            </span>
+                        </div>
+                        <p className="PlansBilling-plan-desc">Providing the core tools and services you need at an affordable price</p>
+                    </div>
+                    <div className="PlansBilling-plan-actions">
+                        <span className="PlansBilling-main-price">
+                            {activePlan?.name === 'STARTER PLAN' || isExpired ? (
+                                'Free Plan'
+                            ) : (
+                                `₹ ${activePlan?.price || '0'}`
+                            )}
+                            {activePlan?.name !== 'STARTER PLAN' && !isExpired && (
+                                <small>/{activePlan?.planType === 'Monthly' ? 'month' : activePlan?.planType === '6 Months' ? '6 months' : 'year'}</small>
+                            )}
+                        </span>
+                        <div className="PlansBilling-button-group">
 
-                <div className="PlansBilling-card PlansBilling-payment-box">
-                    {defaultCard ? (
-                        <div className="Billing-Payment-Display" onClick={handleAddCard}>
-                            <div className="Billing-Payment-header">
-                                <span className="Billing-Payment-title-text">Payment Method</span>
-                                <div className="Billing-brand-badge">{defaultCard.type?.toUpperCase() || 'CARD'}</div>
-                            </div>
-                            <h3 className="Billing-card-number-large">{defaultCard.number}</h3>
-                            <div className="Billing-Payment-footer">
-                                <div className="Billing-card-meta">
-                                    <div className="meta-row"><span className="meta-label">Name Card</span><span className="meta-value">: {defaultCard.name}</span></div>
-                                    <div className="meta-row"><span className="meta-label">Expired Date</span><span className="meta-value">: {defaultCard.expiry}</span></div>
-                                </div>
-                                <div className="Billing-Payment-actions">
-                                    <button className="Billing-btn-change" onClick={handleAddCardOnly}>Change Card</button>
-                                    <button className="Billing-btn-delete-icon" onClick={(e) => openDeletePopup(defaultCard.id, e)}>
-                                        <img src={DeleteIcon} alt="Delete" title='Remove' />
+                            {planStatus === 'ACTIVE' ? (
+
+                                <>
+                                    {/* Only show Cancel Plan button if NOT Starter plan */}
+                                    {activePlan?.name !== 'STARTER PLAN' && (
+                                        <button
+                                            className="PlansBilling-btn PlansBilling-btn-outline"
+                                            onClick={handleToggleModal}
+                                        >
+                                            Cancel Plan
+                                        </button>
+                                    )}
+
+                                    <button
+                                        className="PlansBilling-btn PlansBilling-btn-upgrade"
+                                        onClick={() => setView('upgrade')}
+                                    >
+                                        Upgrade Plan
                                     </button>
+                                </>
+
+                            ) : !isExpired ? (
+
+                                <>
+                                    <button
+                                        className="PlansBilling-btn PlansBilling-btn-primary"
+                                        onClick={handleReactivate}
+                                    >
+                                        Reactivate Plan
+                                    </button>
+
+                                    <button
+                                        className="PlansBilling-btn PlansBilling-btn-upgrade"
+                                        onClick={() => setView('upgrade')}
+                                    >
+                                        Upgrade Plan
+                                    </button>
+                                </>
+
+                            ) : (
+
+                                <button
+                                    className="PlansBilling-btn PlansBilling-btn-upgrade"
+                                    onClick={() => setView('upgrade')}
+                                >
+                                    Upgrade Plan
+                                </button>
+
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+
+                <div className="PlansBilling-grid-row">
+                    <div className="PlansBilling-card PlansBilling-invoice-box">
+                        <h3 className="PlansBilling-section-title">Next Invoices</h3>
+                        {pendingInvoices.length > 0 ? (
+                            <>
+                                <p className="PlansBilling-invoice-price">
+                                    ₹ {pendingInvoices[0].price}/-
+                                </p>
+                                <div className="PlansBilling-invoice-details">
+                                    <div className="PlansBilling-detail-item">
+                                        <span className="PlansBilling-detail-label">Plan Type</span>
+                                        <span className="PlansBilling-detail-value">: {pendingInvoices[0].plan || activePlan?.name || '-'}</span>
+                                    </div>
+                                    <div className="PlansBilling-detail-item">
+                                        <span className="PlansBilling-detail-label">Next Date</span>
+                                        <span className="PlansBilling-detail-value">: {pendingInvoices[0].dueDate || activePlan?.nextInvoice || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <p className="PlansBilling-no-invoice" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                                No upcoming invoices. You are on free plan.
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="PlansBilling-card PlansBilling-payment-box">
+                        {defaultCard ? (
+                            <div className="Billing-Payment-Display" onClick={handleAddCard}>
+                                <div className="Billing-Payment-header">
+                                    <span className="Billing-Payment-title-text">Payment Method</span>
+                                    <div className="Billing-brand-badge">{defaultCard.type?.toUpperCase() || 'CARD'}</div>
+                                </div>
+                                <h3 className="Billing-card-number-large">{defaultCard.number}</h3>
+                                <div className="Billing-Payment-footer">
+                                    <div className="Billing-card-meta">
+                                        <div className="meta-row"><span className="meta-label">Name Card</span><span className="meta-value">: {defaultCard.name}</span></div>
+                                        <div className="meta-row"><span className="meta-label">Expired Date</span><span className="meta-value">: {defaultCard.expiry}</span></div>
+                                    </div>
+                                    <div className="Billing-Payment-actions">
+                                        <button className="Billing-btn-change" onClick={handleAddCardOnly}>Change Card</button>
+                                        <button className="Billing-btn-delete-icon" onClick={(e) => openDeletePopup(defaultCard.id, e)}>
+                                            <img src={DeleteIcon} alt="Delete" title='Remove' />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ) : (
-                        <button className="PlansBilling-add-payment-btn" onClick={handleAddCardOnly}>+ Add Your Card Details.</button>
-                    )}
+                        ) : (
+                            <button className="PlansBilling-add-payment-btn" onClick={handleAddCardOnly}>+ Add Your Card Details.</button>
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            <div className="PlansBilling-card PlansBilling-history-box">
-                <div className="PlansBilling-history-header">
-                    <h3 className="PlansBilling-history-title">BILLING HISTORY</h3>
-                    <span className="PlansBilling-view-history">View history</span>
-                </div>
-                <div className="PlansBilling-history-content">
-                    <table className="History-Table">
-                        <thead>
-                            <tr>
-                                <th>PLAN</th>
-                                <th>DATE</th>
-                                <th>PRICE</th>
-                                <th>STATUS</th>
-                                <th>INVOICE</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {billingHistory.map((item, index) => (
-                                <tr key={index}>
-                                    <td className="plan-cell"><strong>{normalizePlanName(item.plan)}</strong></td>
-                                    <td>{item.date}</td>
-                                    <td>₹ {item.price} /-</td>
-                                    <td>
-                                        <span className={`status-pill ${item.status.toLowerCase().replace(' ', '-')}`}>
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                    <td className="invoice-cell">
-                                        <span className="invoice-id-text">{item.id}</span>
-                                        <img src={FileIcon} alt="PDF" title="Download Invoice" className="download-icon" onClick={() => downloadInvoicePDF(item)} />
-                                    </td>
+                <div className="PlansBilling-card PlansBilling-history-box">
+                    <div className="PlansBilling-history-header">
+                        <h3 className="PlansBilling-history-title">BILLING HISTORY</h3>
+                        <span className="PlansBilling-view-history">View history</span>
+                    </div>
+                    <div className="PlansBilling-history-content">
+                        <table className="History-Table">
+                            <thead>
+                                <tr>
+                                    <th>PLAN</th>
+                                    <th>DATE</th>
+                                    <th>PRICE</th>
+                                    <th>STATUS</th>
+                                    <th>INVOICE</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {billingHistory.map((item, index) => (
+                                    <tr key={index}>
+                                        <td className="plan-cell"><strong>{normalizePlanName(item.plan)}</strong></td>
+                                        <td>{item.date}</td>
+                                        <td>₹ {item.price} /-</td>
+                                        <td>
+                                            <span className={`status-pill ${item.status.toLowerCase().replace(' ', '-')}`}>
+                                                {item.status}
+                                            </span>
+                                        </td>
+                                        <td className="invoice-cell">
+                                            <span className="invoice-id-text">{item.id}</span>
+                                            <img src={FileIcon} alt="PDF" title="Download Invoice" className="download-icon" onClick={() => downloadInvoicePDF(item)} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
+                {cardToDelete && (
+                    <div className="PlansBilling-modal-overlay">
+                        <div className="PlansBilling-modal-content">
+                            <h2 className="PlansBilling-modal-title">DELETE CARD?</h2>
+                            <p className="PlansBilling-modal-text">Are you sure you want to remove this payment method? This action cannot be undone.</p>
+                            <div className="PlansBilling-modal-actions">
+                                <button className="PlansBilling-modal-btn-grey" onClick={() => setCardToDelete(null)}>Cancel</button>
+                                <button className="PlansBilling-modal-btn-confirm" style={{ backgroundColor: '#ff4757' }} onClick={confirmDeleteCard}>Delete Card</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isModalOpen && (
+                    <div className="PlansBilling-modal-overlay">
+                        <div className="PlansBilling-modal-content">
+                            <h2 className="PlansBilling-modal-title">CONFIRM PLAN CANCELLATION</h2>
+                            <div className="PlansBilling-modal-info-card">
+                                <h3 className="PlansBilling-modal-plan-name">{activePlan?.name || 'Plan'}</h3>
+                                <span className="PlansBilling-badge PlansBilling-badge-active">{planStatus}</span>
+                            </div>
+                            <p className="PlansBilling-modal-text">Are you sure you want to cancel? Cancelling will prevent any future charges.</p>
+                            <div className="PlansBilling-modal-actions">
+                                <button className="PlansBilling-modal-btn-grey" onClick={handleToggleModal}>Keep My Current Plan</button>
+                                <button className="PlansBilling-modal-btn-confirm" onClick={handleConfirmCancellation}>CONFIRM CANCELLATION</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {cardToDelete && (
-                <div className="PlansBilling-modal-overlay">
-                    <div className="PlansBilling-modal-content">
-                        <h2 className="PlansBilling-modal-title">DELETE CARD?</h2>
-                        <p className="PlansBilling-modal-text">Are you sure you want to remove this payment method? This action cannot be undone.</p>
-                        <div className="PlansBilling-modal-actions">
-                            <button className="PlansBilling-modal-btn-grey" onClick={() => setCardToDelete(null)}>Cancel</button>
-                            <button className="PlansBilling-modal-btn-confirm" style={{ backgroundColor: '#ff4757' }} onClick={confirmDeleteCard}>Delete Card</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {isModalOpen && (
-                <div className="PlansBilling-modal-overlay">
-                    <div className="PlansBilling-modal-content">
-                        <h2 className="PlansBilling-modal-title">CONFIRM PLAN CANCELLATION</h2>
-                        <div className="PlansBilling-modal-info-card">
-                            <h3 className="PlansBilling-modal-plan-name">{activePlan?.name || 'Plan'}</h3>
-                            <span className="PlansBilling-badge PlansBilling-badge-active">{planStatus}</span>
-                        </div>
-                        <p className="PlansBilling-modal-text">Are you sure you want to cancel? Cancelling will prevent any future charges.</p>
-                        <div className="PlansBilling-modal-actions">
-                            <button className="PlansBilling-modal-btn-grey" onClick={handleToggleModal}>Keep My Current Plan</button>
-                            <button className="PlansBilling-modal-btn-confirm" onClick={handleConfirmCancellation}>CONFIRM CANCELLATION</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+        </>
     );
 };

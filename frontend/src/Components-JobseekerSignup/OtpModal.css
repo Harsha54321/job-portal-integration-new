@@ -11,6 +11,7 @@
     z-index: 1000;
     backdrop-filter: blur(4px);
 }
+
 .success-popup-content {
     background: white;
     padding: 20px;
@@ -29,7 +30,7 @@
     padding: 40px;
     border-radius: 16px;
     width: 100%;
-    max-width: 400px;
+    max-width: 450px;
     text-align: center;
     position: relative;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
@@ -52,34 +53,35 @@
     color: #333;
 }
 
-.otp-modal-content p :not(.error-msg-otp){
+.otp-modal-content p :not(.error-msg-otp) {
     font-size: 14px;
     color: black;
     margin-bottom: 25px;
     line-height: 1.5;
 }
 .error-msg-otp {
-  color: #d93025;
-  font-size: 16px;
-  margin-top: 4px;
-  display: block;
+    color: #d93025;
+    font-size: 16px;
+    margin-top: 4px;
+    display: block;
 }
 
-
+/* FIXED: Proper 6-digit OTP input styling */
 .otp-input-group {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin: 20px 0;
     width: 100%;
     box-sizing: border-box;
+    flex-wrap: nowrap;
+    overflow: visible;
 }
 
 .otp-input-group input {
-    flex: 1;
-    min-width: 0;
-    max-width: 45px;
+    flex: 0 0 auto;
+    width: 50px;
     height: 50px;
     font-size: 20px;
     font-weight: 600;
@@ -89,6 +91,7 @@
     outline: none;
     transition: all 0.2s ease;
     background-color: #f9f9f9;
+    box-sizing: border-box;
 }
 
 .otp-input-group input:focus {
@@ -101,6 +104,11 @@
 .otp-input-group input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+/* Ensure all 6 digits are visible */
+.otp-input-group input:not(:last-child) {
+    margin-right: 0;
 }
 
 .resend-timer {
@@ -130,6 +138,11 @@
 
 .verify-final-btn:hover {
     background-color: #0069d1;
+}
+
+.verify-final-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
 }
 
 .switch-method {
@@ -170,7 +183,6 @@
     text-align: center;
 }
 
-
 .success-popup-style {
     min-width: 450px;
     padding: 60px 20px;
@@ -189,41 +201,70 @@
 
 .verified-popup-img {
     width: 100%;
-    max-width: 400px; 
+    max-width: 400px;
     height: auto;
     display: block;
     object-fit: contain;
 }
 
-/* .verified-text-green {
-    color: #28C76F; 
-    font-size: 48px;
-    font-weight: 600;
-    margin: 0;
-} */
-
 @keyframes otpSuccessPop {
-    0% { transform: scale(0.5); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
-@media (max-width: 400px) {
+/* Responsive for tablet */
+@media (max-width: 550px) {
     .otp-modal-content {
-        width: 90%;          /* Gives side breathing room */
-        padding: 30px 15px;  /* Reduces internal padding */
+        width: 90%;
+        padding: 30px 20px;
     }
 
     .otp-input-group {
-        gap: 5px;            /* Tighter gaps to save space */
+        gap: 8px;
     }
 
     .otp-input-group input {
-        height: 45px;        /* Slightly smaller to fit height-wise */
+        width: 42px;
+        height: 45px;
+        font-size: 18px;
+    }
+}
+
+/* Responsive for mobile - ensures all 6 digits fit */
+@media (max-width: 450px) {
+    .otp-modal-content {
+        width: 95%;
+        padding: 25px 15px;
+    }
+
+    .otp-input-group {
+        gap: 6px;
+    }
+
+    .otp-input-group input {
+        width: 38px;
+        height: 42px;
         font-size: 16px;
     }
-    
-    .otp-modal-content h3 {
-        font-size: 18px;     /* Smaller title to prevent wrapping */
+}
+
+/* For very small screens */
+@media (max-width: 380px) {
+    .otp-input-group {
+        gap: 4px;
+    }
+
+    .otp-input-group input {
+        width: 34px;
+        height: 40px;
+        font-size: 14px;
     }
 }
 
@@ -236,4 +277,24 @@
     color: #666;
     text-decoration: none;
     cursor: pointer;
+}
+
+/* Expired state styling */
+.expired-state {
+    text-align: center;
+}
+
+.expired-state p {
+    margin: 10px 0;
+}
+
+/* Resend link styling */
+.resend-link {
+    cursor: pointer;
+    color: #0081FF;
+    font-weight: bold;
+}
+
+.resend-link:hover {
+    text-decoration: underline;
 }

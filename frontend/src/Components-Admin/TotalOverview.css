@@ -44,7 +44,7 @@
 .Admin-legend-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px 15px;
+  gap: 12px 12px;
 }
 
 .Admin-legend-item {

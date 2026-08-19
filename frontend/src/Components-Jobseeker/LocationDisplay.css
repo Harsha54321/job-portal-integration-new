@@ -1,0 +1,117 @@
+.loc-wrap {
+  display: inline;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.loc-more {
+  color: #1E88E5;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.loc-more:hover {
+  text-decoration: underline;
+}
+
+/* ================================
+   LOCATION MODAL
+   Rendered directly under body
+   using React Portal
+   ================================ */
+
+.loc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+
+  background: rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 999999;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.loc-modal-content {
+  position: relative;
+
+  background: #ffffff;
+  width: min(90%, 500px);
+  max-height: 80vh;
+
+  padding: 20px;
+  border-radius: 12px;
+
+  box-sizing: border-box;
+
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+
+  overflow: hidden;
+}
+
+.loc-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.loc-modal-header h3 {
+  margin: 0;
+  color: #1a2a6c;
+  font-size: 18px;
+}
+
+.loc-modal-close {
+  border: none;
+  background: transparent;
+
+  font-size: 26px;
+  line-height: 1;
+
+  cursor: pointer;
+  color: #333;
+
+  padding: 2px 6px;
+}
+
+.loc-modal-close:hover {
+  color: #1E88E5;
+}
+
+.loc-modal-body {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 8px;
+  margin-top: 15px;
+
+  max-height: 55vh;
+  overflow-y: auto;
+
+  padding-right: 5px;
+}
+
+.loc-chip {
+  display: inline-flex;
+  align-items: center;
+
+  background: #f4f6f8;
+
+  padding: 6px 12px;
+  border-radius: 16px;
+
+  font-size: 13px;
+  color: #333;
+
+  white-space: nowrap;
+}

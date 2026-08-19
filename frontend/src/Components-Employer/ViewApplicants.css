@@ -94,6 +94,10 @@
   font-size: 16px;
 }
 
+.title-group h2{
+  word-wrap: break-word;
+}
+
 .detail-layout { 
   display: grid; 
   grid-template-columns: 350px 1fr; 
@@ -192,6 +196,7 @@
   font-weight: 500;
 }
 
+/* ========== RESUME CARD - WRAPPING FIX ========== */
 .resume-card {
   display: flex;
   justify-content: space-between;
@@ -200,9 +205,17 @@
   padding: 20px;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
-.resume-info { display: flex; gap: 15px; align-items: center; }
+.resume-info { 
+  display: flex; 
+  gap: 15px; 
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
 
 .file-icon {
   background: #ef4444;
@@ -211,10 +224,23 @@
   border-radius: 6px;
   font-weight: 800;
   font-size: 12px;
+  flex-shrink: 0;
 }
 
-.file-name { font-weight: 600; color: #1e293b; margin: 0; }
-.file-size { font-size: 12px; color: #94a3b8; margin: 0; }
+.file-name { 
+  font-weight: 600; 
+  color: #1e293b; 
+  margin: 0;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.file-size { 
+  font-size: 12px; 
+  color: #94a3b8; 
+  margin: 0;
+}
 
 .download-btn {
   background: white;
@@ -225,6 +251,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .download-btn:hover {
@@ -232,6 +259,7 @@
   color: white;
 }
 
+/* ========== COVER LETTER - WRAPPING FIX ========== */
 .cover-letter-box {
   background: #f9fafb;
   padding: 20px;
@@ -240,6 +268,11 @@
   color: #475569;
   font-size: 14px;
   border-left: 4px solid #cbd5e1;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .edu-item p { margin: 5px 0; font-size: 15px; }
@@ -258,14 +291,18 @@
   outline: none;
 }
 
-/* --- Status Pills --- */
 .status-pill {
   padding: 6px 14px;
   border-radius: 50px;
   font-size: 12px;
   font-weight: 700;
-  display: inline-block;
+  
+  /* The brute-force fix */
+  display: inline-block !important;
+  white-space: nowrap !important;
+  width: max-content !important;
 }
+
 
 .status-pill.large { padding: 10px 20px; font-size: 13px; margin-top: 10px; }
 

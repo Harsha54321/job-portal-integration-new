@@ -9,7 +9,7 @@ export const CandidateSearchHelp = () => {
     title: "How to Use Candidate Search",
     updatedDate: "Updated 27 Feb 2026",
     intro: "Finding the right talent requires a strategic approach. Use our search tools to identify, engage, and secure high-quality candidates for your team.",
-    
+
     summary: [
       "<strong>Define Needs:</strong> Outline roles, skills, and qualifications.",
       "<strong>Source Strategy:</strong> Choose the best channels for the role.",
@@ -67,44 +67,47 @@ export const CandidateSearchHelp = () => {
     <>
       <FHeader />
       <div className="jobemployerhelp-page">
+        <p className="jobemployerhelp-updated">{candidateData.updatedDate}</p>
+
         <div className="jobemployerhelp-container">
           <h1 className="jobemployerhelp-title">{candidateData.title}</h1>
-          <p className="jobemployerhelp-updated">{candidateData.updatedDate}</p>
           <p className="jobemployerhelp-intro">{candidateData.intro}</p>
 
-          <div className="jobemployerhelp-layout" style={{ display: 'flex', gap: '30px', marginBottom: '40px', flexWrap: 'wrap' }}>
-            <div className="jobemployerhelp-left" style={{ flex: '1 1 400px' }}>
-              <img
-                src={CandidateSearchImg}
-                alt="Candidate Search Strategy"
-                className="jobemployerhelp-hero-img"
-                style={{ width: '100%', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
-              />
-            </div>
+          {/* Centered Hero Image Section */}
+          <div className="jobemployerhelp-hero-section">
+            <img
+              src={CandidateSearchImg}
+              alt="Candidate Search Strategy"
+              className="jobemployerhelp-hero-img"
+            />
+          </div>
 
-            <div className="jobemployerhelp-right" style={{ flex: '1 1 300px', backgroundColor: '#f0f4f8', padding: '25px', borderRadius: '12px', border: '1px solid #d1d9e0' }}>
-              <h2 style={{ marginTop: 0, color: '#24292e' }}>Search Summary</h2>
-              <ul className="jobemployerhelp-summary-list" style={{ listStyle: 'none', padding: 0 }}>
+          {/* Search Summary - Now moved down */}
+          <div className="jobemployerhelp-summary-section">
+            <div className="jobemployerhelp-steps-container">
+              <h2 className="jobemployerhelp-summary-title">Search Summary</h2>
+              <ul className="jobemployerhelp-steps-list">
                 {candidateData.summary.map((item, index) => (
-                  <li key={index} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start' }}>
-                    <span style={{ color: '#0366d6', marginRight: '10px' }}>🔍</span>
-                    <span dangerouslySetInnerHTML={{ __html: item }} />
-                  </li>
+                  <li
+                    key={index}
+                    dangerouslySetInnerHTML={{ __html: item }}
+                  />
                 ))}
               </ul>
             </div>
           </div>
 
-          <div className="jobemployerhelp-content">
+          {/* Detailed Steps */}
+          <div className="jobemployerhelp-detailed-steps">
+            <h2>Step-by-Step Candidate Search Guide:</h2>
+
             {candidateData.sections.map((section, index) => (
-              <div key={index} className="jobemployerhelp-section" style={{ marginBottom: '40px' }}>
-                <h2 style={{ borderBottom: '2px solid #0366d6', display: 'inline-block', paddingBottom: '5px', marginBottom: '20px' }}>
-                  {section.title}
-                </h2>
+              <div key={index} className="jobemployerhelp-detailed-step">
+                <h3>{section.title}</h3>
                 {section.list && (
-                  <ul className="jobemployerhelp-list" style={{ listStyleType: 'none', paddingLeft: '0' }}>
+                  <ul>
                     {section.list.map((item, i) => (
-                      <li key={i} style={{ marginBottom: '15px', lineHeight: '1.7', color: '#444' }} dangerouslySetInnerHTML={{ __html: item }} />
+                      <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
                     ))}
                   </ul>
                 )}

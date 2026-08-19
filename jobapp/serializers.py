@@ -4,13 +4,14 @@ from drf_writable_nested.serializers import WritableNestedModelSerializer
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import (
-      User, JobSeekerProfile, EmployerProfile, AdminProfile,
+    EmployerRegistrationSettings, JobseekerSecurityProfile, PlanFeature, User, JobSeekerProfile, EmployerProfile, AdminProfile,
     EducationEntry, WorkExperienceEntry, Skill, LanguageKnown, Certification,
     PostAJob, JobApplication, SavedJob,
     NewsletterSubscriber, Notification, Conversation, Message, ContactMessage, 
     CompanyVerification, Complaint, CompanyProfile, UserSettings, 
     HelpTopic, RaiseTicket, PasswordResetToken, EmailOTP, ChatMessage, Plan, Subscription,
     Invoice, PaymentMethod,AdminAccessLog, AdminTrustedDevice, CompanyReview, UserDevice,
+    EmployerPlatformSettings, AccountManager, EmployerAccountManagerAssignment,Payment
 )
 from .services import Admin2FAService , AdminSecurityService
  
@@ -83,13 +84,42 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "detail": ["Incorrect password."]
             })
 
+        # JOBSEEKER 2FA CHECK
+     
+        if user.user_type == "jobseeker":
+            sec_profile = getattr(user, 'security', None)
+            if sec_profile and sec_profile.two_factor_enabled:
+                available_methods = []
+                if sec_profile.email_verified:
+                    available_methods.append("email")
+                if sec_profile.sms_verified:
+                    available_methods.append("sms")
+ 
+                if available_methods:
+                    default_method = sec_profile.two_factor_method or available_methods[0]
+                    temp_token = Admin2FAService.generate_temp_token(user.id)
+                    return {
+                        "requires_2fa": True,
+                        "temp_token": temp_token,
+                        "user_id": user.id,
+                        "available_methods": available_methods,
+                        "default_method": default_method,
+                        "user": {
+                            "id": user.id,
+                            "email": user.email,
+                            "username": user.username,
+                            "user_type": user.user_type,
+                        }
+                    }
+
+        # Check if user is active
         if not user.is_active:
             raise serializers.ValidationError({
                 "detail": ["Your account is inactive. Please contact support."],
                 "account_inactive": True
             })
         
-        # Then check account status
+        # Check account status
         if user.status != User.AccountStatus.ACTIVE:
             if user.status == User.AccountStatus.HOLD:
                 raise serializers.ValidationError({
@@ -110,12 +140,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     "account_inactive": True
                 })
         
-        # If we reach here, user is active and can log in
         # Update login time
         user.login_time = timezone.now()
         user.save(update_fields=["login_time"])
  
-        # Admin security log
+        # Admin security log - SUCCESS
         if user.user_type == "admin":
             AdminSecurityService.log_event(
                 request=self.context.get("request"),
@@ -140,7 +169,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             if admin_2fa_response:
                 return admin_2fa_response
  
-        # Generate tokens (ONLY for active users)
+        # Generate tokens
         refresh = RefreshToken.for_user(user)
 
         # Admin device tracking
@@ -157,6 +186,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 }
             )
  
+        user.is_online = True
+        user.last_seen = timezone.now()
+        user.save(update_fields=['is_online', 'last_seen'])
+
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
@@ -169,6 +202,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 'is_online': user.is_online,
                 'is_active': user.is_active,
                 'status': user.status,
+                'last_seen': user.last_seen,
             }
         }
  
@@ -257,30 +291,33 @@ class EmployerRegistrationSerializer(UserRegistrationSerializer):
  
  
 # Child Model Serializers
- 
+
 class EducationEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = EducationEntry
-        fields = '__all__'
+        fields = ['id', 'qualification_level', 'institution', 'degree', 
+                  'department', 'completion_year', 'start_year', 'end_year',
+                  'status', 'percentage_or_cgpa', 'location', 'city', 'state', 
+                  'country', 'post_10th_study']
         read_only_fields = ['id', 'profile']
- 
+
     def validate(self, data):
         level = data.get('qualification_level')
         errors = {}
- 
+
         if not data.get('institution'):
             errors['institution'] = "Institution name is required."
- 
+
         if level in ['SSLC', 'HSC', 'Diploma']:
             if not data.get('completion_year'):
                 errors['completion_year'] = "Year of completion is required for this level."
- 
+
         if level == 'HSC' and not data.get('post_10th_study'):
             errors['post_10th_study'] = "Please select what you studied after 10th."
- 
+
         if errors:
             raise serializers.ValidationError(errors)
- 
+
         return data
  
 
@@ -366,16 +403,24 @@ class JobSeekerProfileReadSerializer(serializers.ModelSerializer):
     user = UserReadSerializer(read_only=True)
     profile_photo_url = serializers.SerializerMethodField()
     resume_url = serializers.SerializerMethodField()
+    intro_video_url = serializers.SerializerMethodField()
     email = serializers.EmailField(source="user.email", read_only=True)
     phone = serializers.CharField(source="user.phone", read_only=True)
     highest_qualification = serializers.SerializerMethodField()
     employment_status = serializers.CharField(read_only=True)
+    hide_cv = serializers.SerializerMethodField()
    
     educations = EducationEntrySerializer(many=True, read_only=True)
     experiences = WorkExperienceEntrySerializer(many=True, read_only=True)
     skills = SkillSerializer(many=True, read_only=True)
     languages = LanguageKnownSerializer(many=True, read_only=True)
     certifications = CertificationSerializer(many=True, read_only=True)
+    
+    def get_hide_cv(self, obj):
+        try:
+            return obj.user.settings.hide_cv
+        except UserSettings.DoesNotExist:
+            return False
  
     expected_salary = serializers.DecimalField(
         max_digits=10,
@@ -398,6 +443,9 @@ class JobSeekerProfileReadSerializer(serializers.ModelSerializer):
  
     def get_resume_url(self, obj):
         return obj.resume_file.url if obj.resume_file else None
+
+    def get_intro_video_url(self, obj):
+        return obj.intro_video.url if obj.intro_video else None
    
     def get_highest_qualification(self, obj):
         """Calculate highest qualification from education entries"""
@@ -492,6 +540,8 @@ class JobSeekerProfileReadSerializer(serializers.ModelSerializer):
 class JobSeekerProfileWriteSerializer(WritableNestedModelSerializer):
 
     employment_status = serializers.CharField(required=False)
+    phone = serializers.CharField(source="user.phone", required=False)
+    email = serializers.EmailField(source="user.email", required=False)
     experiences = WorkExperienceEntrySerializer(many=True, required=False)
     skills = SkillSerializer(many=True, required=False)
     languages = LanguageKnownSerializer(many=True, required=False)
@@ -502,6 +552,7 @@ class JobSeekerProfileWriteSerializer(WritableNestedModelSerializer):
     highest_qualification = serializers.CharField(required=False, allow_null=True)
     
     delete_profile_photo = serializers.BooleanField(write_only=True, required=False, default=False)
+    delete_intro_video = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = JobSeekerProfile
@@ -512,10 +563,12 @@ class JobSeekerProfileWriteSerializer(WritableNestedModelSerializer):
             'profile_photo',
             'current_job_title', 'current_company', 'total_experience_years',
             'notice_period', 'current_location', 'preferred_locations',
-            'alternate_phone', 'alternate_email', 'full_address',
+            'alternate_phone', 'alternate_email', 'phone', 'email','full_address',
             'street', 'city', 'state', 'pincode', 'country',
             'resume_file',
             'portfolio_link',
+            'intro_video',
+            'delete_intro_video',
             'current_ctc', 'expected_ctc', 'preferred_job_type',
             'preferred_role_industry', 'ready_to_start_immediately',
             'willing_to_relocate',
@@ -590,6 +643,8 @@ class JobSeekerProfileWriteSerializer(WritableNestedModelSerializer):
         if highest_qual:
             print(f" Setting highest_qualification to: {highest_qual}")
         delete_photo = validated_data.pop('delete_profile_photo', False)
+
+        delete_video = validated_data.pop('delete_intro_video', False)
  
         if delete_photo and instance.profile_photo:
             try:
@@ -597,6 +652,15 @@ class JobSeekerProfileWriteSerializer(WritableNestedModelSerializer):
             except Exception as e:
                 print(f"Error deleting file: {e}")
             instance.profile_photo = None
+
+        # 2. ADD THIS: Physically delete the video and clear the database field
+        if delete_video and instance.intro_video:
+            try:
+                instance.intro_video.delete(save=False)
+                print("🗑️ Intro video successfully deleted from backend.")
+            except Exception as e:
+                print(f"Error deleting video: {e}")
+            instance.intro_video = None
  
         skills_data = validated_data.pop('skills', None)
         languages_data = validated_data.pop('languages', None)
@@ -606,7 +670,18 @@ class JobSeekerProfileWriteSerializer(WritableNestedModelSerializer):
         
         print(f" Education data received: {educations_data}")
         
-        # Update simple fields
+        # Update User model
+        user_data = validated_data.pop("user", {})
+ 
+        if "phone" in user_data:
+            instance.user.phone = user_data["phone"]
+ 
+        if "email" in user_data:
+            instance.user.email = user_data["email"]
+ 
+        instance.user.save()
+ 
+        # Update JobSeekerProfile fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -1127,8 +1202,6 @@ class PostAJobSerializer(serializers.ModelSerializer):
             'is_published',
             'posted_date',
             'employer',
-            'is_highlighted',     # set by view via serializer.save()
-            'highlighted_at',     # set by view via serializer.save()
             'created_at',
             'approval_status',
             'expiry_date',
@@ -1264,7 +1337,7 @@ class PostAJobSerializer(serializers.ModelSerializer):
  
         # Default job_status if not provided
         if not validated_data.get('job_status'):
-            validated_data['job_status'] = 'Reviewing Application'
+            validated_data['job_status'] = 'Hiring in Progress'
 
         array_fields = [
             'industry_type',
@@ -1373,9 +1446,14 @@ class PostAJobSerializer(serializers.ModelSerializer):
         # Hide highlight fields if plan doesn't allow it
         # ─────────────────────────────────────
  
-        if not platform or not platform.featured_employer_option:
-            data.pop("is_highlighted", None)
-            data.pop("highlighted_at", None)
+        # if not platform or not platform.featured_employer_option:
+        #     data.pop("is_highlighted", None)
+        #     data.pop("highlighted_at", None)
+        
+        if user and user.is_authenticated and hasattr(user, 'user_type') and user.user_type == "employer":
+            if not platform or not platform.featured_employer_option:
+                data.pop("is_highlighted", None)
+                data.pop("highlighted_at", None)
  
         return data
  
@@ -1641,6 +1719,21 @@ from .models import (
     JobseekerPlatformSettings
 )
 
+class JobseekerChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True)
+ 
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return data
+ 
+class Jobseeker2FAStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobseekerSecurityProfile
+        fields = ['two_factor_enabled', 'two_factor_method', 'email_verified', 'sms_verified']
+
 
 class JobApplicationWriteSerializer(
     serializers.ModelSerializer
@@ -1870,30 +1963,112 @@ class JobApplicationListSerializer(serializers.ModelSerializer):
  
 class JobApplicationEmployerSerializer(serializers.ModelSerializer):
     job = JobReadSerializer(read_only=True)
-    user = UserReadSerializer(read_only=True)
+    user = serializers.SerializerMethodField()
     total_experience_years = serializers.SerializerMethodField()
 
     class Meta:
         model = JobApplication
-        fields = ['id', 'job', 'user', 'applied_date', 'status', 'cover_letter','total_experience_years']
+        fields = ['id', 'job', 'user', 'applied_date', 'status', 
+                  'cover_letter', 'total_experience_years', 'resume_version']
         read_only_fields = ['id', 'applied_date']
 
-    # def get_total_experience_years(self, obj):
-    #     profile = getattr(obj.user, 'jobseeker_profile', None)
-    #     return profile.total_experience_years if profile else 0
+    def get_user(self, obj):
+        """Return user with complete jobseeker profile data"""
+        user = obj.user
+        
+        # Base user data
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'phone': user.phone,
+            'user_type': user.user_type,
+        }
+        
+        # Add jobseeker profile data if available
+        if hasattr(user, 'jobseeker_profile'):
+            profile = user.jobseeker_profile
+            
+            # Get education entries
+            educations = profile.educations.all().order_by('-end_year', '-completion_year')
+            education_data = []
+            for edu in educations:
+                edu_data = {
+                    'id': edu.id,
+                    'qualification_level': edu.qualification_level,
+                    'institution': edu.institution,
+                    'degree': edu.degree,
+                    'department': edu.department,
+                    'completion_year': edu.completion_year.strftime('%Y') if edu.completion_year else None,
+                    'start_year': edu.start_year.strftime('%Y') if edu.start_year else None,
+                    'end_year': edu.end_year.strftime('%Y') if edu.end_year else None,
+                    'status': edu.status,
+                    'percentage_or_cgpa': str(edu.percentage_or_cgpa) if edu.percentage_or_cgpa else None,
+                }
+                education_data.append(edu_data)
+            
+            # Get skills
+            skills = list(profile.skills.values_list('name', flat=True))
+            
+            # Get profile photo URL
+            profile_photo_url = None
+            if profile.profile_photo:
+                request = self.context.get('request')
+                if request:
+                    profile_photo_url = request.build_absolute_uri(profile.profile_photo.url)
+                else:
+                    profile_photo_url = profile.profile_photo.url
+            
+            # Get resume URL
+            resume_url = None
+            if profile.resume_file:
+                request = self.context.get('request')
+                if request:
+                    resume_url = request.build_absolute_uri(profile.resume_file.url)
+                else:
+                    resume_url = profile.resume_file.url
+            
+            # Build complete profile data
+            user_data.update({
+                'full_name': profile.full_name or '',
+                'gender': profile.gender or '',
+                'current_job_title': profile.current_job_title or '',
+                'current_company': profile.current_company or '',
+                'current_location': profile.current_location or '',
+                'total_experience_years': float(profile.total_experience_years) if profile.total_experience_years else 0,
+                'notice_period': profile.notice_period or '',
+                'profile_photo': profile_photo_url,
+                'resume_file': resume_url,
+                'skills': skills,
+                'educations': education_data,
+                'expected_ctc': float(profile.expected_ctc) if profile.expected_ctc else None,
+                'current_ctc': float(profile.current_ctc) if profile.current_ctc else None,
+                'preferred_locations': profile.preferred_locations or '',
+                'city': profile.city or '',
+                'state': profile.state or '',
+                'country': profile.country or '',
+                'profile_completion': profile.profile_completion,
+            })
+        else:
+            # Fallback if no jobseeker profile
+            user_data.update({
+                'full_name': user.username,
+                'current_job_title': '',
+                'current_location': '',
+                'total_experience_years': 0,
+                'skills': [],
+                'educations': [],
+                'profile_photo': None,
+                'resume_file': None,
+            })
+        
+        return user_data
 
     def get_total_experience_years(self, obj):
         try:
             profile = obj.user.jobseeker_profile
-            if profile:
-                experience = profile.total_experience_years
-                print(f"✅ User: {obj.user.username} (ID: {obj.user.id}) - Experience: {experience}")
-                return float(experience) if experience is not None else 0
-            else:
-                print(f"❌ No JobSeekerProfile for user: {obj.user.username} (ID: {obj.user.id})")
-                return 0
-        except Exception as e:
-            print(f"❌ Error getting experience for {obj.user.username}: {e}")
+            return float(profile.total_experience_years) if profile.total_experience_years else 0
+        except:
             return 0
  
  
@@ -1908,10 +2083,97 @@ class NewsletterSubscriberSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'user', 'message', 'created_at', 'is_read', 'notification_type', 'related_object_id']
+        fields = ['id', 'user', 'message', 'created_at', 'is_read', 'notification_type','event_type', 'related_object_id']
         read_only_fields = ['id', 'created_at']
 
+# ── Admin: Subscription Orders (Payment) & Subscriptions ──────────────────
+# Added to support the "Orders" / "Subscriptions" screens under the Admin
+# Membership tab (backs the subscription_order_created / subscription_cancelled
+# notification click-through).
 
+class EmployerCompanyMixin:
+    """Shared employer_id / employer_name / company_name fields for Payment
+    and Subscription serializers below. Both models' `user` FK points at the
+    employer's User account; employer_id here is the EmployerProfile's
+    `employee_id` (the ID assigned to the employer within their company),
+    NOT the User account's DB id. Display name and company also come from
+    that same EmployerProfile (which may not exist for older/test accounts,
+    so every lookup is guarded)."""
+
+    def get_employer_id(self, obj):
+        profile = getattr(obj.user, 'employer_profile', None)
+        return profile.employee_id if profile else None
+
+    def get_employer_name(self, obj):
+        profile = getattr(obj.user, 'employer_profile', None)
+        if profile and profile.full_name:
+            return profile.full_name
+        return obj.user.username if obj.user else None
+
+    def get_company_name(self, obj):
+        profile = getattr(obj.user, 'employer_profile', None)
+        if profile and profile.company:
+            return profile.company.company_name
+        return None
+    
+class AdminBillingSerializer(EmployerCompanyMixin, serializers.ModelSerializer):
+    """One row per Payment ("order"), with its linked Subscription's access
+    info flattened alongside it. Used for both the list and detail view of
+    the combined admin Billing screen."""
+ 
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    employer_id = serializers.SerializerMethodField()
+    employer_name = serializers.SerializerMethodField()
+    company_name = serializers.SerializerMethodField()
+    plan_name = serializers.CharField(source='plan.name', read_only=True, default=None)
+    plan_id = serializers.IntegerField(source='plan.id', read_only=True, default=None)
+ 
+    # -- Subscription (access) side, resolved via the Payment.subscriptions
+    # reverse FK. Falls back to the most recent subscription for the same
+    # user+plan if this payment predates the payment<->subscription link
+    # (older data, or the link was never set for some other reason).
+    subscription_id = serializers.SerializerMethodField()
+    subscription_status = serializers.SerializerMethodField()
+    subscription_start_date = serializers.SerializerMethodField()
+    subscription_end_date = serializers.SerializerMethodField()
+ 
+    class Meta:
+        model = Payment
+        fields = [
+            'id', 'user_email', 'employer_id', 'employer_name', 'company_name',
+            'plan_id', 'plan_name', 'amount', 'currency', 'status',
+            'payment_method', 'razorpay_order_id', 'razorpay_payment_id',
+            'failure_reason', 'created_at', 'updated_at',
+            'subscription_id', 'subscription_status',
+            'subscription_start_date', 'subscription_end_date',
+        ]
+ 
+    def _linked_subscription(self, obj):
+        sub = obj.subscriptions.order_by('-start_date').first()
+        if sub:
+            return sub
+        # Fallback for orders created before the payment<->subscription link
+        # existed: best-effort match by same user + plan, most recent.
+        return Subscription.objects.filter(
+            user=obj.user, plan=obj.plan
+        ).order_by('-start_date').first()
+ 
+    def get_subscription_id(self, obj):
+        sub = self._linked_subscription(obj)
+        return sub.id if sub else None
+ 
+    def get_subscription_status(self, obj):
+        sub = self._linked_subscription(obj)
+        return sub.status if sub else None
+ 
+    def get_subscription_start_date(self, obj):
+        sub = self._linked_subscription(obj)
+        return sub.start_date if sub else None
+ 
+    def get_subscription_end_date(self, obj):
+        sub = self._linked_subscription(obj)
+        return sub.end_date if sub else None
+ 
 class SaveDeviceTokenSerializer(serializers.Serializer): #changed on 15/05
     fcm_token = serializers.CharField()
     platform = serializers.ChoiceField(
@@ -1944,12 +2206,31 @@ class UserSettingsSerializer(serializers.ModelSerializer):
  
  
 class ChatUserSerializer(serializers.ModelSerializer):
+    is_online = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_online']
         read_only_fields = fields
- 
- 
+
+    def get_is_online(self, obj):
+        # 1. Respect privacy setting from UserSettings
+        try:
+            user_settings = getattr(obj, 'settings', None)
+            if user_settings and not user_settings.show_online_status:
+                return False
+        except Exception:
+            pass
+
+        # 2. Return True if active within the last 2 minutes
+        if obj.last_seen:
+            diff = (timezone.now() - obj.last_seen).total_seconds()
+            if diff < 120:
+                return True
+
+        return bool(obj.is_online)
+
+
 class MessageSerializer(serializers.ModelSerializer):
     sender = ChatUserSerializer(read_only=True)
     receiver = ChatUserSerializer(read_only=True)
@@ -2080,8 +2361,76 @@ class HelpTopicSerializer(serializers.ModelSerializer):
 class RaiseTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = RaiseTicket
-        fields = '__all__'
+        fields = [
+            'id',
+            'category',
+            'subject',
+            'name',
+            'email',
+            'phone',
+            'message',
+            'attachment',
+            'priority',
+        ]
  
+        read_only_fields = ['id']
+ 
+ 
+class AdminTicketSerializer(serializers.ModelSerializer):
+ 
+    mobile = serializers.CharField(
+        source='phone',
+        read_only=True
+    )
+ 
+    date = serializers.SerializerMethodField()
+ 
+    resolvedon = serializers.SerializerMethodField()
+ 
+    attachment = serializers.SerializerMethodField()
+ 
+    class Meta:
+        model = RaiseTicket
+ 
+        fields = [
+            'id',
+            'subject',
+            'name',
+            'category',
+            'priority',
+            'status',
+            'date',
+            'resolvedon',
+            'mobile',
+            'email',
+            'message',
+            'attachment',
+        ]
+ 
+    def get_date(self, obj):
+ 
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y')
+ 
+        return None
+ 
+    def get_resolvedon(self, obj):
+ 
+        if obj.resolved_on:
+            return obj.resolved_on.strftime('%d/%m/%Y')
+ 
+        return None
+ 
+    def get_attachment(self, obj):
+ 
+        request = self.context.get("request")
+ 
+        if obj.attachment and request:
+            return request.build_absolute_uri(
+                obj.attachment.url
+            )
+ 
+        return None
  
 # Password Serializers
 class ForgotPasswordSerializer(serializers.Serializer):
@@ -2124,8 +2473,39 @@ class CreatePasswordSerializer(serializers.Serializer):
 class ContactMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactMessage
-        fields = '__all__'    
  
+        fields = [
+            'id',
+            'user',
+            'name',
+            'email',
+            'contact',
+            'message',
+            'status',
+            'resolved_on',
+            'created_at'
+        ]
+ 
+        read_only_fields = [
+            'id',
+            'user',
+            'created_at'
+        ]
+ 
+    def validate_contact(self, value):
+ 
+        if not value.isdigit():
+            raise serializers.ValidationError(
+                "Contact number must contain digits only"
+            )
+ 
+        if len(value) != 10:
+            raise serializers.ValidationError(
+                "Contact number must be 10 digits"
+            )
+ 
+        return value
+
 
 # CompanyVerify Serializer
 class CompanyVerificationSerializer(serializers.ModelSerializer):
@@ -2137,30 +2517,20 @@ class CompanyVerificationSerializer(serializers.ModelSerializer):
             'employer',
             'created_at'
         ]
+        extra_kwargs = {
+            'incorporation_certificate': {'required': False, 'allow_null': True},
+            'registration_certificate': {'required': False, 'allow_null': True},
+            'tax_certificate': {'required': False, 'allow_null': True},
+        }
  
     def validate(self, data):
- 
-        registration_number = data.get(
-            "registration_number"
-        )
- 
+        registration_number = data.get("registration_number")
         tax_id = data.get("tax_id")
- 
         legal_name = data.get("legal_name")
- 
-        # ─────────────────────────────────────
-        # EMPLOYER
-        # ─────────────────────────────────────
- 
+
         employer = None
-        if (
-            hasattr(self, 'context')
-            and
-            'request' in self.context
-        ):
-            employer = self.context[
-                'request'
-            ].user
+        if hasattr(self, 'context') and 'request' in self.context:
+            employer = self.context['request'].user
 
         # Check if this employer already has a verification
         if employer and CompanyVerification.objects.filter(employer=employer).exists():
@@ -2168,144 +2538,41 @@ class CompanyVerificationSerializer(serializers.ModelSerializer):
                 "You have already submitted a verification request."
             )
 
-        # ─────────────────────────────────────
-        # ACTIVE SUBSCRIPTION
-        # ─────────────────────────────────────
- 
+        # Active subscription check
         subscription = Subscription.objects.filter(
             user=employer,
             status='active'
-        ).select_related(
-            'plan'
-        ).first()
- 
-        if not subscription:
- 
-            raise serializers.ValidationError(
-                {
-                    "subscription": (
-                        "No active subscription found."
-                    )
-                }
-            )
- 
-        # ─────────────────────────────────────
-        # PLAN SETTINGS
-        # ─────────────────────────────────────
- 
-        platform = (
-            EmployerPlatformSettings.objects.filter(
- 
-                plan=subscription.plan,
- 
-                account_status=employer.status
- 
-            ).first()
-        )
- 
-        if not platform:
- 
-            raise serializers.ValidationError(
-                {
-                    "settings": (
-                        "Employer platform settings "
-                        "not configured for this plan."
-                    )
-                }
-            )
-               
-        # MULTIPLE COMPANY RESTRICTION
-       
- 
-        if not platform.allow_multiple_company:
-            existing_verification = (
-                CompanyVerification.objects.filter(
-                    employer=employer
-                ).exists()
-            )
-            if existing_verification:
-                raise serializers.ValidationError(
-                    {
-                        "company": (
-                            "Multiple companies "
-                            "are not allowed."
-                        )
-                    }
-                )
-        # ─────────────────────────────────────
-        # EXISTING VERIFICATION
-        # ─────────────────────────────────────
- 
-        if employer:
- 
-            existing_company = (
-                CompanyVerification.objects.filter(
- 
-                    employer=employer,
- 
-                    legal_name__iexact=legal_name
- 
-                ).exists()
-            )
- 
-            if existing_company:
- 
-                raise serializers.ValidationError(
-                    {
-                        "legal_name": (
-                            "Company with this "
-                            "name already exists."
-                        )
-                    }
-                )
- 
-        # ─────────────────────────────────────
-        # EXISTING APPROVED COMPANY
-        # ─────────────────────────────────────
- 
-        existing_reg = (
-            CompanyVerification.objects.filter(
-                registration_number=registration_number,
-                status='Verified'
-            ).exists()
-        )
- 
-        existing_tax = (
-            CompanyVerification.objects.filter(
-                tax_id=tax_id,
-                status='Verified'
-            ).exists()
-        )
- 
-        # ─────────────────────────────────────
-        # VALIDATION ERRORS
-        # ─────────────────────────────────────
- 
-        errors = {}
+        ).select_related('plan').first()
 
-        if existing_reg:
- 
-            errors[
-                "registration_number"
-            ] = (
-                "This registration number "
-                "already exists."
-            )
- 
-        if existing_tax:
- 
-            errors[
-                "tax_id"
-            ] = (
-                "This tax ID already exists."
-            )
- 
-        if errors:
- 
-            raise serializers.ValidationError(
-                errors
-            )
- 
+        if not subscription:
+            raise serializers.ValidationError({
+                "subscription": "No active subscription found."
+            })
+
+        # Plan settings check
+        platform = EmployerPlatformSettings.objects.filter(
+            plan=subscription.plan,
+            account_status=employer.status
+        ).first()
+
+        if not platform:
+            raise serializers.ValidationError({
+                "settings": "Employer platform settings not configured for this plan."
+            })
+
+        # ─────────────────────────────────────
+        # REMOVED: incorporation_certificate validation
+        # Only check registration_certificate and tax_certificate
+        # ─────────────────────────────────────
+        if not data.get('registration_certificate'):
+            raise serializers.ValidationError({
+                "registration_certificate": "Registration document is required."
+            })
+        if not data.get('tax_certificate'):
+            raise serializers.ValidationError({
+                "tax_certificate": "Tax document is required."
+            })
+
         return data
 
 # OTP Serializer
@@ -2313,18 +2580,30 @@ class VerifyEmailOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
  
-# REMOVED: Duplicate CompanyProfileSerializer (now defined above)
- 
- 
-# Report a Job Serializer
+
+from .utils import get_priority_from_reason
+
 class ComplaintSerializer(serializers.ModelSerializer):
     firstName = serializers.CharField(source='first_name')
     lastName = serializers.CharField(source='last_name')
+    
+    # Use stored original_job_id, fallback to reported_job.id
+    jobId = serializers.SerializerMethodField()
+    JobId = serializers.SerializerMethodField()
+    
+    date = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    RepId = serializers.SerializerMethodField()
+    resolvedon = serializers.SerializerMethodField()
  
     class Meta:
         model = Complaint
         fields = [
             'id',
+            'RepId',
+            'jobId',
+            'JobId',
             'firstName',
             'lastName',
             'mobile',
@@ -2332,42 +2611,388 @@ class ComplaintSerializer(serializers.ModelSerializer):
             'reason',
             'explanation',
             'status',
-            'created_at'
+            'priority',
+            'date',
+            'resolvedon',
         ]
-        read_only_fields = ['status', 'created_at']
+ 
+        read_only_fields = [
+            'status',
+            'priority',
+            'date',
+            'RepId',
+            'resolvedon',
+        ]
+
+    def get_jobId(self, obj):
+        # First try the stored original_job_id (even if job is deleted)
+        if obj.original_job_id:
+            return obj.original_job_id
+        # Fallback to reported_job.id if available
+        if obj.reported_job:
+            return obj.reported_job.id
+        return None
+
+    def get_JobId(self, obj):
+        # Same as above
+        if obj.original_job_id:
+            return obj.original_job_id
+        if obj.reported_job:
+            return obj.reported_job.id
+        return None
+
+    def get_RepId(self, obj):
+        return f"REP-{obj.id:04d}"
+
+    def get_resolvedon(self, obj):
+        if obj.resolved_at:
+            from django.utils import timezone
+            dt = obj.resolved_at
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt)
+            local_dt = timezone.localtime(dt)
+            return local_dt.strftime("%b %d, %Y, %I:%M %p")
+        return None
+ 
+    def get_date(self, obj):
+        if obj.created_at:
+            from django.utils import timezone
+            dt = obj.created_at
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt)
+            local_dt = timezone.localtime(dt)
+            return local_dt.strftime("%b %d, %Y, %I:%M %p")
+        return None
+ 
+    def get_status(self, obj):
+        mapping = {
+            Complaint.Status.PENDING: "Pending",
+            Complaint.Status.INVESTIGATING: "In Progress",
+            Complaint.Status.RESOLVED: "Resolved",
+            Complaint.Status.REJECTED: "Rejected"
+        }
+        return mapping.get(obj.status, obj.status)
+ 
+    def get_priority(self, obj):
+        from .utils import get_priority_from_reason
+        return get_priority_from_reason(obj.reason)
  
     def validate_mobile(self, value):
         if not value.isdigit() or len(value) != 10:
-            raise serializers.ValidationError("Enter valid 10-digit mobile number")
+            raise serializers.ValidationError(
+                "Enter valid 10-digit mobile number"
+            )
         return value
  
     def validate(self, data):
-        user = self.context['request'].user
- 
-        if Complaint.objects.filter(user=user, reason=data.get('reason')).exists():
-            raise serializers.ValidationError("You already submitted this complaint")
- 
+        request = self.context.get('request')
+        if not request:
+            return data
+        user = request.user
+        reported_job = data.get('reported_job')
+        if reported_job and Complaint.objects.filter(
+            user=user,
+            reported_job=reported_job
+        ).exists():
+            raise serializers.ValidationError(
+                "You already submitted complaint for this job"
+            )
         return data
     
+class JobDetailSerializer(serializers.ModelSerializer):
+ 
+    company_name = serializers.SerializerMethodField()
+ 
+    class Meta:
+        model = PostAJob
+        fields = [
+            "id",
+            "job_title",
+            "company_name",
+            "salary",
+            "experience",
+            "location",
+            "work_type",
+            "shift",
+            "job_description",
+            "responsibilities",
+            "job_highlights",
+            "industry_type",
+            "department",
+            "key_skills",
+            "approval_status",
+            "flagged",
+            "created_at"
+        ]
+ 
+    def get_company_name(self, obj):
+ 
+        if (
+            obj.employer and
+            hasattr(obj.employer, "employer_profile") and
+            obj.employer.employer_profile.company
+        ):
+            return (
+                obj.employer
+                .employer_profile
+                .company
+                .company_name
+            )
+ 
+        return "N/A"
+
+    
 # Billing Serializer
+class PlanFeatureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = PlanFeature
+        fields = ['id', 'text', 'value', 'order']
+
+
 
 class PlanSerializer(serializers.ModelSerializer):
+    features = serializers.SerializerMethodField()
     pricing = serializers.SerializerMethodField()
-   
+    
     class Meta:
         model = Plan
-        fields = "__all__"
+        fields = [
+            'id', 'name', 'summary', 'color', 'is_published',
+            'monthly_price', 'tax', 'discount_halfyear', 'discount_annual',
+            'duration_days', 'is_trial_enabled', 'trial_duration',
+            'is_auto_renewal', 'grace_time', 'features', 'pricing',
+            'Analytics', 'Candidate_Search', 'Premium_Support', 'Account_Manager'
+        ]
+    
+    def get_features(self, obj):
+        """Fetch features from EmployerPlatformSettings for ACTIVE status"""
+        try:
+            settings = EmployerPlatformSettings.objects.get(
+                plan=obj,
+                account_status=User.AccountStatus.ACTIVE
+            )
+            
+            return [
+                {
+                    "text": "Jobs Posting",
+                    "value": str(settings.max_job_posts),
+                    "included": True,
+                    "order": 0
+                },
+                {
+                    "text": "Analytics",
+                    "value": "true" if obj.Analytics else "false",
+                    "included": obj.Analytics,
+                    "order": 1
+                },
+                {
+                    "text": "Candidate Search",
+                    "value": "true" if obj.Candidate_Search else "false",
+                    "included": obj.Candidate_Search,
+                    "order": 2
+                },
+                {
+                    "text": "Highlight Your Job Listing",
+                    "value": str(settings.featured_job_limit) if settings.featured_employer_option else "0",
+                    "included": settings.featured_employer_option,
+                    "order": 3
+                },
+                {
+                    "text": "Premium Support",
+                    "value": "true" if obj.Premium_Support else "false",
+                    "included": obj.Premium_Support,
+                    "order": 4
+                },
+                {
+                    "text": "Account Manager",
+                    "value": "true" if obj.Account_Manager else "false",
+                    "included": obj.Account_Manager,
+                    "order": 5
+                }
+            ]
+        except EmployerPlatformSettings.DoesNotExist:
+            return []
+    
     def get_pricing(self, obj):
-        # Get duration from request if provided
-        request = self.context.get('request')
-        duration = request.query_params.get('duration', None) if request else None
+        """Calculate pricing for all durations"""
+        monthly_price = float(obj.monthly_price) if obj.monthly_price else 0.0
+        tax_rate = float(obj.tax) if obj.tax else 18.0
         
-        if duration and duration in ['monthly', '6_months', 'yearly']:
-            return obj.get_price_for_duration(duration)
-        else:
-            return obj.get_all_pricing()
+        if monthly_price == 0.0:
+            return {
+                "monthly": {
+                    "base_price": 0.0,
+                    "cgst": 0.0,
+                    "sgst": 0.0,
+                    "total": 0.0
+                },
+                "six_months": {
+                    "base_price": 0.0,
+                    "discount_percent": 0.0,
+                    "discount_amount": 0.0,
+                    "price_after_discount": 0.0,
+                    "cgst": 0.0,
+                    "sgst": 0.0,
+                    "total": 0.0,
+                    "savings": 0.0
+                },
+                "yearly": {
+                    "base_price": 0.0,
+                    "discount_percent": 0.0,
+                    "discount_amount": 0.0,
+                    "price_after_discount": 0.0,
+                    "cgst": 0.0,
+                    "sgst": 0.0,
+                    "total": 0.0,
+                    "savings": 0.0
+                }
+            }
+        
+        # Safe parsing for discounts
+        discount_halfyear = float(obj.discount_halfyear) if obj.discount_halfyear else 0.0
+        discount_annual = float(obj.discount_annual) if obj.discount_annual else 0.0
+        
+        # Monthly calculation
+        monthly_cgst = round(monthly_price * (tax_rate / 2) / 100, 2)
+        monthly_sgst = round(monthly_price * (tax_rate / 2) / 100, 2)
+        monthly_total = round(monthly_price + monthly_cgst + monthly_sgst, 2)
+        
+        # 6 Months calculation
+        six_month_base = monthly_price * 6
+        six_month_discount = six_month_base * (discount_halfyear / 100)
+        six_month_after_discount = six_month_base - six_month_discount
+        six_month_cgst = round(six_month_after_discount * (tax_rate / 2) / 100, 2)
+        six_month_sgst = round(six_month_after_discount * (tax_rate / 2) / 100, 2)
+        six_month_total = round(six_month_after_discount + six_month_cgst + six_month_sgst, 2)
+        
+        # Yearly calculation
+        yearly_base = monthly_price * 12
+        yearly_discount = yearly_base * (discount_annual / 100)
+        yearly_after_discount = yearly_base - yearly_discount
+        yearly_cgst = round(yearly_after_discount * (tax_rate / 2) / 100, 2)
+        yearly_sgst = round(yearly_after_discount * (tax_rate / 2) / 100, 2)
+        yearly_total = round(yearly_after_discount + yearly_cgst + yearly_sgst, 2)
+        
+        return {
+            "monthly": {
+                "base_price": monthly_price,
+                "cgst": monthly_cgst,
+                "sgst": monthly_sgst,
+                "total": monthly_total
+            },
+            "six_months": {
+                "base_price": six_month_base,
+                "discount_percent": discount_halfyear,
+                "discount_amount": round(six_month_discount, 2),
+                "price_after_discount": round(six_month_after_discount, 2),
+                "cgst": six_month_cgst,
+                "sgst": six_month_sgst,
+                "total": six_month_total,
+                "savings": round(six_month_base - six_month_after_discount, 2)
+            },
+            "yearly": {
+                "base_price": yearly_base,
+                "discount_percent": discount_annual,
+                "discount_amount": round(yearly_discount, 2),
+                "price_after_discount": round(yearly_after_discount, 2),
+                "cgst": yearly_cgst,
+                "sgst": yearly_sgst,
+                "total": yearly_total,
+                "savings": round(yearly_base - yearly_after_discount, 2)
+            }
+        }
+    
+    def create(self, validated_data):
+        """Create a new plan"""
+        # Remove any features data if present (handled separately)
+        validated_data.pop('features', None)
+        return Plan.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        """Update an existing plan with features support"""
+        print(f"[DEBUG] Updating plan: {instance.name}")
+        print(f"[DEBUG] Validated data: {validated_data.keys() if validated_data else 'None'}")
+    
+        # Get features from request context if available
+        features_data = None
+        request_data = {}
+        if self.context.get('request'):
+            request_data = self.context['request'].data
+            features_data = request_data.get('features', None)
+            print(f"[DEBUG] Features from request: {features_data}")
+    
+        # Update scalar fields
+        for attr, value in validated_data.items():
+            if attr not in ['features']:
+                setattr(instance, attr, value)
+    
+        instance.save()
+    
+        # Update features if provided
+        if features_data:
+            print(f"[DEBUG] Updating features for plan: {instance.name}")
+            try:
+                # Get or create EmployerPlatformSettings for ACTIVE status
+                settings, created = EmployerPlatformSettings.objects.get_or_create(
+                    plan=instance,
+                    account_status=User.AccountStatus.ACTIVE,
+                    defaults={
+                        "max_job_posts": 10,
+                        "featured_job_limit": 3,
+                        "featured_employer_option": False,
+                        "job_expire_days": 30,
+                    }
+                )
+            
+                for feature in features_data:
+                    text = feature.get('text')
+                    value = feature.get('value')
 
-
+                    print(f"[DEBUG] Processing feature: {text} = {value}")
+                
+                    if text == 'Jobs Posting':
+                        try:
+                            settings.max_job_posts = int(value) if value else 0
+                        except (ValueError, TypeError):
+                            settings.max_job_posts = 0
+                        
+                    elif text == 'Highlight Your Job Listing':
+                        try:
+                            numeric_value = int(value) if value else 0
+                            if numeric_value > 0:
+                                settings.featured_employer_option = True
+                                settings.featured_job_limit = numeric_value
+                            else:
+                                settings.featured_employer_option = False
+                                settings.featured_job_limit = 0
+                        except (ValueError, TypeError):
+                            settings.featured_employer_option = False
+                            settings.featured_job_limit = 0
+                        
+                    elif text == 'Analytics':
+                        instance.Analytics = (str(value).lower() == 'true')
+                    
+                    elif text == 'Candidate Search':
+                        instance.Candidate_Search = (str(value).lower() == 'true')
+                    
+                    elif text == 'Premium Support':
+                        instance.Premium_Support = (str(value).lower() == 'true')
+                    
+                    elif text == 'Account Manager':
+                        instance.Account_Manager = (str(value).lower() == 'true')
+            
+                # Save settings and plan
+                settings.save()
+                instance.save()
+                print(f"[DEBUG] Features updated successfully - Settings max_job_posts: {settings.max_job_posts}, featured_employer_option: {settings.featured_employer_option}")
+            
+            except Exception as e:
+                print(f"[DEBUG] Error updating features: {str(e)}")
+                import traceback
+                traceback.print_exc()
+    
+        return instance
+    
 class SubscriptionSerializer(serializers.ModelSerializer):
     plan = PlanSerializer()
     class Meta:
@@ -2454,6 +3079,7 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
            
         return super().update(instance, validated_data)
     
+   
 class AdminCompanySerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     user = serializers.CharField(source='employer.username')
@@ -2466,12 +3092,17 @@ class AdminCompanySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'user', 'date', 'certificate', 'verification']
  
     def get_date(self, obj):
-        return obj.created_at.strftime("%d %B %Y")
+        return obj.created_at.strftime("%d %B %Y") if obj.created_at else None
  
     def get_certificate(self, obj):
-        return "Yes" if obj.incorporation_certificate else "No"
+        # Check registration_certificate and tax_certificate instead of incorporation_certificate
+        if obj.registration_certificate and obj.tax_certificate:
+            return "Yes"
+        return "No"
  
     def get_name(self, obj):
+        if hasattr(obj.employer, 'employer_profile') and obj.employer.employer_profile.company:
+            return obj.employer.employer_profile.company.company_name
         return obj.legal_name
 
 class AdminCompanyDetailSerializer(serializers.ModelSerializer):
@@ -2500,9 +3131,14 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
         return obj.created_at.strftime("%d %B %Y") if obj.created_at else None
 
     def get_certificate(self, obj):
-        return "Yes" if obj.incorporation_certificate else "No"
+        # Check registration_certificate and tax_certificate instead of incorporation_certificate
+        if obj.registration_certificate and obj.tax_certificate:
+            return "Yes"
+        return "No"
 
     def get_name(self, obj):
+        if hasattr(obj.employer, 'employer_profile') and obj.employer.employer_profile.company:
+            return obj.employer.employer_profile.company.company_name
         return obj.legal_name
 
     def get_company_profile(self, obj):
@@ -2528,11 +3164,26 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
     def get_verification_details(self, obj):
         request = self.context.get("request")
 
-        certificate_url = None
-        if obj.incorporation_certificate:
-            certificate_url = obj.incorporation_certificate.url
+        # Get registration certificate URL
+        registration_certificate_url = None
+        if obj.registration_certificate:
+            registration_certificate_url = obj.registration_certificate.url
             if request:
-                certificate_url = request.build_absolute_uri(certificate_url)
+                registration_certificate_url = request.build_absolute_uri(registration_certificate_url)
+
+        # Get tax certificate URL
+        tax_certificate_url = None
+        if obj.tax_certificate:
+            tax_certificate_url = obj.tax_certificate.url
+            if request:
+                tax_certificate_url = request.build_absolute_uri(tax_certificate_url)
+
+        # Remove incorporation_certificate
+        # incorporation_certificate_url = None
+        # if obj.incorporation_certificate:
+        #     incorporation_certificate_url = obj.incorporation_certificate.url
+        #     if request:
+        #         incorporation_certificate_url = request.build_absolute_uri(incorporation_certificate_url)
 
         return {
             "legal_name": obj.legal_name,
@@ -2541,7 +3192,11 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
             "website_url": obj.website_url,
             "official_email": obj.official_email,
             "phone_number": obj.phone_number,
-            "incorporation_certificate": certificate_url,
+            # Use registration_certificate instead
+            "registration_certificate": registration_certificate_url,
+            "tax_certificate": tax_certificate_url,
+            # Remove this
+            # "incorporation_certificate": incorporation_certificate_url,
             "email_verified": True,
             "mobile_verified": True,
             "submitted_by": obj.employer.username if obj.employer else None,
@@ -2560,10 +3215,10 @@ class UserListSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
     contact = serializers.SerializerMethodField()
     joinDate = serializers.SerializerMethodField()
- 
+    last_seen = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ['id', 'role', 'status', 'joinDate', 'profile', 'contact']
+        fields = ['id', 'role', 'status', 'joinDate', 'profile', 'contact', 'last_seen']
  
     def get_role(self, obj):
         if obj.user_type == User.UserType.EMPLOYER:
@@ -2601,6 +3256,26 @@ class UserListSerializer(serializers.ModelSerializer):
             "email": obj.email,
             #"city": city
         }
+       
+    def get_last_seen(self, obj):
+        if not obj.last_seen:
+            return "N/A"
+        now = timezone.now()
+        diff = now - obj.last_seen
+        total_seconds = int(diff.total_seconds())
+        if total_seconds < 60:
+            return "Active Now"
+        elif total_seconds < 3600:
+            mins = total_seconds // 60
+            return f"{mins} min{'s' if mins > 1 else ''} ago"
+        elif total_seconds < 86400:
+            hours = total_seconds // 3600
+            return f"{hours} hour{'s' if hours > 1 else ''} ago"
+        elif total_seconds < 604800:
+            days = total_seconds // 86400
+            return f"{days} day{'s' if days > 1 else ''} ago"
+        else:
+            return obj.last_seen.strftime("%b %d, %Y")
  
     def get_joinDate(self, obj):
         if obj.date_joined:
@@ -2908,13 +3583,6 @@ class EmployerPlatformSettingsSerializer(
  
             'plan',
  
-            'employer_registration',
-
-            'email_verification',
-
-            'mobile_verification',
-
-            'approval_type',
 
             
  
@@ -3071,6 +3739,8 @@ class EmployerPlatformSettingsSerializer(
         )
  
         data = request.data
+        print(f"[DEBUG] Updating EmployerPlatformSettings for plan: {instance.plan.name}")
+        print(f"[DEBUG] Received data: {data}")
  
         # Required Docs
  
@@ -3213,18 +3883,29 @@ class EmployerPlatformSettingsSerializer(
             instance.notif_weekly_summary
 
         )
+        
+        # Critical: Job posting limits (these need to be saved)
+        job_expire_days = data.get("job_expire_days")
+        if job_expire_days is not None:
+            instance.job_expire_days = int(job_expire_days)
+            
+        max_job_posts = data.get("max_job_posts")
+        if max_job_posts is not None:
+            instance.max_job_posts = int(max_job_posts)
+            
+        featured_job_limit = data.get("featured_job_limit")
+        if featured_job_limit is not None:
+            instance.featured_job_limit = int(featured_job_limit)
+            
+        allow_edit_after_approval = data.get("allow_edit_after_approval")
+        if allow_edit_after_approval is not None:
+            instance.allow_edit_after_approval = bool(allow_edit_after_approval)
  
         # Normal Fields
  
         normal_fields = [
  
-            'employer_registration',
- 
-            'email_verification',
- 
-            'mobile_verification',
- 
-            'approval_type',
+            
  
             'account_status',
  
@@ -3307,152 +3988,543 @@ class EmployerPlatformSettingsSerializer(
     #     return data
 
 
+
+class EmployerRegistrationSettingsSerializer(
+    serializers.ModelSerializer
+):
+ 
+    class Meta:
+ 
+        model = EmployerRegistrationSettings
+ 
+        fields = [
+ 
+            'employer_registration',
+ 
+            'email_verification',
+ 
+            'mobile_verification',
+ 
+            'approval_type',
+        ]
  
 
 #for jobseekersetting
 from .models import JobseekerPlatformSettings
 
-
 class JobseekerPlatformSettingsSerializer(
     serializers.ModelSerializer
 ):
-
     emailVer = serializers.BooleanField(
         source="email_verification"
     )
-
     phoneVer = serializers.BooleanField(
         source="phone_verification"
     )
-
     domainRest = serializers.BooleanField(
         source="domain_restriction"
     )
-
     allowedDomains = serializers.ListField(
         source="allowed_domains",
         child=serializers.CharField(),
         required=False
     )
-
     defaultRole = serializers.CharField(
         source="default_role"
     )
-
     accountStatus = serializers.CharField(
         source="account_status"
     )
-
     profileVisibility = serializers.CharField(
         source="profile_visibility"
     )
-
     resumeVisibility = serializers.CharField(
         source="resume_visibility"
     )
-
     anonymous = serializers.BooleanField(
         source="anonymous_profile"
     )
-
     completionPercent = serializers.CharField(
         source="profile_completion_required"
     )
-
     salary = serializers.BooleanField(
         source="salary_visibility"
     )
-
     reviews = serializers.BooleanField(
         source="company_reviews"
     )
-
     appStatus = serializers.BooleanField(
         source="application_status_tracking"
     )
-
     similarJobs = serializers.BooleanField(
         source="similar_jobs"
     )
-
     advice = serializers.BooleanField(
         source="career_advice"
     )
-
     easyApply = serializers.BooleanField(
         source="easy_apply"
     )
-
     saveJobs = serializers.BooleanField(
         source="save_jobs"
     )
-
     maxApps = serializers.IntegerField(
         source="max_applications"
     )
-
     appExpiry = serializers.IntegerField(
         source="application_expiry_days"
     )
-
     class Meta:
-
         model = JobseekerPlatformSettings
-
         fields = [
-
             "id",
-
             "registration",
-
             "emailVer",
-
             "phoneVer",
-
             "domainRest",
-
             "allowedDomains",
-
             "defaultRole",
-
             "accountStatus",
-
             "profileVisibility",
-
             "resumeVisibility",
-
             "anonymous",
-
             "completionPercent",
-
             "salary",
-
             "reviews",
-
             "appStatus",
-
             "similarJobs",
-
             "advice",
-
             "easyApply",
-
             "saveJobs",
-
             "maxApps",
-
             "appExpiry",
-
             "updated_at"
         ]
-
-    def validate_allowed_domains(self, value):
-
+    def validate_allowedDomains(self, value):
         return [
-
             domain.lower().strip()
-
             for domain in value
-
             if domain.strip()
         ]
+
+class AdminProfilePhotoSerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AdminProfile
+        fields = ['photo_url']
+
+    def get_photo_url(self, obj):
+        request = self.context.get('request')
+        if obj.profile_photo:
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            return obj.profile_photo.url
+        return None
+    
+class UserDetailSerializer(serializers.ModelSerializer):
+    """Full detail serializer for GET /users/<pk>/"""
+    role = serializers.SerializerMethodField()
+    profile = serializers.SerializerMethodField()
+    contact = serializers.SerializerMethodField()
+    joinDate = serializers.SerializerMethodField()
+    last_seen = serializers.SerializerMethodField()
+    skills = serializers.SerializerMethodField()
+    education = serializers.SerializerMethodField()
+    preferences = serializers.SerializerMethodField()
+    currentDetails = serializers.SerializerMethodField()
+    companyDetails = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'role', 'status', 'joinDate', 'last_seen',
+            'profile', 'contact',
+            'skills', 'education', 'preferences', 'currentDetails',
+            'companyDetails',
+        ]
+
+    def get_role(self, obj):
+        if obj.user_type == User.UserType.EMPLOYER:
+            return "employer"
+        return "candidate"
+
+    def get_profile(self, obj):
+        full_name = ""
+        if obj.user_type == User.UserType.JOBSEEKER:
+            try:
+                full_name = obj.jobseeker_profile.full_name
+            except JobSeekerProfile.DoesNotExist:
+                full_name = obj.username
+        elif obj.user_type == User.UserType.EMPLOYER:
+            try:
+                full_name = obj.employer_profile.full_name
+            except EmployerProfile.DoesNotExist:
+                full_name = obj.username
+        else:
+            full_name = obj.get_full_name() or obj.username
+        return {"fullName": full_name}
+
+    def get_contact(self, obj):
+        # 1. Grab the main registered phone number directly from the User model
+ 
+        mobile = ""
+        if obj.user_type == User.UserType.EMPLOYER:
+            try:
+                company = obj.employer_profile.company
+                if company and company.contact_number:
+                    mobile = company.contact_number
+            except Exception:
+                pass
+       
+        if not mobile:
+            mobile = obj.phone or ""
+
+        city = ""
+
+        if obj.user_type == User.UserType.JOBSEEKER:
+
+            try:
+
+                p = obj.jobseeker_profile
+
+                city = p.city or ""
+
+            except JobSeekerProfile.DoesNotExist:
+
+                pass
+
+        return {"email": obj.email, "mobile": mobile, "city": city}
+
+    def get_joinDate(self, obj):
+        if obj.date_joined:
+            return obj.date_joined.strftime("%b %d, %Y")
+        return None
+
+    def get_last_seen(self, obj):
+        if not obj.last_seen:
+            return "N/A"
+        now = timezone.now()
+        diff = now - obj.last_seen
+        total_seconds = int(diff.total_seconds())
+        if total_seconds < 60:
+            return "Active Now"
+        elif total_seconds < 3600:
+            mins = total_seconds // 60
+            return f"{mins} min{'s' if mins > 1 else ''} ago"
+        elif total_seconds < 86400:
+            hours = total_seconds // 3600
+            return f"{hours} hour{'s' if hours > 1 else ''} ago"
+        elif total_seconds < 604800:
+            days = total_seconds // 86400
+            return f"{days} day{'s' if days > 1 else ''} ago"
+        else:
+            return obj.last_seen.strftime("%b %d, %Y")
+
+    def get_skills(self, obj):
+        if obj.user_type != User.UserType.JOBSEEKER:
+            return []
+        try:
+            return list(obj.jobseeker_profile.skills.values_list('name', flat=True))
+        except JobSeekerProfile.DoesNotExist:
+            return []
+
+    def get_education(self, obj):
+        if obj.user_type != User.UserType.JOBSEEKER:
+            return {}
+        try:
+            p = obj.jobseeker_profile
+            edu = p.educations.order_by('-id').first()
+            if edu:
+                qual = edu.qualification_level or ""
+                if edu.degree:
+                    qual = f"{qual} / {edu.degree}"
+                if edu.department:
+                    qual = f"{qual} / {edu.department}"
+                return {"highestQual": qual}
+            return {"highestQual": ""}
+        except JobSeekerProfile.DoesNotExist:
+            return {}
+
+    def get_preferences(self, obj):
+        if obj.user_type != User.UserType.JOBSEEKER:
+            return []
+        try:
+            p = obj.jobseeker_profile
+            return [{"role": p.preferred_role_industry or "Candidate"}]
+        except JobSeekerProfile.DoesNotExist:
+            return []
+
+    def get_currentDetails(self, obj):
+        if obj.user_type != User.UserType.JOBSEEKER:
+            return {}
+        try:
+            p = obj.jobseeker_profile
+            return {
+                "currentLocation": p.current_location or "",
+                "currentJobTitle": p.current_job_title or "",
+                "currentCompany": p.current_company or "",
+                "totalExperience": str(p.total_experience_years or ""),
+                "noticePeriod": p.notice_period or "",
+            }
+        except JobSeekerProfile.DoesNotExist:
+            return {}
+
+    def get_companyDetails(self, obj):
+        if obj.user_type != User.UserType.EMPLOYER:
+            return {}
+        try:
+            ep = obj.employer_profile
+            company = ep.company
+           
+            # Auto-update logic for Active Membership Plan:
+            plan_name = "Free Plan"
+            try:
+                active_sub = Subscription.objects.filter(user=obj, status='active').select_related('plan').first()
+                if active_sub and active_sub.plan:
+                    plan_name = active_sub.plan.name
+            except Exception:
+                pass
+            return {
+                "companyName": company.company_name if company else "",
+                "companyId": ep.employee_id or "",
+                "planName": plan_name,
+                "planLevel": "1",
+            }
+        except EmployerProfile.DoesNotExist:
+            return {}
+
+# ============================================================
+#  BLOG SERIALIZERS
+#  Append these classes to the bottom of your serializers.py
+# ============================================================
+
+from .models import BlogCategory, Blog, BlogPoint, PointContent
+
+
+class PointContentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PointContent
+        fields = ['id', 'text', 'order']
+
+
+class BlogPointSerializer(serializers.ModelSerializer):
+    content = PointContentSerializer(many=True)
+
+    class Meta:
+        model = BlogPoint
+        fields = ['id', 'title', 'order', 'content']
+
+class BlogReadSerializer(serializers.ModelSerializer):
+    """
+    Read serializer — field names match your React component exactly:
+    Status (capital S), Thumbnail (capital T), categoryName
+    """
+    categoryName = serializers.CharField(source='category.name', read_only=True)
+    Status = serializers.CharField(source='status')
+    Thumbnail = serializers.SerializerMethodField()
+    points = BlogPointSerializer(many=True, read_only=True)
+
+    def get_Thumbnail(self, obj):
+        """
+        Returns absolute URL for thumbnail - same pattern as CompanyProfileSerializer
+        """
+        request = self.context.get('request')
+        if obj.thumbnail:
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            return obj.thumbnail.url
+        return ''
+
+    class Meta:
+        model = Blog
+        fields = [
+            'id', 'categoryName', 'title', 'heading', 'desc',
+            'Thumbnail', 'Status', 'date', 'time',
+            'points', 'created_at', 'updated_at',
+        ]
+
+
+class BlogWriteSerializer(serializers.Serializer):
+    """
+    Write serializer — accepts the exact shape your React frontend sends:
+    {
+        categoryName : "Technology",
+        title        : "...",
+        heading      : "...",
+        desc         : "...",
+        Thumbnail    : "https://...",
+        Status       : "Published" | "Draft",
+        date         : "2024-06-08",
+        time         : "10:30 AM",
+        points: [
+            { title: "Why React?", content: ["line1", "line2"] }
+        ]
+    }
+    """
+    categoryName = serializers.CharField(max_length=255)
+    title        = serializers.CharField(max_length=500)
+    heading      = serializers.CharField(max_length=500, required=False, default='')
+    desc         = serializers.CharField(required=False, default='', allow_blank=True)
+    # Thumbnail    = serializers.CharField(max_length=1000, required=False, default='', allow_blank=True)
+    Thumbnail = serializers.ImageField(required=False, allow_null=True, allow_empty_file=True)
+
+    Status       = serializers.ChoiceField(choices=['Published', 'Draft'], default='Draft')
+    date         = serializers.CharField(max_length=50, required=False, default='')
+    time         = serializers.CharField(max_length=20, required=False, default='12:00 PM')
+    # points       = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    # points = serializers.ListField(child=serializers.JSONField(), required=False, default=list)
+    points = serializers.CharField(required=False, default='[]', allow_blank=True)
+
+    def validate_points(self, value):
+        import json
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if not isinstance(parsed, list):
+                    raise serializers.ValidationError("Points must be a list.")
+                return parsed
+            except (json.JSONDecodeError, TypeError):
+                raise serializers.ValidationError("Invalid points format.")
+        return value  # already a list (JSON body requests)
+
+
+    def _get_or_create_category(self, name):
+        category, _ = BlogCategory.objects.get_or_create(name=name.strip())
+        return category
+
+    def _save_points(self, blog, points_data):
+        for p_index, point in enumerate(points_data):
+            raw_content = point.get('content', [])
+            bp = BlogPoint.objects.create(
+                blog=blog,
+                title=point.get('title', ''),
+                order=p_index
+            )
+            for c_index, item in enumerate(raw_content):
+                # content items can be plain strings OR {text, order} dicts
+                text = item if isinstance(item, str) else item.get('text', '')
+                PointContent.objects.create(point=bp, text=text, order=c_index)
+
+    def create(self, validated_data):
+        category   = self._get_or_create_category(validated_data.pop('categoryName'))
+        points_data = validated_data.pop('points', [])
+
+        thumbnail = validated_data.pop('Thumbnail', None)
+
+
+        blog = Blog.objects.create(
+            category  = category,
+            title     = validated_data['title'],
+            heading   = validated_data.get('heading', ''),
+            desc      = validated_data.get('desc', ''),
+            # thumbnail = validated_data.get('Thumbnail', ''),
+                    thumbnail=thumbnail,          
+            status    = validated_data.get('Status', 'Draft'),
+            date      = validated_data.get('date', ''),
+            time      = validated_data.get('time', '12:00 PM'),
+        )
+        self._save_points(blog, points_data)
+        return blog
+
+    def update(self, instance, validated_data):
+        new_cat = validated_data.pop('categoryName', None)
+        if new_cat:
+            instance.category = self._get_or_create_category(new_cat)
+        
+        thumbnail = validated_data.pop('Thumbnail', None)
+        if thumbnail:
+            instance.thumbnail = thumbnail   
+
+        instance.title     = validated_data.get('title',     instance.title)
+        instance.heading   = validated_data.get('heading',   instance.heading)
+        instance.desc      = validated_data.get('desc',      instance.desc)
+        instance.thumbnail = validated_data.get('Thumbnail', instance.thumbnail)
+        instance.status    = validated_data.get('Status',    instance.status)
+        instance.date      = validated_data.get('date',      instance.date)
+        instance.time      = validated_data.get('time',      instance.time)
+        instance.save()
+
+        if 'points' in validated_data:
+            instance.points.all().delete()
+            self._save_points(instance, validated_data['points'])
+
+        return instance
+    
+
+class BlogCategorySerializer(serializers.ModelSerializer):
+    blogs      = BlogReadSerializer(many=True, read_only=True)
+    blog_count = serializers.IntegerField(source='blogs.count', read_only=True)
+
+    class Meta:
+        model  = BlogCategory
+        fields = ['id', 'name', 'blog_count', 'blogs', 'created_at']
+
+# ============================================================
+# ACCOUNT MANAGER SERIALIZERS
+# ============================================================
+
+class AccountManagerSerializer(serializers.ModelSerializer):
+    department_display = serializers.CharField(source='get_department_display', read_only=True)
+    profile_photo_url = serializers.SerializerMethodField()
+    assigned_employers_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccountManager
+        fields = [
+            'id', 'full_name', 'email', 'phone',
+            'department', 'department_display',
+            'title', 'description', 'profile_photo', 'profile_photo_url',
+            'is_active', 'order', 'assigned_employers_count',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_profile_photo_url(self, obj):
+        if obj.profile_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            return obj.profile_photo.url
+        return None
+
+    def get_assigned_employers_count(self, obj):
+        return obj.assigned_employers.count()
+
+
+class EmployerAccountManagerAssignmentSerializer(serializers.ModelSerializer):
+    account_manager_details = AccountManagerSerializer(source='account_manager', read_only=True)
+    employer_name = serializers.CharField(source='employer.username', read_only=True)
+    employer_email = serializers.CharField(source='employer.email', read_only=True)
+    department_display = serializers.CharField(source='account_manager.get_department_display', read_only=True)
+
+    class Meta:
+        model = EmployerAccountManagerAssignment
+        fields = [
+            'id', 'employer', 'employer_name', 'employer_email',
+            'account_manager', 'account_manager_details',
+            'department_display',
+            'is_primary', 'assigned_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'assigned_at', 'updated_at']
+
+
+class EmployerManagerResponseSerializer(serializers.Serializer):
+    """
+    Employer side response serializer
+    """
+    has_access = serializers.BooleanField()
+    message = serializers.CharField()
+    action_required = serializers.CharField(required=False, allow_null=True)
+    action_button = serializers.CharField(required=False, allow_null=True)
+    contacts = serializers.ListField(required=False)
+
+class AllowedDomainsSerializer(serializers.Serializer):
+    """Serializer for allowed domains configuration"""
+    allowed_domains = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="List of allowed email domains for jobseeker registration"
+    )
+    domain_restriction = serializers.BooleanField(
+        help_text="Whether domain restriction is enabled"
+    )

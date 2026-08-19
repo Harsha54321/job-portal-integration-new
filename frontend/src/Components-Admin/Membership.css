@@ -1,4 +1,3 @@
-
 .membership-cr-membership-container {
   padding: 20px;
   background-color: #f8faff;
@@ -78,8 +77,13 @@
   width: 200px;
 }
 
-.membership-cr-flex-2 { flex: 2; }
-.membership-cr-flex-1 { flex: 1; }
+.membership-cr-flex-2 {
+  flex: 2;
+}
+
+.membership-cr-flex-1 {
+  flex: 1;
+}
 
 .membership-cr-input-group label {
   font-size: 12px;
@@ -87,7 +91,7 @@
   font-weight: 500;
 }
 
-.membership-cr-input-group input, 
+.membership-cr-input-group input,
 .membership-cr-input-group select {
   padding: 10px;
   border: 1px solid #dcdfe6;
@@ -152,11 +156,23 @@
   padding: 0;
 }
 
-.membership-cr-bold-text { font-weight: 700; font-size: 16px; }
-.membership-cr-italic-text { font-style: italic; font-family: serif; font-size: 16px; }
-.membership-cr-underline-text { text-decoration: underline; font-size: 16px; }
+.membership-cr-bold-text {
+  font-weight: 700;
+  font-size: 16px;
+}
 
-.membership-cr-toolbar-icon, 
+.membership-cr-italic-text {
+  font-style: italic;
+  font-family: serif;
+  font-size: 16px;
+}
+
+.membership-cr-underline-text {
+  text-decoration: underline;
+  font-size: 16px;
+}
+
+.membership-cr-toolbar-icon,
 .membership-cr-toolbar-icon-link {
   width: 16px;
   height: 16px;
@@ -205,6 +221,7 @@
   border-radius: 50%;
   display: flex;
 }
+
 .membership-cr-status-hold-dot {
   width: 80px;
   height: 80px;
@@ -399,7 +416,7 @@
 .membership-cr-preview-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   text-align: center;
   margin-top: 50px;
@@ -517,19 +534,334 @@
 }
 
 .membership-cr-status-dot.hold {
-  background-color: #fd7e14; 
+  background-color: #fd7e14;
   box-shadow: 0 0 5px rgba(253, 126, 20, 0.5);
 }
 
 .membership-cr-status-select {
-  padding: 8px 8px 18px 18px; 
+  padding: 8px 8px 18px 18px;
   border: 1px solid #ddd;
   border-radius: 4px;
   width: 100%;
   background-color: white;
   cursor: pointer;
 }
-.membership-cr-tag-input-field{
+
+.membership-cr-tag-input-field {
   display: flex;
   width: fit-content;
+}
+
+/* Preview Modal Overlay */
+
+.published-plans-preview-modal-overlay {
+
+  position: fixed;
+
+  /* inset: 0 replaces top/left/right/bottom for better modern mobile viewport compatibility */
+
+  inset: 0;
+
+  width: 100vw;
+
+  height: 100dvh;
+  /* dynamic vh accounts for mobile address bars shifting */
+
+  background-color: rgba(15, 23, 42, 0.6);
+  /* Modern slate-tinted dark overlay */
+
+  backdrop-filter: blur(4px);
+  /* Subtle background blur for depth */
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  z-index: 9999;
+
+  padding: 16px;
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  animation: published-plans-modal-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+}
+
+/* Modal Content Box */
+
+.published-plans-preview-modal-content {
+
+  background-color: #ffffff;
+
+  border-radius: 16px;
+  /* Slightly smoother round corners */
+
+  width: 100%;
+
+  max-width: 440px;
+
+  max-height: calc(100dvh - 32px);
+  /* Ensures safe layout margins on smaller screens */
+
+  overflow: hidden;
+
+  position: relative;
+
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  /* Tailwind-style soft shadow elevation */
+
+  margin: 0 auto;
+
+  display: flex;
+
+  flex-direction: column;
+
+  animation: published-plans-modal-slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Bouncy slide-up effect */
+
+}
+
+/* Modal Close Button */
+
+.published-plans-preview-modal-close {
+
+  position: absolute;
+
+  top: 14px;
+
+  right: 16px;
+
+  background: transparent;
+
+  border: none;
+
+  font-size: 24px;
+
+  cursor: pointer;
+
+  color: #64748b;
+  /* Slate grey icon */
+
+  z-index: 10;
+
+  width: 36px;
+
+  height: 36px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  line-height: 1;
+
+  transition: all 0.2s ease;
+
+}
+
+.published-plans-preview-modal-close:hover {
+
+  background-color: #f1f5f9;
+
+  color: #0f172a;
+
+}
+
+.published-plans-preview-modal-close:active {
+
+  transform: scale(0.95);
+
+}
+
+/* Modal Header */
+
+.published-plans-preview-modal-header {
+
+  padding: 24px 24px 16px 24px;
+
+  border-bottom: 1px solid #f1f5f9;
+
+  flex-shrink: 0;
+
+}
+
+.published-plans-preview-modal-header h3 {
+
+  margin: 0;
+
+  font-size: 1.15rem;
+
+  color: #0f172a;
+
+  font-weight: 700;
+
+  letter-spacing: -0.025em;
+
+  padding-right: 32px;
+  /* Leaves clean room for close button overlap */
+
+}
+
+.published-plans-preview-modal-header p {
+
+  margin: 6px 0 0 0;
+
+  font-size: 0.875rem;
+
+  color: #64748b;
+
+  line-height: 1.4;
+
+}
+
+/* Modal Body (Strict Scrolling Logic Appied) */
+
+.published-plans-preview-modal-body {
+
+  padding: 24px;
+
+  display: flex;
+
+  flex-direction: column;
+  /* Better element handling */
+
+  justify-content: flex-start;
+  /* Keeps item at top if viewport shrinks */
+
+  align-items: center;
+
+  flex: 1;
+
+  overflow-y: auto;
+
+  -webkit-overflow-scrolling: touch;
+  /* Butter-smooth scrolling momentum on iOS devices */
+
+}
+
+/* Custom Scrollbar Aesthetics inside modal body */
+
+.published-plans-preview-modal-body::-webkit-scrollbar {
+
+  width: 6px;
+
+}
+
+.published-plans-preview-modal-body::-webkit-scrollbar-track {
+
+  background: transparent;
+
+}
+
+.published-plans-preview-modal-body::-webkit-scrollbar-thumb {
+
+  background: #cbd5e1;
+
+  border-radius: 10px;
+
+}
+
+.published-plans-preview-modal-body::-webkit-scrollbar-thumb:hover {
+
+  background: #94a3b8;
+
+}
+
+.published-plans-preview-modal-body .published-plan-preview-card {
+
+  width: 100%;
+
+  max-width: 100%;
+  /* Spans naturally within boundaries */
+
+  margin: 0 auto;
+
+}
+
+/* Fluid Animations */
+
+@keyframes published-plans-modal-fade-in {
+
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+
+}
+
+@keyframes published-plans-modal-slide-up {
+
+  from {
+
+    opacity: 0;
+
+    transform: translateY(16px) scale(0.96);
+
+  }
+
+  to {
+
+    opacity: 1;
+
+    transform: translateY(0) scale(1);
+
+  }
+
+}
+
+/* Micro-Responsive Sizing Rules for Phones */
+
+@media (max-width: 480px) {
+
+  .published-plans-preview-modal-overlay {
+
+    padding: 12px;
+    /* Margins around content minimized */
+
+  }
+
+  .published-plans-preview-modal-content {
+
+    max-height: calc(100dvh - 24px);
+
+    border-radius: 14px;
+
+  }
+
+  .published-plans-preview-modal-body {
+
+    padding: 16px;
+
+  }
+
+  .published-plans-preview-modal-header {
+
+    padding: 20px 16px 12px 16px;
+
+  }
+
+  .published-plans-preview-modal-close {
+
+    top: 12px;
+
+    right: 12px;
+
+    width: 32px;
+
+    height: 32px;
+
+    font-size: 20px;
+
+  }
+
 }

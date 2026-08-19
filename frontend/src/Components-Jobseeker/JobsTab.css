@@ -41,14 +41,24 @@
     box-shadow: 0 2px 4px rgba(30, 136, 229, 0.2);
 }
 
-/* .Navigation-btn:disabled {
-    cursor: not-allowed;
-    background-color: #f8f9fa;
-    color: #aeb5bc;
+.Navigation-btn:disabled {
+    background-color: #e9ecef;
+    color: #adb5bd;
     border: 1px solid #ced4da;
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.65;
     box-shadow: none;
     transform: none;
-} */
+}
+
+.Navigation-btn:disabled:hover {
+    background-color: #e9ecef;
+    color: #adb5bd;
+    border: 1px solid #ced4da;
+    transform: none;
+    box-shadow: none;
+}
 
 .page-numbers {
     display: flex;

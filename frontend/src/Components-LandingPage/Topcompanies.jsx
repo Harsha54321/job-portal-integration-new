@@ -26,6 +26,7 @@ export const Topcompanies = () => {
   const [companies, setCompanies] = useState([]);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const [popupSubtitle, setPopupSubtitle] = useState("");
   const [redirectPath, setRedirectPath] = useState("/Job-portal/jobseeker/");
 
   useEffect(() => {
@@ -53,8 +54,11 @@ export const Topcompanies = () => {
 
     if (type === "jobs" && companyId) {
       setPopupMessage("Login or sign up to view job opportunities");
+      setPopupSubtitle("Please log in or create an account to access full job listing information and apply.");
     } else {
       setPopupMessage("Login or sign up to explore all companies");
+      setPopupSubtitle("Please log in or create an account to view detailed company profiles and insights.");
+
     }
 
     setRedirectPath(path);
@@ -129,7 +133,7 @@ export const Topcompanies = () => {
 
   return (
     <>
-      <section className="carousel-wrapper">
+      <section id="companies-section" className="carousel-wrapper">
         <h2 className="carousel-title">Top Companies Hiring Now</h2>
 
         <Slider {...settings}>
@@ -192,6 +196,7 @@ export const Topcompanies = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3>{popupMessage}</h3>
+            <h5>{popupSubtitle}</h5>
 
             <div className="login-popup-actions">
               <button

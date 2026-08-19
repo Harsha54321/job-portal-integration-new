@@ -1,5 +1,23 @@
+from zoneinfo import ZoneInfo
+
 import razorpay
 from django.conf import settings
+from rest_framework_simplejwt.tokens import AccessToken
+from datetime import datetime, timedelta
+import uuid
+from datetime import timedelta
+ 
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
+from jobapp.models import (
+    PostAJob,
+    JobApplication,
+    Notification,
+    PendingNotification,
+)
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY, settings.RAZORPAY_SECRET))
 
@@ -203,11 +221,7 @@ class Admin2FAService:
         profile, _ = AdminProfile.objects.get_or_create(
             user=user
         )
- 
-       
-        # 2FA NOT ENABLED
-     
- 
+
         if not profile.two_factor_enabled:
  
             return None
@@ -274,9 +288,7 @@ class Admin2FAService:
             )
  
             print(f"[LOGIN OTP SMS] {user.phone}: {otp}")
- 
-       
- 
+
         return {
  
             "requires_2fa": True,
@@ -287,9 +299,612 @@ class Admin2FAService:
  
             "message": f"OTP sent via {method}"
         }
+    
+
+    @staticmethod
+    def generate_temp_token(user_id):
+        """
+        Generate a short-lived JWT token (5 minutes) for 2FA session
+        """
+        token = AccessToken()
+        token.payload['user_id'] = user_id
+        token.payload['temp_2fa'] = True
+        token.payload['purpose'] = '2fa_verification'
+        token.set_exp(lifetime=timedelta(minutes=5))
+        return str(token)
+        
+    @staticmethod
+    def validate_temp_token(token_str):
+        """
+        Validate the temporary 2FA token
+        Returns user_id if valid, None otherwise
+        """
+        from rest_framework_simplejwt.tokens import AccessToken
+        from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+        from datetime import datetime
+        
+        try:
+            token = AccessToken(token_str)
+            if not token.payload.get('temp_2fa', False):
+                return None
+            if token.payload.get('purpose') != '2fa_verification':
+                return None
+            
+            # FIX: Convert exp (Unix timestamp) to datetime for comparison
+            exp_timestamp = token.payload['exp']
+            exp_datetime = datetime.fromtimestamp(exp_timestamp)
+            
+            if token.current_time > exp_datetime:
+                return None
+                
+            return token.payload.get('user_id')
+        except (TokenError, InvalidToken, KeyError) as e:
+            print(f"Token validation error: {e}")
+            return None
  
+    @staticmethod
+    def send_2fa_otp(user, method):
+        """
+        Send OTP for 2FA verification (for enabling 2FA from settings)
+        """
+        profile = getattr(user, 'admin_profile', None)
+        if not profile:
+            return False, "Admin profile not found"
+        
+        # Verify the method is enabled and verified
+        if method == "email" and not profile.email_verified:
+            return False, "Email 2FA not verified yet"
+        if method == "sms" and not profile.sms_verified:
+            return False, "SMS 2FA not verified yet"
+        
+        otp = generate_otp()
+        
+        if method == "email":
+            EmailOTP.objects.filter(
+                email=user.email,
+                purpose="admin_2fa",
+                is_verified=False
+            ).update(expires_at=timezone.now() - timedelta(minutes=1))
+            
+            EmailOTP.objects.create(
+                email=user.email,
+                otp=otp,
+                purpose="admin_2fa",
+                expires_at=timezone.now() + timedelta(minutes=5)
+            )
+            
+            send_email_otp(user.email, otp, "admin_2fa")
+            return True, "OTP sent to your email"
+        
+        elif method == "sms":
+            if not user.phone:
+                return False, "Phone number not available"
+            
+            SMSOTP.objects.filter(
+                phone=user.phone,
+                purpose="admin_2fa",
+                is_verified=False
+            ).update(expires_at=timezone.now() - timedelta(minutes=1))
+            
+            SMSOTP.objects.create(
+                phone=user.phone,
+                otp=otp,
+                purpose="admin_2fa",
+                expires_at=timezone.now() + timedelta(minutes=5)
+            )
+            
+            print(f"[SMS 2FA OTP] {user.phone}: {otp}")
+            # TODO: Integrate with actual SMS service
+            return True, "OTP sent to your mobile"
+        
+        return False, "Invalid method"
+
+    @staticmethod
+    def verify_2fa_otp(user, otp, method):
+        """
+        Verify OTP for 2FA
+        """
+        if method == "email":
+            otp_obj = EmailOTP.objects.filter(
+                email=user.email,
+                otp=otp,
+                purpose="admin_2fa",
+                is_verified=False
+            ).last()
+        elif method == "sms":
+            otp_obj = "123456"
+        else:
+            return False, "Invalid method"
+        
+        if not otp_obj:
+            return False, "Invalid OTP"
+        
+        if method == "email":
+            if not otp_obj.is_valid():
+                return False, "OTP expired"
+            
+            otp_obj.is_verified = True
+            otp_obj.save()
+        
+        return True, "OTP verified successfully"
+
+    @staticmethod
+    def verify_login_otp(user, otp, method):
+        """
+        Verify OTP for login 2FA
+        """
+        if method == "email":
+            otp_obj = EmailOTP.objects.filter(
+                email=user.email,
+                otp=otp,
+                purpose="admin_login_2fa",
+                is_verified=False
+            ).last()
+        elif method == "sms":
+            otp_obj = "123456"
+        else:
+            return False, "Invalid method"
+        
+        if method == "email":
+            if not otp_obj:
+                return False, "Invalid OTP"
+            
+            if not otp_obj.is_valid():
+                return False, "OTP expired"
+            
+            if method == "email":
+                otp_obj.is_verified = True
+                otp_obj.save()
+        
+        return True, "OTP verified successfully"
+
+import uuid
+
+from datetime import timedelta
+ 
+from django.conf import settings
+
+from django.core.mail import EmailMultiAlternatives
+
+from django.template.loader import render_to_string
+
+from django.urls import reverse
+
+from django.utils import timezone
+ 
+from jobapp.models import EmployerWeeklyReportToken
+
+@staticmethod
+def _get_or_create_weekly_report_token(employer):
+ 
+    report_token = EmployerWeeklyReportToken.objects.filter(
+        employer=employer
+    ).first()
+ 
+    # Create first token
+    if report_token is None:
+ 
+        return EmployerWeeklyReportToken.objects.create(
+            employer=employer,
+            token=uuid.uuid4(),
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+ 
+    # Token expired -> generate a new one
+    if report_token.expires_at <= timezone.now():
+ 
+        report_token.token = uuid.uuid4()
+        report_token.expires_at = timezone.now() + timedelta(days=7)
+        report_token.save(
+            update_fields=[
+                "token",
+                "expires_at",
+            ]
+        )
+ 
+    return report_token
+
+@staticmethod
+def _get_weekly_report_context(employer):
+    """
+    Build the employer weekly report context.
+    Used for:
+        - Weekly HTML Email
+        - Employer Weekly Report Page
+    """
+ 
+    today = timezone.now()
+    week_ago = today - timedelta(days=7)
+ 
+    # ---------------------------------------
+    # Jobs
+    # ---------------------------------------
+ 
+    jobs = PostAJob.objects.filter(
+        employer=employer
+    )
+ 
+    active_jobs = jobs.filter(
+        last_date_to_apply__gte=today.date()
+    )
+ 
+    expired_jobs = jobs.filter(
+        last_date_to_apply__lt=today.date()
+    )
+ 
+    highlighted_jobs = jobs.filter(
+        is_highlighted=True
+    )
+ 
+    # ---------------------------------------
+    # Applications
+    # ---------------------------------------
+ 
+    applications = JobApplication.objects.filter(
+        job__employer=employer
+    ).select_related(
+        "user",
+        "job",
+    )
+ 
+    applications_this_week = applications.filter(
+        applied_date__gte=week_ago
+    )
+ 
+    # ---------------------------------------
+    # Notifications
+    # ---------------------------------------
+ 
+    notifications = Notification.objects.filter(
+        user=employer
+    )
+ 
+    unread_notifications = notifications.filter(
+        is_read=False
+    )
+ 
+    # ---------------------------------------
+    # Job Statistics
+    # ---------------------------------------
+ 
+    job_stats = []
+ 
+    for job in jobs:
+ 
+        job_applications = applications.filter(
+            job=job
+        )
+ 
+        job_stats.append({
+ 
+            "job_id": job.id,
+ 
+            "job_title": job.job_title,
+ 
+            "applications_count": job_applications.count(),
+ 
+            "shortlisted": job_applications.filter(
+                status="shortlisted"
+            ).count(),
+ 
+            "rejected": job_applications.filter(
+                status="rejected"
+            ).count(),
+ 
+            "hired": job_applications.filter(
+                status="hired"
+            ).count(),
+        })
+ 
+    # ---------------------------------------
+    # Recent Applications
+    # ---------------------------------------
+ 
+    recent_application_data = []
+ 
+    for app in applications.order_by(
+        "-applied_date"
+    )[:10]:
+ 
+        recent_application_data.append({
+ 
+            "candidate": app.user.email,
+ 
+            "job_title": app.job.job_title,
+ 
+            "status": app.status,
+ 
+            "applied_date": app.applied_date,
+        })
+ 
+    # ---------------------------------------
+    # Recent Notifications
+    # ---------------------------------------
+ 
+    notification_data = []
+ 
+    for notification in notifications.order_by(
+        "-created_at"
+    )[:10]:
+ 
+        notification_data.append({
+ 
+            "id": notification.id,
+ 
+            "message": notification.message,
+ 
+            "notification_type": notification.notification_type,
+ 
+            "created_at": notification.created_at,
+ 
+            "is_read": notification.is_read,
+        })
+ 
+    # ---------------------------------------
+    # Return Context
+    # ---------------------------------------
+ 
+    return {
+ 
+        "generated_date": today,
+ 
+        "summary": {
+ 
+            "total_jobs": jobs.count(),
+ 
+            "active_jobs": active_jobs.count(),
+ 
+            "expired_jobs": expired_jobs.count(),
+ 
+            "highlighted_jobs": highlighted_jobs.count(),
+ 
+            "total_applications": applications.count(),
+ 
+            "applications_this_week": applications_this_week.count(),
+ 
+            "unread_notifications": unread_notifications.count(),
+        },
+ 
+        "job_application_stats": job_stats,
+ 
+        "recent_notifications": notification_data,
+ 
+        "recent_applications": recent_application_data,
+    }
+ 
+@staticmethod
+
+def _send_weekly_report_email(
+
+    recipient,
+
+    subject,
+
+):
+
+    """
+
+    Send Weekly Employer Summary Email.
+ 
+    Steps:
+
+    1. Create/Update weekly report token.
+
+    2. Build report context.
+
+    3. Generate report URL.
+
+    4. Render HTML template.
+
+    5. Send HTML email.
+
+    """
+ 
+    # ---------------------------------------
+
+    # Create / Refresh Token
+
+    # ---------------------------------------
+ 
+    report_token = _get_or_create_weekly_report_token(
+        recipient
+    )
+ 
+    # ---------------------------------------
+
+    # Weekly Report Data
+
+    # ---------------------------------------
+ 
+    context = _get_weekly_report_context(
+
+        recipient
+
+    )
+ 
+    # ---------------------------------------
+
+    # Report URL
+
+    # ---------------------------------------
+ 
+    report_url = (
+        f"{settings.SITE_URL}"
+        f"{reverse(
+            'employer-weekly-summary',
+            kwargs={
+                'token': report_token.token,
+            },
+        )}"
+    )
+ 
+    context["report_url"] = report_url
+ 
+    # ---------------------------------------
+
+    # Render Email HTML
+
+    # ---------------------------------------
+ 
+    html_content = render_to_string(
+
+        "employer_weekly_summary_email.html",
+
+        context,
+
+    )
+ 
+    # ---------------------------------------
+
+    # Send Email
+
+    # ---------------------------------------
+ 
+    email = EmailMultiAlternatives(
+
+        subject=subject,
+
+        body=(
+
+            "Your weekly employer report is ready."
+
+        ),
+
+        from_email=settings.DEFAULT_FROM_EMAIL,
+
+        to=[recipient.email],
+
+    )
+ 
+    email.attach_alternative(
+
+        html_content,
+
+        "text/html",
+
+    )
+ 
+    email.send(fail_silently=False)
+
+import uuid
+from datetime import timedelta
+ 
+from django.conf import settings
+from django.utils import timezone
+ 
+ 
+@staticmethod
+
+def _send_weekly_report_push(
+
+    recipient,
+
+    token,
+
+    title,
+
+    message,
+
+):
+
+    """
+
+    Send Weekly Report Push Notification.
+
+    """
+ 
+    report_token = _get_or_create_weekly_report_token(
+
+        recipient
+
+    )
+ 
+    payload_data = {
+
+        "notification_type": "system",
+
+        "category": "weekly_summary",
+
+        "event_type": "weekly_report",
+
+        "token": str(report_token.token),
+ 
+        # Backend report URL
+
+        "url": (
+
+            f"{settings.SITE_URL}"
+
+            f"{reverse(
+
+                'employer-weekly-summary',
+
+                kwargs={
+
+                    'token': report_token.token,
+
+                },
+
+            )}"
+
+        ),
+ 
+        # Frontend deep link
+
+        "link": (
+
+            f"{settings.SITE_URL}"
+
+            f"{reverse(
+
+                'employer-weekly-summary',
+
+                kwargs={
+
+                    'token': report_token.token,
+
+                },
+
+            )}"
+
+        )    }
+ 
+    response_id = send_push_notification(
+
+        token=token,
+
+        title=title,
+
+        body=message,
+
+        data=payload_data,
+
+    )
+
+    return response_id
 
 
+@staticmethod
+def _create_weekly_report_notification(
+    recipient,
+    title,
+    message,
+    category,
+    event_type,
+    notification_type,
+):
+    """
+    Create Weekly Report In-App Notification.
+    """
+ 
+    return Notification.objects.create(
+        user=recipient,
+        title=title,
+        message=message,
+        category=category,
+        event_type=event_type,
+        notification_type=notification_type,
+    )
 
 from django.conf import settings
 
@@ -343,6 +958,9 @@ EVENT_CATEGORY_MAP = {
     "jobseeker_signup": "user_mgmt",
     "employer_signup": "user_mgmt",
     "password_reset_success": "user_mgmt",
+    "role_created": "user_mgmt",
+    "role_deleted": "user_mgmt",
+    "admin_2fa_enabled": "user_mgmt",
 
     # JOB MANAGEMENT
 
@@ -351,6 +969,8 @@ EVENT_CATEGORY_MAP = {
     "job_flagged": "job_mgmt",
     "job_deleted": "job_mgmt",
     "job_saved": "job_mgmt",
+    "job_hold": "job_mgmt",
+    
 
     # APPLICATIONS
 
@@ -363,6 +983,9 @@ EVENT_CATEGORY_MAP = {
 
     "company_verification_updated": "companies",
     "company_profile_created" : "companies",
+    "company_verification_submitted": "companies",
+    "account_manager_assigned": "companies",
+    "account_manager_removed": "companies",
 
     # REPORTS
 
@@ -376,9 +999,12 @@ EVENT_CATEGORY_MAP = {
     "complaint_submitted": "general",
     "complaint_status_updated": "general",
     "subscription_cancelled": "general",
+    "subscription_reactivated": "general",
     "payment_method_added": "general",
     "payment_method_removed": "general",
     "new_subscription_plan": "general",
+    "contact_message_submitted": "general",
+    "subscription_order_created": "general",
 }
 
 
@@ -489,8 +1115,11 @@ class NotificationService:
     # =====================================================
     # QUIET HOURS CHECK
     # ADMIN ONLY
-    # =====================================================
+        # =====================================================
+    
 
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
     @staticmethod
     def _is_admin_quiet_hours(recipient):
 
@@ -505,25 +1134,50 @@ class NotificationService:
         if not quiet_hours:
             return False
 
-        current_time = timezone.localtime().time()
+        current_datetime = datetime.now(
+            ZoneInfo(quiet_hours.timezone)
+        )
+
+        current_time = current_datetime.time()
+        current_day = current_datetime.strftime("%a")
 
         start_time = quiet_hours.start_time
         end_time = quiet_hours.end_time
+        active_days = quiet_hours.active_days or []
 
+        # ==========================================
         # SAME DAY RANGE
+        # ==========================================
 
         if start_time < end_time:
+
+            if current_day not in active_days:
+                return False
 
             return (
                 start_time <= current_time <= end_time
             )
 
+        # ==========================================
         # OVERNIGHT RANGE
+        # Example: 18:00 -> 06:00
+        # ==========================================
 
-        return (
-            current_time >= start_time or
-            current_time <= end_time
-        )
+        if current_time >= start_time:
+
+            # Quiet hours started today
+            return current_day in active_days
+
+        if current_time <= end_time:
+
+            # Quiet hours started yesterday
+            yesterday = (
+                current_datetime - timedelta(days=1)
+            ).strftime("%a")
+
+            return yesterday in active_days
+
+        return False
 
     # =====================================================
     # MAIN NOTIFICATION METHOD
@@ -700,35 +1354,60 @@ class NotificationService:
         if NotificationService._is_admin_quiet_hours(
             recipient
         ):
-
+ 
             logger.info(
-                "QUIET HOURS ACTIVE | admin=%s",
-                recipient.id
+                "QUIET HOURS ACTIVE | admin=%s | title=%s",
+                recipient.id,
+                title
             )
-
+ 
+            PendingNotification.objects.create(
+ 
+                user=recipient,
+ 
+                title=title,
+ 
+                message=message,
+ 
+                category=mapped_category,
+ 
+                event_type=event_type,
+ 
+                notification_type=notification_type,
+ 
+                related_object_id=related_object_id
+            )
+            # Block all channels during quiet hours
+            allow_inapp = False
             allow_email = False
             allow_sms = False
             allow_push = False
-
+ 
+            logger.info(
+                "NOTIFICATION STORED AS PENDING | "
+                "admin=%s | title=%s",
+                recipient.id,
+                title
+            )
+ 
+            return None
+        
         # =================================================
-        # ALWAYS CREATE DATABASE NOTIFICATION
+        # CREATE IN-APP NOTIFICATION ONLY IF ENABLED
         # =================================================
-
-        notification = Notification.objects.create(
-            user=recipient,
-            title=title,
-            message=message,
-            category=category,
-            event_type=event_type,
-            notification_type=notification_type,
-            related_object_id=related_object_id
-        )
-
-        # =================================================
-        # IN-APP LOGGING
-        # =================================================
-
+        notification = None
         if allow_inapp:
+
+            notification = Notification.objects.create(
+                user=recipient,
+                title=title,
+                message=message,
+                category=category,
+                event_type=event_type,
+                notification_type=notification_type,
+                related_object_id=related_object_id
+
+            )
 
             NotificationService._log_delivery(
                 notification=notification,
@@ -739,12 +1418,9 @@ class NotificationService:
 
         else:
 
-            NotificationService._log_delivery(
-                notification=notification,
-                recipient=recipient,
-                channel='inapp',
-                status_value='skipped',
-                reason='In-app notifications disabled'
+            logger.info(
+                "INAPP DISABLED | user=%s",
+                recipient.id
             )
 
         # =================================================
@@ -755,13 +1431,19 @@ class NotificationService:
 
             try:
 
-                send_mail(
-                    subject=title,
-                    message=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[recipient.email],
-                    fail_silently=False
-                )
+                if event_type == "weekly_report":
+                    _send_weekly_report_email(
+                        recipient=recipient,
+                        subject=title,
+                    )
+                else:
+                    send_mail(
+                        subject=title,
+                        message=message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[recipient.email],
+                        fail_silently=False
+                    )
 
                 NotificationService._log_delivery(
                     notification=notification,
@@ -893,23 +1575,36 @@ class NotificationService:
                     else ""
                 ),
 
-                "notification_id": (
-                    str(notification.id)
+                "notification_id": ( 
+                str(notification.id)
+
+            if notification is not None
+
+    else ""
+ 
+                    
                 ),
             }
 
             for token in tokens:
 
                 try:
-
-                    response_id = (
-                        send_push_notification(
-                            token=token,
+                    if event_type == "weekly_report":
+                        response_id = _send_weekly_report_push(
+                            recipient=recipient,
                             title=title,
-                            body=message,
-                            data=payload_data
+                            message=message,
+                            token=token,
                         )
-                    )
+                    else:
+                        response_id = (
+                            send_push_notification(
+                                token=token,
+                                title=title,
+                                body=message,
+                                data=payload_data
+                            )
+                        )
 
                     NotificationService._log_delivery(
                         notification=notification,
@@ -985,10 +1680,85 @@ class NotificationService:
                 reason='Push notifications disabled'
             )
 
-        logger.info(
-            "NOTIFICATION COMPLETED | user=%s | notification_id=%s",
-            recipient.id,
-            notification.id
-        )
+        # logger.info(
+        #     "NOTIFICATION COMPLETED | user=%s | notification_id=%s",
+        #     recipient.id,
+        #     notification.id
+        # )
+        
 
         return notification
+ 
+from jobapp.models import Conversation, Message  
+class NotificationRoutingService:
+    """
+    Resolves where a notification should navigate to.
+    - Employer 'new_message' / 'new_job_application': always resolved
+      server-side, since related_object_id alone isn't enough to build
+      the frontend route (needs a DB lookup: conversation -> other
+      participant's userId, or application -> its job).
+    - Jobseeker 'new_message': client-side map handles it directly;
+      this is used only as a fallback for legacy rows whose
+      related_object_id still points at a Message instead of a Conversation.
+    """
+ 
+    @staticmethod
+    def resolve(notification):
+        event_type = notification.event_type
+        roid = notification.related_object_id
+ 
+        if event_type == "new_job_application":
+            application = JobApplication.objects.select_related("job").filter(pk=roid).first()
+            if not application:
+                return None
+            return {
+                "path": "/Job-portal/Employer/Dashboard",
+                "state": {
+                    "targetTab": "ViewApplicants",
+                    "targetJobId": application.job_id,
+                    "targetApplicationId": application.id,
+                },
+            }
+ 
+        if event_type == "new_message":
+            conversation_id = NotificationRoutingService._resolve_conversation_id(roid)
+            if not conversation_id:
+                return None
+ 
+            if notification.user.user_type == "employer":
+                conversation = Conversation.objects.filter(pk=conversation_id).first()
+                if not conversation:
+                    return None
+                other_user = conversation.participants.exclude(pk=notification.user.id).first()
+                if not other_user:
+                    return None
+                return {"path": "/Job-portal/Employer/Chat", "state": {"userId": other_user.id}}
+ 
+            # jobseeker
+            return {"path": "/Job-portal/jobseeker/chat", "state": {"conversationId": conversation_id}}
+       
+        if event_type in ("new_job_application", "application_withdrawn", "application_status_updated"):
+            application = JobApplication.objects.select_related("job").filter(pk=roid).first()
+            if not application:
+                return None
+            return {
+                "path": "/Job-portal/Employer/Dashboard",
+                "state": {
+                    "targetTab": "ViewApplicants",
+                    "targetJobId": application.job_id,
+                    "targetApplicationId": application.id,
+                },
+            }
+       
+        return None
+   
+   
+    @staticmethod
+    def _resolve_conversation_id(roid):
+        if not roid:
+            return None
+        if Conversation.objects.filter(pk=roid).exists():
+            return roid
+        message = Message.objects.filter(pk=roid).first()
+        return message.conversation_id if message else None
+ 

@@ -1,5 +1,5 @@
 import React from "react";
-import "./JobApplyIssuesHelp.css"; 
+import "./JobApplyIssuesHelp.css";
 import { Footer } from "../Components-LandingPage/Footer";
 import JobApplyImg from "../assets/Jobapply_issue_help.png";
 import { FHeader } from './FHeader';
@@ -23,36 +23,36 @@ export const JobApplyIssuesHelp = () => {
     <>
       <FHeader />
       <div className="jobApplyissuesHelp-page">
+        <p className="jobApplyissuesHelp-updated">{applyHelpData.updatedDate}</p>
         <div className="jobApplyissuesHelp-container">
           <h1 className="jobApplyissuesHelp-title">{applyHelpData.title}</h1>
-          <p className="jobApplyissuesHelp-updated">{applyHelpData.updatedDate}</p>
           <p className="jobApplyissuesHelp-intro">{applyHelpData.intro}</p>
 
-          <div className="jobApplyissuesHelp-layout">
-            <div className="jobApplyissuesHelp-left">
-              <img 
-                src={JobApplyImg} 
-                alt="Troubleshooting Job Applications" 
-                className="jobApplyissuesHelp-hero-img"
-                style={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
-              />
-            </div>
+          {/* Centered Image Section - Flowchart */}
+          <div className="jobApplyissuesHelp-hero-section">
+            <img
+              src={JobApplyImg}
+              alt="Troubleshooting Job Applications"
+              className="jobApplyissuesHelp-hero-img"
+            />
+          </div>
 
-            <div className="jobApplyissuesHelp-right">
-              <div className="jobApplyissuesHelp-steps-container" style={{ marginTop: 0 }}>
-                <h2>Troubleshooting Summary</h2>
-                <ul className="jobApplyissuesHelp-steps-list">
-                  {applyHelpData.summary.map((item, index) => (
-                    <li 
-                      key={index} 
-                      dangerouslySetInnerHTML={{ __html: item }}
-                    />
-                  ))}
-                </ul>
-              </div>
+          {/* Troubleshooting Summary - Now moved down */}
+          <div className="jobApplyissuesHelp-summary-section">
+            <div className="jobApplyissuesHelp-steps-container">
+              <h2 className="jobApplyissuesHelp-summary-title">Troubleshooting Summary</h2>
+              <ul className="jobApplyissuesHelp-steps-list">
+                {applyHelpData.summary.map((item, index) => (
+                  <li
+                    key={index}
+                    dangerouslySetInnerHTML={{ __html: item }}
+                  />
+                ))}
+              </ul>
             </div>
           </div>
 
+          {/* Detailed Steps */}
           <div className="jobApplyissuesHelp-detailed-steps">
             <h2>Detailed Troubleshooting Guide:</h2>
 
@@ -96,7 +96,7 @@ export const JobApplyIssuesHelp = () => {
 
             <div className="jobApplyissuesHelp-detailed-step">
               <h3>5. What to do if an application fails mid-way</h3>
-              <ol className="jobApplyissuesHelp-steps-list" style={{ paddingLeft: '24px' }}>
+              <ol className="jobApplyissuesHelp-steps-list">
                 <li><strong>Don't Re-apply Immediately:</strong> Multiple attempts can flag you as spam.</li>
                 <li><strong>Check Your Email:</strong> Look for a "Finish your application" link in your inbox.</li>
                 <li><strong>Find a Contact:</strong> Email the company's HR directly with your resume attached.</li>

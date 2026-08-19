@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import time from '../assets/opportunity_time.png';
 import experience from '../assets/opportunity_bag.png';
 import place from '../assets/opportunity_location.png';
-import { formatPostedDate } from './OpportunitiesCard';
+import { formatPostedDate, isRecentlyPosted } from './OpportunitiesCard';
 import "./SearchResultsCard.css";
 import { useNavigate } from 'react-router-dom';
 import starIcon from '../assets/Star_icon.png';
-import api from '../api/axios';
 import { useJobs } from '../JobContext';
+import { LocationDisplay } from './LocationDisplay';
 
 export function SearchResultsCard({ job }) {
     const navigate = useNavigate();
@@ -18,6 +18,18 @@ export function SearchResultsCard({ job }) {
 
     if (!job) return null;
 
+    // Determine card styling based on job status
+    const isHighlighted = job.is_highlighted === true;
+    const isRecent = isRecentlyPosted(job.posted_date || job.created_at);
+
+    // Priority: Highlighted > Recent > Normal
+    let cardClassName = "SearchResults-job-card";
+    // if (isHighlighted) {
+    //     cardClassName += " highlighted-job";
+    // } else if (isRecent) {
+    //     cardClassName += " recent-job";
+    // }
+
     /* ---------------- NAVIGATION ---------------- */
     const handleCardClick = () => {
         navigate(`/Job-portal/jobseeker/OpportunityOverview/${job.id}`);
@@ -25,17 +37,13 @@ export function SearchResultsCard({ job }) {
 
     const handleApply = (e) => {
         e.stopPropagation();
-
         if (isApplied) return;
-
         navigate(`/Job-portal/jobseeker/jobapplication/${job.id}`);
     };
 
     const handleSave = async (e) => {
         e.stopPropagation();
-
         if (isSaved) return;
-
         try {
             await saveJob(job.id);
         } catch (err) {
@@ -43,9 +51,8 @@ export function SearchResultsCard({ job }) {
         }
     };
 
-
     /* ---------------- LOGO ---------------- */
-    const logoContent = job.company.logo || job.company.company_logo ? (
+    const logoContent = job.company?.logo || job.company?.company_logo ? (
         <img
             src={job.company.logo || job.company.company_logo}
             alt={job.company.company_name}
@@ -53,36 +60,21 @@ export function SearchResultsCard({ job }) {
         />
     ) : (
         <div className="SearchResults-job-card-logo-placeholder">
-            {job.company?.company_name?.[0] || "C"}
+            {job.company?.company_name?.charAt(0).toUpperCase() || "C"}
         </div>
     );
 
-    const formatLocation = (location) => {
-
-        if (!location) return "Location not specified";
-
-        if (Array.isArray(location)) {
-            return location.join(", ");
-        }
-        return location;
-    };
-
-    const locationDisplay = formatLocation(job.location);
-
     return (
-        <div className="SearchResults-job-card">
+        <div className={cardClassName}>
             <div onClick={handleCardClick}>
                 <div className="SearchResults-job-card-header">
-                    <div>
+                    <div className="SearchResults-job-card-info">
                         <h3 className="SearchResults-job-card-title">
                             {job.job_title}
                         </h3>
 
                         <p className="SearchResults-job-card-company">
-                            <span className="star">
-                                <img src={starIcon} alt="rating" />
-                            </span>
-                            {job.company?.rating || 0} - {job.company?.company_name}
+                            {job.company?.company_name}
                         </p>
                     </div>
 
@@ -90,51 +82,67 @@ export function SearchResultsCard({ job }) {
                 </div>
 
                 <div className="SearchResults-job-card-details">
-                    <p className="SearchResults-job-card-detail-line">
-                        <img src={time} className="SearchResults-job-card-icons" alt="type" />
+                    <p className='SearchResults-job-card-detail-line'>
+                        <img src={time} className='SearchResults-job-card-icons' alt="duration" />
                         {job.work_duration}
                         <span className="SearchResults-job-card-divider">|</span>
-                        ₹ {job.salary || "Salary not disclosed"} Lpa
-                        <span className="SearchResults-job-card-divider">|</span>
-                        <img src={experience} className="SearchResults-job-card-icons" alt="experience" />
-                        {job.experience || "Experience not specified"} years of experience
-                        <span className="SearchResults-job-card-divider">|</span>
-                        <img src={place} className="SearchResults-job-card-icons" alt="location" />
-                        {locationDisplay || "Location not specified"}
+                        ₹ {job.salary || "Not disclosed"}
                     </p>
+                    <p className='SearchResults-job-card-detail-line'>
+                        <img src={experience} className='SearchResults-job-card-icons' alt="experience" />
+                        {job.experience || "Not specified"}
+                    </p>
+                    <div className='SearchResults-job-card-detail-line'>
+                        <img src={place} className='SearchResults-job-card-icons' alt="location" />
+                        <LocationDisplay locations={job.location} />
+                    </div>
+                </div>
 
-                    <p className="SearchResults-job-card-detail-line">
-                        <img src={time} className='SearchResults-job-card-icons' alt='shit_type' />
-                        Shift: {job.shift || "N/A"}
-                        <span className="SearchResults-job-card-divider">|</span>
-                        <img src={experience} className='SearchResults-job-card-icons' alt='work_type' /> 
-                        {job.work_type || "Not specified"}
-                    </p>
+                <div className='SearchResults-job-card-details-bottom'>
+                    <div className="SearchResults-job-card-details-child">
+                        {job.job_category && (
+                            <span className={`SearchResults-job-card-tag ${job.job_category.toLowerCase()}`}>
+                                {job.job_category}
+                            </span>
+                        )}
+                        <div className="SearchResults-job-card-type">
+                            {job.work_type || "Not specified"}
+                        </div>
+                    </div>
+
+                    <div className="Opportunities-job-highlighted">
+                        {job.is_highlighted && (
+                            <span className="highlighted-job-label">
+                                ⭐ Highlighted Job
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 
             <hr className="SearchResults-job-card-separator" />
 
-            <div className="SearchResults-job-card-job-footer">
-                <p>
-                    {formatPostedDate(job.posted_date)}
-                    <span className="SearchResults-job-card-divider">|</span>
-                    Openings: {job.openings}
-                    <span className="SearchResults-job-card-divider">|</span>
-                    Applicants: {job.applicants_count}
-                </p>
+            <div className="SearchResults-job-card-footer">
+                <div className="SearchResults-job-card-meta">
+                    <p>
+                        {formatPostedDate(job.posted_date || job.created_at)}
+                        <span className="SearchResults-job-card-divider">|</span>
+                        Openings: {job.openings}
+                        <span className="SearchResults-job-card-divider">|</span>
+                        Applicants: {job.applicants_count}
+                    </p>
+                </div>
 
                 <div className="SearchResults-job-card-actions">
                     <button
-                        className={`Opportunities-save-btn ${isSaved ? "saved" : ""}`}
+                        className={`SearchResults-save-btn ${isSaved ? "saved" : ""}`}
                         onClick={handleSave}
-                        disabled={isSaved}
                     >
                         {isSaved ? "Saved" : "Save"}
                     </button>
 
                     <button
-                        className="Opportunities-apply-btn"
+                        className="SearchResults-apply-btn"
                         onClick={handleApply}
                         disabled={isApplied}
                         style={{
@@ -144,9 +152,8 @@ export function SearchResultsCard({ job }) {
                     >
                         {isApplied ? "Applied" : "Apply"}
                     </button>
-
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

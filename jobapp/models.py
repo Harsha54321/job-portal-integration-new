@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import uuid
+from django.core.validators import RegexValidator
 
 
 class User(AbstractUser):
@@ -32,7 +33,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username', 'user_type']
 
     is_online = models.BooleanField(default=False)
-    last_seen = models.DateTimeField(auto_now=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
     login_time = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -103,6 +104,7 @@ class JobSeekerProfile(models.Model):
     # Resume & Portfolio
     resume_file = models.FileField(upload_to='resumes/', null=True, blank=True)
     portfolio_link = models.URLField(blank=True, null=True)
+    intro_video = models.FileField(upload_to='intro_videos/', null=True, blank=True) # ← ADD THIS LINE
 
     # Career Preferences (FIXED DECIMALS)
     total_experience_years = models.DecimalField(
@@ -251,7 +253,11 @@ class AdminProfile(models.Model):
     department = models.CharField(max_length=100, blank=True)
     bio = models.TextField(blank=True)
     access_level = models.CharField(max_length=50, default='Full')
-
+    profile_photo = models.ImageField(
+        upload_to='admin_profile_photos/',
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     two_factor_enabled = models.BooleanField(default=False)   
@@ -264,6 +270,8 @@ class AdminProfile(models.Model):
         null=True,
         blank=True
     )
+    email_verified = models.BooleanField(default=False)
+    sms_verified = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'AdminProfile'
@@ -557,7 +565,7 @@ class PostAJob(models.Model):
     job_status = models.CharField(
         max_length=50,
         choices=JobStatus.choices,
-        default=JobStatus.REVIEWING_APPLICATION,
+        default=JobStatus.HIRING_IN_PROGRESS,
     )
  
     # EXISTING FIELD
@@ -727,6 +735,9 @@ class ApplicationFlag(models.Model):
     is_reviewed = models.BooleanField(default=False)
  
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ApplicationFlag'
  
     def __str__(self):
         return f"{self.flag_reason} - {self.application.id}"
@@ -868,6 +879,87 @@ class Notification(models.Model):
         return f"{self.user.email} - {self.message}"
 
 
+class PendingNotification(models.Model):
+ 
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("processed", "Processed"),
+        ("failed", "Failed"),
+    )
+ 
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="pending_notifications"
+    )
+ 
+    title = models.CharField(
+        max_length=255
+    )
+ 
+    message = models.TextField()
+ 
+    category = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+ 
+    event_type = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+ 
+    notification_type = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+ 
+    related_object_id = models.PositiveIntegerField(
+        null=True,
+        blank=True
+    )
+ 
+    job = models.ForeignKey(
+        'PostAJob',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='pending_notifications'
+    )
+ 
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+ 
+    processed_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+ 
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
+ 
+    error_message = models.TextField(
+        null=True,
+        blank=True
+    )
+ 
+    class Meta:
+        db_table = "PendingNotification"
+        ordering = ["created_at"]
+ 
+    def __str__(self):
+        return (
+            f"{self.user.email} - "
+            f"{self.title} - "
+            f"{self.status}"
+        )
 # Chat
 
 from django.conf import settings
@@ -990,20 +1082,78 @@ class RaiseTicket(models.Model):
         ("Duplicate Job Listings (Spam)", "Duplicate Job Listings (Spam)"),
         ("Others", "Others"),
     )
-
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
-    subject = models.CharField(max_length=255, choices=SUBJECT_CHOICES)
-    name = models.CharField(max_length=150)
+ 
+    PRIORITY_CHOICES = (
+        ('Low', 'Low'),
+        ('Medium', 'Medium'),
+        ('High', 'High'),
+    )
+ 
+    STATUS_CHOICES = (
+        ('Pending', 'Pending'),
+        ('In Progress', 'In Progress'),
+        ('Hold', 'Hold'),
+        ('Resolved', 'Resolved'),
+    )
+ 
+    category = models.CharField(
+        max_length=50,
+        choices=CATEGORY_CHOICES
+    )
+ 
+    subject = models.CharField(
+        max_length=255,
+        choices=SUBJECT_CHOICES
+    )
+ 
+    name = models.CharField(
+        max_length=150
+    )
+ 
     email = models.EmailField()
-    phone = models.CharField(max_length=20)
-    message = models.TextField(blank=True, null=True)
-    attachment = models.FileField(upload_to='tickets/', blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    phone = models.CharField(
+        max_length=20
+    )
+ 
+    message = models.TextField(
+        blank=True,
+        null=True
+    )
+ 
+    attachment = models.FileField(
+        upload_to='tickets/',
+        blank=True,
+        null=True
+    )
+ 
+    # NEW FIELD
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='Medium'
+    )
+ 
+    # NEW FIELD
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='Pending'
+    )
+ 
+    # NEW FIELD
+    resolved_on = models.DateField(
+        blank=True,
+        null=True
+    )
+ 
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
     class Meta:
-        db_table = 'RaiseTicket'
-
+        db_table='RaiseTicket'
+ 
     def __str__(self):
         return f"{self.name} - {self.subject}"
 
@@ -1018,7 +1168,7 @@ class PasswordResetToken(models.Model):
     is_used = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'PasswordRestToken'
+        db_table = 'PasswordResetToken'
 
     def __str__(self):
         return f"Reset token for {self.user.email}"
@@ -1033,17 +1183,35 @@ class PasswordResetToken(models.Model):
 
 
 class ContactMessage(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "Pending", "Pending"
+        CONTACTED = "Contacted","Contacted"
+        RESOLVED = "Resolved", "Resolved"
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contact_messages"
+    )                                                      
     name = models.CharField(max_length=150)
     email = models.EmailField()
     contact = models.CharField(max_length=15)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+   
+    resolved_on = models.DateField(blank=True, null=True)
+ 
     class Meta:
         db_table = 'ContactMessage'
-
+ 
     def __str__(self):
-        return f"{self.name} - {self.email}"
+        return f"{self.name} - {self.email}"  
 
 
 # Company Verify
@@ -1069,7 +1237,19 @@ class CompanyVerification(models.Model):
     official_email = models.EmailField()
     phone_number = models.CharField(max_length=20)
     incorporation_certificate = models.FileField(
-        upload_to="company_certificates/"
+        upload_to="company_certificates/",
+        null=True,
+        blank=True  # Add this
+    )
+    registration_certificate = models.FileField(
+        upload_to="company/registration/",
+        null=True,
+        blank=True
+    )
+    tax_certificate = models.FileField(
+        upload_to="company/tax/",
+        null=True,
+        blank=True
     )
     gst_certificate = models.FileField(
         upload_to='company/gst/',
@@ -1242,9 +1422,8 @@ class CompanyReview(models.Model):  #newly added
     )
 
     class Meta:
-
+        db_table = 'CompanyReview'
         ordering = ['-created_at']
-
         unique_together = ['company', 'reviewer']
 
     # ─────────────────────────────────────────
@@ -1363,13 +1542,22 @@ class Complaint(models.Model):
         related_name="complaints"
     )
    
-    # The job being reported (now using PostAJob)
+    # The job being reported
     reported_job = models.ForeignKey(
         'PostAJob',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # Changed from CASCADE to SET_NULL
         related_name="complaints",
         null=True,
         blank=True
+    )
+   
+    # NEW: Store job ID permanently even after job is deleted
+    # Using a different name to avoid clash with auto-generated _id field
+    original_job_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Stores the job ID even if the job is deleted"
     )
    
     # Denormalized fields for quick access
@@ -1380,7 +1568,15 @@ class Complaint(models.Model):
     # Reporter details
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    mobile = models.CharField(max_length=10)
+    mobile = models.CharField(
+        max_length=10,
+        validators=[
+            RegexValidator(
+                regex=r'^\d{10}$',
+                message='Enter valid 10-digit mobile number'
+            )
+        ]
+    )
     email = models.EmailField()
    
     # Complaint details
@@ -1417,20 +1613,28 @@ class Complaint(models.Model):
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['reported_job', 'status']),
             models.Index(fields=['user', 'reported_job']),
+            models.Index(fields=['original_job_id']),  # Add index for new field
         ]
    
     def __str__(self):
         if self.reported_job:
             return f"{self.first_name} reported '{self.reported_job.job_title}' (Job ID: {self.reported_job.id}) - {self.reason}"
-        return f"{self.first_name} reported a job - {self.reason}"
+        job_id = self.original_job_id or 'Unknown'
+        return f"{self.first_name} reported a job (Job ID: {job_id}) - {self.reason}"
    
     def save(self, *args, **kwargs):
+        # Store the job ID permanently
         if self.reported_job:
+            self.original_job_id = self.reported_job.id
             self.reported_job_title = self.reported_job.job_title
             if hasattr(self.reported_job.employer, 'employer_profile'):
                 if self.reported_job.employer.employer_profile.company:
                     self.reported_employer_name = self.reported_job.employer.employer_profile.company.company_name
                     self.reported_company_name = self.reported_job.employer.employer_profile.company.company_name
+
+        if self.status == self.Status.RESOLVED:
+            if not self.resolved_at:
+                self.resolved_at = timezone.now()
        
         super().save(*args, **kwargs)
 
@@ -1441,27 +1645,74 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 from django.utils.timezone import now
 
-class Plan(models.Model):
-    name = models.CharField(max_length=50)
-    monthly_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Add default=0
-    duration_days = models.IntegerField(default=30)
-    highlight_limit = models.PositiveIntegerField(default=0)
-   
-    def __str__(self):
-        return self.name
-   
+class PlanFeature(models.Model):
+    plan  = models.ForeignKey(
+        'Plan',
+        on_delete=models.CASCADE,
+        related_name='features'
+    )
+    text  = models.CharField(max_length=200)
+    value = models.CharField(max_length=100)
+    order = models.PositiveSmallIntegerField(default=0)
+
     class Meta:
+        ordering = ['order']
+        db_table = 'PlanFeature'
+
+    def __str__(self):
+        return f"{self.plan.name} → {self.text}: {self.value}"
+
+class Plan(models.Model):
+   # Basic
+    name         = models.CharField(max_length=100, unique=True)
+    summary      = models.CharField(max_length=255, blank=True)
+    color        = models.CharField(max_length=30, default='#1E88E5')
+    is_published = models.BooleanField(default=True)
+    
+    # Feature Flags
+    Analytics        = models.BooleanField(default=False)
+    Candidate_Search = models.BooleanField(default=False)
+    Premium_Support  = models.BooleanField(default=False)
+    Account_Manager  = models.BooleanField(default=False)
+    
+    # Pricing
+    monthly_price     = models.DecimalField(max_digits=10, decimal_places=2)
+    tax               = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    discount_halfyear = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    discount_annual   = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    # Duration
+    duration_days   = models.IntegerField(default=30)
+    highlight_limit = models.PositiveIntegerField(default=0)
+
+    # Trial
+    is_trial_enabled = models.BooleanField(default=False)
+    trial_duration   = models.PositiveIntegerField(default=0)
+
+    # Advanced
+    is_auto_renewal = models.BooleanField(default=False)
+    grace_time      = models.PositiveIntegerField(default=0)
+
+    # Audit
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['id']
         db_table = 'Plan'
 
-    def get_all_pricing(self):
-        """Simple implementation to avoid error"""
-        return {
-            'monthly': {'total': float(self.monthly_price)},
-            '6_months': {'total': float(self.monthly_price) * 6 * 0.9},
-            'yearly': {'total': float(self.monthly_price) * 12 * 0.85}
-        }
- 
- 
+    @property
+    def total_payable(self):
+        """Calculates total payable for 1 month including tax safely"""
+        base = float(self.monthly_price) if self.monthly_price else 0.0
+        tax  = float(self.tax) if self.tax else 0.0
+        if base == 0.0:
+            return 0.0
+        return round(base + base * (tax / 100), 2)
+
+    def __str__(self):
+        return self.name
+    
 class Subscription(models.Model):
     STATUS = [
         ('active', 'Active'),
@@ -1475,6 +1726,13 @@ class Subscription(models.Model):
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
     duration = models.CharField(max_length=20, default='monthly')  # Store which duration they paid for
+    payment = models.ForeignKey(
+        'Payment', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='subscriptions'
+    )
  
     def save(self, *args, **kwargs):
         if not self.end_date:
@@ -1737,6 +1995,9 @@ class NotificationConfig(models.Model):  #newly added 08/05
     push = models.BooleanField(default=False)
  
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'NotificationConfig'
  
     def __str__(self):
         return self.category
@@ -1751,9 +2012,9 @@ class AdminQuietHours(models.Model):  #newly added 08/05
         ("Europe/Berlin", "(UTC +02:00) Europe/Berlin"),
     ]
     admin = models.OneToOneField(
-    User,
-    on_delete=models.CASCADE
-)
+        User,
+        on_delete=models.CASCADE
+    )
  
     enabled = models.BooleanField(default=False)
  
@@ -1778,6 +2039,9 @@ class AdminQuietHours(models.Model):  #newly added 08/05
     updated_at = models.DateTimeField(
         auto_now=True
     )
+
+    class Meta:
+        db_table = 'AdminQuietHours'
  
     def __str__(self):
         return self.admin.email
@@ -1794,6 +2058,9 @@ class NotificationChannelSettings(models.Model): #newly added 08/05
     push_notif = models.BooleanField(default=False)
  
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'NotificationChannelSettings'
  
     def __str__(self):
         return "Notification Channel Settings"
@@ -1814,7 +2081,7 @@ class UserDevice(models.Model):#newly added 11/05
     )
 
     fcm_token = models.TextField(
-        unique=True
+        
     )
 
     platform = models.CharField(
@@ -1834,6 +2101,9 @@ class UserDevice(models.Model):#newly added 11/05
     updated_at = models.DateTimeField(
         auto_now=True
     )
+
+    class Meta:
+        db_table = 'UserDevice'
 
     def __str__(self):
 
@@ -1868,6 +2138,9 @@ class SMSOTP(models.Model):
  
     def is_valid(self):
         return timezone.now() < self.expires_at
+    
+    class Meta:
+        db_table = 'SMSOTP'
  
     def __str__(self):
         return f"{self.phone} - {self.purpose}"
@@ -1934,6 +2207,7 @@ class AdminAccessLog(models.Model):
     )
  
     class Meta:
+        db_table = 'AdminAccessLog'
         ordering = ["-timestamp"]
  
     def __str__(self):
@@ -1987,6 +2261,7 @@ class AdminTrustedDevice(models.Model): #changed on 11/05
     )
  
     class Meta:
+        db_table = 'AdminTrustedDevice'
         ordering = ["-last_used_at"]
  
     def __str__(self):
@@ -2017,44 +2292,8 @@ class EmployerPlatformSettings(models.Model):
         choices=User.AccountStatus.choices,
  
         default=User.AccountStatus.HOLD
-    )
- 
-    # ─────────────────────────────
-    # REGISTRATION SETTINGS
-    # ─────────────────────────────
- 
-    employer_registration = models.BooleanField(
-        default=True
-    )
- 
-    email_verification = models.BooleanField(
-        default=True
-    )
- 
-    mobile_verification = models.BooleanField(
-        default=False
-    )
- 
-    # ─────────────────────────────
-    # APPROVAL SETTINGS
-    # ─────────────────────────────
- 
-    APPROVAL_CHOICES = [
- 
-        ('Manual Type', 'Manual Type'),
- 
-        ('Automatic', 'Automatic'),
-    ]
- 
-    approval_type = models.CharField(
- 
-        max_length=20,
- 
-        choices=APPROVAL_CHOICES,
- 
-        default='Manual Type'
-    )
- 
+    )  
+
     # ─────────────────────────────
     # REQUIRED DOCUMENTS
     # ─────────────────────────────
@@ -2152,7 +2391,7 @@ class EmployerPlatformSettings(models.Model):
     )
  
     class Meta:
- 
+        db_table = 'EmployerPlatformSettings' 
         unique_together = (
             'plan',
             'account_status'
@@ -2168,6 +2407,39 @@ class EmployerPlatformSettings(models.Model):
  
             f"{self.account_status}"
         )
+
+
+class EmployerRegistrationSettings(models.Model):
+ 
+    employer_registration = models.BooleanField(
+        default=True
+    )
+ 
+    email_verification = models.BooleanField(
+        default=True
+    )
+ 
+    mobile_verification = models.BooleanField(
+        default=False
+    )
+ 
+    APPROVAL_CHOICES = [
+        ('Manual Type', 'Manual Type'),
+        ('Automatic', 'Automatic'),
+    ]
+ 
+    approval_type = models.CharField(
+        max_length=20,
+        choices=APPROVAL_CHOICES,
+        default='Manual Type'
+    )
+ 
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+    class Meta:
+        db_table = 'EmployerRegistrationSettings'
+ 
 
 class NotificationDeliveryLog(models.Model):
 
@@ -2188,7 +2460,9 @@ class NotificationDeliveryLog(models.Model):
     notification = models.ForeignKey(
         'Notification',
         on_delete=models.CASCADE,
-        related_name='delivery_logs'
+        related_name='delivery_logs' ,
+        null=True,
+        blank=True
     )
 
     user = models.ForeignKey(
@@ -2228,6 +2502,7 @@ class NotificationDeliveryLog(models.Model):
     )
 
     class Meta:
+        db_table = 'NotificationDeliveryLog'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -2395,3 +2670,230 @@ class JobseekerPlatformSettings(models.Model):
         )
 
         return obj
+    
+    class Meta:
+        db_table = 'JobseekerPlatformSettings'
+        
+
+# ============================================================
+#  BLOG MODELS
+# ============================================================
+
+class BlogCategory(models.Model):
+    """
+    Top-level blog category — mirrors the keys of publishedBlogs
+    in your React AdminBlogPost component.
+    """
+    name = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'BlogCategory'
+        verbose_name_plural = 'Blog Categories'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Blog(models.Model):
+    STATUS_CHOICES = [
+        ('Published', 'Published'),
+        ('Draft', 'Draft'),
+    ]
+
+    category = models.ForeignKey(
+        BlogCategory,
+        on_delete=models.CASCADE,
+        related_name='blogs'
+    )
+    title     = models.CharField(max_length=500)
+    heading   = models.CharField(max_length=500, blank=True, default='')
+    desc      = models.TextField(blank=True, default='')
+    # thumbnail = models.URLField(max_length=1000, blank=True, default='')
+    thumbnail = models.ImageField(upload_to='blog_thumbnails/', blank=True, null=True, default='')
+    status    = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')
+    # stored as string to match your existing React frontend field
+    date      = models.CharField(max_length=50, blank=True, default='')
+    time      = models.CharField(max_length=20, blank=True, default='12:00 PM')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'Blog'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class BlogPoint(models.Model):
+    """
+    A heading point inside a blog post — maps to blog.points[n].title
+    """
+    blog  = models.ForeignKey(Blog, on_delete=models.CASCADE, related_name='points')
+    title = models.CharField(max_length=500, blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'BlogPoint'
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.blog.title} — Point {self.order}"
+
+
+class PointContent(models.Model):
+    """
+    A content line under a BlogPoint — maps to blog.points[n].content[m]
+    """
+    point = models.ForeignKey(BlogPoint, on_delete=models.CASCADE, related_name='content')
+    text  = models.TextField(blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'PointContent'
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Content[{self.order}] for Point {self.point.id}"
+
+# ============================================================
+# ACCOUNT MANAGER MODELS (Add at the end of models.py)
+# ============================================================
+
+class AccountManager(models.Model):
+    """
+    Account Manager profile - Contact management (No login required)
+    """
+    class Department(models.TextChoices):
+        SUPPORT = 'support', 'Support'
+        SALES = 'sales', 'Sales'
+        BILLING = 'billing', 'Billing'
+        TECHNICAL = 'technical', 'Technical'
+        GENERAL = 'general', 'General'
+
+    full_name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    
+    department = models.CharField(
+        max_length=20,
+        choices=Department.choices,
+        default=Department.GENERAL
+    )
+    title = models.CharField(max_length=200, default='Account Manager')
+    description = models.TextField(blank=True)
+    
+    profile_photo = models.ImageField(
+        upload_to='account_managers/',
+        null=True,
+        blank=True
+    )
+    
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_account_managers'
+    )
+
+    class Meta:
+        db_table = 'AccountManager'
+        ordering = ['order', 'department']
+
+    def __str__(self):
+        return f"{self.full_name} - {self.get_department_display()}"
+
+
+class EmployerAccountManagerAssignment(models.Model):
+    """
+    Assign account managers to employers
+    """
+    employer = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='account_manager_assignments'
+    )
+    account_manager = models.ForeignKey(
+        AccountManager,
+        on_delete=models.CASCADE,
+        related_name='assigned_employers'
+    )
+    is_primary = models.BooleanField(default=False)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'EmployerAccountManagerAssignment'
+        unique_together = ['employer', 'account_manager']
+
+    def __str__(self):
+        return f"{self.employer.email} → {self.account_manager.full_name}"
+
+class EmployerWeeklyReportToken(models.Model):
+ 
+    employer = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="weekly_report_token",
+    )
+ 
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+    )
+ 
+    expires_at = models.DateTimeField()
+ 
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    class Meta:
+        db_table = "EmployerWeeklyReportToken"
+
+# FAQ Model
+
+class FAQ(models.Model):
+    question = models.CharField(max_length=500)
+    answer = models.TextField()
+    keywords = models.CharField(max_length=500, help_text="Comma separated keywords for matching")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'FAQ'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.question
+
+class ChatSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    session_id = models.CharField(max_length=100, unique=True)
+    messages = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ChatSession'
+
+class JobseekerSecurityProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='security')
+    two_factor_enabled = models.BooleanField(default=False)
+    two_factor_method = models.CharField(max_length=10, choices=[('email', 'Email'), ('sms', 'SMS')], null=True, blank=True)
+    email_verified = models.BooleanField(default=False)
+    sms_verified = models.BooleanField(default=False)
+ 
+    class Meta:
+        db_table = 'JobseekerSecurityProfile'
+ 
+    def __str__(self):
+        return f"{self.user.email} 2FA Profile"

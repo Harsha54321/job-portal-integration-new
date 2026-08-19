@@ -6,22 +6,34 @@
 .interviewSchedulingHelp-container {
     background: #ffffff;
     padding: 40px 100px 100px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .interviewSchedulingHelp-title {
     color: #0f172a;
-    margin-bottom: 40px;
+    margin: 0 auto 40px auto;
+    /* Centers the container */
     display: flex;
     justify-content: center;
     font-size: 32px;
     font-weight: 700;
     text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    width: 100%;
+    max-width: 900px;
+    /* Matches the width of the other sections */
 }
 
 .interviewSchedulingHelp-updated {
     font-size: 13px;
     color: #64748b;
-    margin-bottom: 20px;
+    text-align: left;
+    width: 100%;
+    padding: 15px 0 0 30px;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 .interviewSchedulingHelp-intro {
@@ -29,42 +41,52 @@
     line-height: 1.7;
     color: #334155;
     margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
 }
 
-
-.interviewSchedulingHelp-layout {
+/* Centered Hero Image Section */
+.interviewSchedulingHelp-hero-section {
     display: flex;
-    gap: 60px;
+    justify-content: center;
     align-items: center;
-    margin-bottom: 60px;
-}
-
-.interviewSchedulingHelp-left {
-    flex: 1;
-    min-width: 0;
-}
-
-.interviewSchedulingHelp-right {
-    flex: 1.2;
+    margin-bottom: 100px;
+    /* Increased from 50px */
+    width: 100%;
 }
 
 .interviewSchedulingHelp-hero-img {
-    max-width: 100%;
+    max-width: 80%;
     height: auto;
     border-radius: 10px;
+    display: block;
 }
 
-.interviewSchedulingHelp-steps-container h2 {
+/* Summary Section - Moved down */
+.interviewSchedulingHelp-summary-section {
+    margin-bottom: 100px;
+    /* Increased from 60px */
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.interviewSchedulingHelp-summary-title {
     font-size: 24px;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    width: 100%;
 }
 
 .interviewSchedulingHelp-steps-list {
-    padding-left: 50px;
+    padding-left: 24px;
     list-style-type: disc;
-    padding: 30px;
 }
 
 .interviewSchedulingHelp-steps-list li {
@@ -79,10 +101,9 @@
     font-weight: 600;
 }
 
+/* Detailed Steps */
 .interviewSchedulingHelp-detailed-steps {
-    margin-top: 80px;
-    display: flex;
-    flex-direction: column;
+    margin-top: 40px;
     max-width: 900px;
     margin-left: auto;
     margin-right: auto;
@@ -95,12 +116,20 @@
     margin-bottom: 30px;
     padding-bottom: 12px;
     border-bottom: 2px solid #e2e8f0;
-    width: 100%;
+    text-align: center;
 }
 
 .interviewSchedulingHelp-detailed-step {
     margin-bottom: 35px;
-    width: 100%;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border-left: 4px solid #0f172a;
+    transition: all 0.2s ease;
+}
+
+.interviewSchedulingHelp-detailed-step:hover {
+    background: #f1f5f9;
 }
 
 .interviewSchedulingHelp-detailed-step h3 {
@@ -133,20 +162,93 @@
     font-weight: 600;
 }
 
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .interviewSchedulingHelp-container {
+        padding: 40px 50px 60px;
+    }
+}
 
 @media (max-width: 1000px) {
     .interviewSchedulingHelp-container {
         padding: 40px 30px 60px;
     }
 
-    .interviewSchedulingHelp-layout {
-        flex-direction: column;
-        align-items: center;
-        gap: 40px;
+    .interviewSchedulingHelp-hero-img {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    .interviewSchedulingHelp-container {
+        padding: 30px 20px 50px;
     }
 
-    .interviewSchedulingHelp-left,
-    .interviewSchedulingHelp-right {
-        width: 100%;
+    .interviewSchedulingHelp-title {
+        font-size: 26px;
+    }
+
+    .interviewSchedulingHelp-intro {
+        font-size: 14px;
+        padding: 0 10px;
+    }
+
+    .interviewSchedulingHelp-hero-img {
+        max-width: 100%;
+    }
+
+    .interviewSchedulingHelp-summary-title {
+        font-size: 20px;
+    }
+
+    .interviewSchedulingHelp-steps-list li {
+        font-size: 14px;
+    }
+
+    .interviewSchedulingHelp-detailed-steps h2 {
+        font-size: 22px;
+    }
+
+    .interviewSchedulingHelp-detailed-step {
+        padding: 16px;
+    }
+
+    .interviewSchedulingHelp-detailed-step h3 {
+        font-size: 17px;
+    }
+
+    .interviewSchedulingHelp-detailed-step p,
+    .interviewSchedulingHelp-detailed-step ul li {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .interviewSchedulingHelp-title {
+        font-size: 22px;
+    }
+
+    .interviewSchedulingHelp-intro {
+        font-size: 13px;
+    }
+
+    .interviewSchedulingHelp-detailed-steps h2 {
+        font-size: 19px;
+    }
+
+    .interviewSchedulingHelp-detailed-step {
+        padding: 14px;
+    }
+
+    .interviewSchedulingHelp-detailed-step h3 {
+        font-size: 16px;
+    }
+
+    .interviewSchedulingHelp-steps-list {
+        padding-left: 18px;
+    }
+
+    .interviewSchedulingHelp-steps-list li {
+        font-size: 13px;
     }
 }

@@ -1,0 +1,562 @@
+.employer-manager-container {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  background-color: #f8fafc;
+  min-height: 60vh;
+}
+
+.employer-manager-card {
+  width: 100%;
+  max-width: 500px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 28px 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.employer-manager-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.employer-manager-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #d1fae5;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.employer-manager-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseDot {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .4;
+  }
+}
+
+.employer-manager-title {
+  font-size: 20px;
+  color: #0f172a;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.employer-manager-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.employer-manager-body {
+  background-color: #f8fafc;
+  padding: 20px 22px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ========== ROW STYLES WITH PROPER TEXT WRAPPING ========== */
+.employer-manager-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 13px;
+  padding: 4px 0;
+  gap: 12px;
+  width: 100%;
+}
+
+.employer-manager-row .label {
+  color: #94a3b8;
+  font-weight: 500;
+  min-width: 60px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.employer-manager-row .value {
+  font-weight: 600;
+  color: #334155;
+  text-align: right;
+  flex: 1;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+.employer-manager-row .value.contact {
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.employer-manager-row .value.contact:hover {
+  text-decoration: underline;
+}
+
+/* Special style for description/bio - left aligned with proper wrapping */
+.employer-manager-row.display-column-align-start {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.employer-manager-row.display-column-align-start .label {
+  min-width: auto;
+}
+
+.employer-manager-row.display-column-align-start .value {
+  text-align: left;
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e8ecf0;
+  line-height: 1.7;
+  font-weight: 400;
+  color: #1e293b;
+}
+
+.text-bio-description {
+  font-size: 13px;
+  font-weight: 400;
+  color: #475569;
+  line-height: 1.7;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  hyphens: auto;
+}
+
+/* ========== BUTTONS ========== */
+.employer-manager-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+
+.employer-manager-btn {
+  font-family: inherit;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 10px 20px;
+  transition: all 0.2s ease-in-out;
+}
+
+.employer-manager-btn-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.12);
+}
+
+.employer-manager-btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.employer-manager-btn-secondary {
+  background-color: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.employer-manager-btn-secondary:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.employer-manager-empty {
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.employer-manager-empty .empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.employer-manager-empty .empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.employer-manager-empty .empty-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 576px) {
+  .employer-manager-card {
+    padding: 16px;
+  }
+
+  .employer-manager-body {
+    padding: 14px;
+  }
+
+  .employer-manager-row {
+    font-size: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .employer-manager-row .label {
+    min-width: auto;
+  }
+
+  .employer-manager-row .value {
+    text-align: left;
+    width: 100%;
+  }
+
+  .employer-manager-row.display-column-align-start .value {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .employer-manager-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .employer-manager-actions .employer-manager-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* ==========================================================================
+   CLEAN VIEWPORTS & MULTI-CARD LIST ALIGNMENTS (EMPLOYER SUPPORT)
+   ========================================================================== */
+
+.status-loading-center {
+  text-align: center;
+  padding: 40px;
+}
+
+.employer-loading-text {
+  margin-top: 16px;
+  color: #64748b;
+}
+
+.employer-error-fallback-view {
+  text-align: center;
+  padding: 20px;
+}
+
+.employer-error-message-text {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.margin-top-12 {
+  margin-top: 12px;
+}
+
+.margin-top-16 {
+  margin-top: 16px;
+}
+
+.margin-top-0 {
+  margin-top: 0px;
+}
+
+.width-100-percent {
+  width: 100%;
+}
+
+.width-max-550 {
+  max-width: 550px;
+}
+
+.font-weight-600 {
+  font-weight: 600;
+}
+
+.display-column-align-start {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.text-transform-capitalize {
+  text-transform: capitalize;
+}
+
+.badge-warning-theme {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.dot-warning-active {
+  background-color: #f59e0b;
+}
+
+.btn-refresh-small {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.employer-plan-status-footer {
+  margin-top: 16px;
+  padding: 10px 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.employer-plan-status-footer.active-plan-theme {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.employer-empty-avatar-fallback {
+  width: 50px;
+  height: 50px;
+  opacity: 0.5;
+}
+
+/* Header Trigger Links */
+.heading-relative-container {
+  position: relative;
+}
+
+.employer-view-all-trigger {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+}
+
+.employer-view-all-trigger:hover {
+  color: #2563eb;
+}
+
+/* Single Contact Card Rendering Utilities */
+.employer-single-avatar-alignment {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.employer-single-profile-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+/* All Contacts Feed List Iterations */
+.body-list-wrapper {
+  padding: 12px 0;
+  background-color: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.employer-list-item-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.employer-list-item-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+.employer-list-item-card.list-primary-border {
+  background-color: #eff6ff;
+  border: 2px solid #2563eb;
+}
+
+.employer-list-item-card.list-standard-border {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+/* Avatar Frame inside row loops */
+.employer-list-avatar-frame {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+.employer-list-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Text Positioning Contexts */
+.employer-list-meta-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.employer-list-headline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.employer-list-name {
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.employer-list-subheading {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.employer-inline-primary-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.employer-list-badge-dept {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.employer-list-chevron-arrow {
+  font-size: 20px;
+  color: #94a3b8;
+  font-weight: 300;
+  padding-left: 4px;
+  flex-shrink: 0;
+}
+
+.employer-plan-status-footer.active-plan-theme {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.employer-plan-summary-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.employer-plan-expiry-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: #15803d;
+  background-color: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}

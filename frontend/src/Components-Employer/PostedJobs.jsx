@@ -4,17 +4,19 @@ import place from '../assets/opportunity_location.png'
 import { useNavigate } from 'react-router-dom';
 import { useJobs } from '../JobContext';
 import api from "../api/axios";
+import { LocationDisplay } from '../Components-Jobseeker/LocationDisplay';
 
-export const PostedJobs = ({ onViewApplicants }) => {
+export const PostedJobs = ({ onViewApplicants, onEditJob, allowEditAfterApproval = true }) => {
   const navigate = useNavigate();
   const { jobs, getJobStats, currentEmployer, deleteJob, setCurrentEmployer, setAlluser } = useJobs();
-  
+
   const [activeMenu, setActiveMenu] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+
 
   const PostedJob = currentEmployer?.jobPosted || [];
 
@@ -32,7 +34,7 @@ export const PostedJobs = ({ onViewApplicants }) => {
         setLoading(false);
       }
     };
-    
+
     fetchApplications();
   }, []);
 
@@ -41,17 +43,16 @@ export const PostedJobs = ({ onViewApplicants }) => {
     if (!applications.length) {
       return { total: 0, new: 0, shortlisted: 0, interview: 0, rejected: 0 };
     }
-    
-    const jobApplications = applications.filter(app => 
+
+    const jobApplications = applications.filter(app =>
       String(app.job?.id) === String(jobId)
     );
-    
+
     return {
       total: jobApplications.length,
       new: jobApplications.filter(app => app.status?.toLowerCase() === 'applied').length,
-      shortlisted: jobApplications.filter(app => 
-        app.status?.toLowerCase() === 'shortlisted' 
-
+      shortlisted: jobApplications.filter(app =>
+        app.status?.toLowerCase() === 'shortlisted'
       ).length,
       interview: jobApplications.filter(app => app.status?.toLowerCase() === 'interview_called').length,
       rejected: jobApplications.filter(app => app.status?.toLowerCase() === 'rejected').length
@@ -65,6 +66,13 @@ export const PostedJobs = ({ onViewApplicants }) => {
   const handleEditClick = (job) => {
     setActiveMenu(null);
     navigate('/Job-portal/Employer/EditJob', { state: job });
+  };
+
+  const handleEditJobClick = (job) => {
+    setActiveMenu(null);
+    if (job.approval_status === 'approved' && !allowEditAfterApproval) return;
+
+    if (onEditJob) onEditJob(job);
   };
 
   const handleDeleteClick = async (id) => {
@@ -105,7 +113,6 @@ export const PostedJobs = ({ onViewApplicants }) => {
           <div className="postedjobs-grid-layout postedjobs-table-header">
             <div />
             <span className="postedjobs-label">Applicants</span>
-            {/* <span className="postedjobs-label">New</span> */}
             <span className="postedjobs-label" title="Candidates who applied but not yet reviewed">
               New ⓘ
             </span>
@@ -117,18 +124,30 @@ export const PostedJobs = ({ onViewApplicants }) => {
 
           <div className="postedjobs-list">
             {PostedJob.map((job) => {
-              // Use actual application data for stats
               const stats = getJobApplicationStats(job.id);
 
+              // ONLY highlighted jobs get styling
+              const isHighlighted = job.is_highlighted === true;
+
+              let cardClassName = "postedjobs-grid-layout postedjobs-card";
+              if (isHighlighted) {
+                cardClassName += " highlighted-job";
+              }
+
+              // return (
+              //   <div key={job.id} className={cardClassName} style={{ position: 'relative', overflow: 'visible' }}>
+              // replace with
               return (
-                <div key={job.id} className="postedjobs-grid-layout postedjobs-card">
+                <div key={job.id} className={cardClassName} style={{ position: 'relative', overflow: 'visible', zIndex: activeMenu === job.id ? 1000 : 1 }}>
+                  {/* Badge only for highlighted jobs */}
+                  {isHighlighted && <span className="job-badge premium-badge">⭐ Highlighted job</span>}
+
                   <div className="postedjobs-info">
                     <h3>{job.job_title}</h3>
                     <p className="postedjobs-loc flex items-center gap-2">
                       <img src={place} alt="location" className="post-job-locationicon" />
-                      {Array.isArray(job.location) ? job.location.join(", ") : job.location || "N/A"}
+                      <LocationDisplay locations={job.location} />
                     </p>
-                    {/* <small>Created on: {job.created_at ? new Date(job.created_at).toLocaleDateString() : ''}</small> */}
                     <small>Created on: {new Date(job.created_at || job.posted_date).toLocaleDateString()}</small>
                   </div>
 
@@ -138,19 +157,68 @@ export const PostedJobs = ({ onViewApplicants }) => {
                   <span className="postedjobs-badge">{stats.interview}</span>
                   <span className="postedjobs-badge">{stats.rejected}</span>
 
-                  <div className="postedjobs-actions">
+                  <div className="postedjobs-actions" style={{ position: 'relative' }}>
                     <button
                       className="postedjobs-view-btn"
                       onClick={() => onViewApplicants(job)}
                     >
                       View applicants
                     </button>
-                    <div className="postedjobs-menu-wrapper">
-                      <button onClick={() => toggleMenu(job.id)} className="postedjobs-dots">⋮</button>
+                    <div className="postedjobs-menu-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+                      <button
+                        onClick={() => toggleMenu(job.id)}
+                        className="postedjobs-dots"
+                        style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '5px 10px' }}
+                      >
+                        ⋮
+                      </button>
                       {activeMenu === job.id && (
-                        <div className="postedjobs-dropdown">
-                          <button onClick={() => handleEditClick(job)}>Edit Status</button>
-                          <button onClick={() => handleDeleteClick(job.id)} className="delete-opt">Delete</button>
+                        <div
+                          className="postedjobs-dropdown"
+                          style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: '30px',
+                            background: 'white',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            borderRadius: '8px',
+                            zIndex: 99999,
+                            overflow: 'hidden',
+                            minWidth: '130px'
+                          }}
+                        >
+
+                          <button
+                            onClick={() => handleEditClick(job)}
+                            style={{ display: 'block', width: '100%', padding: '12px 15px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '14px' }}
+                          >
+                            Edit Status
+                          </button>
+                          {/* <button
+                            onClick={() => handleEditJobClick(job)}
+                            style={{ display: 'block', width: '100%', padding: '12px 15px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '14px' }}
+                          >
+                            Edit Job
+                          </button> */}
+                          <button
+                            onClick={() => handleEditJobClick(job)}
+                            disabled={job.approval_status === 'approved' && !allowEditAfterApproval}
+                            title={job.approval_status === 'approved' && !allowEditAfterApproval ? 'Editing approved jobs is disabled' : undefined}
+                            style={{
+                              display: 'block', width: '100%', padding: '12px 15px', border: 'none', background: 'none', textAlign: 'left', fontSize: '14px',
+                              cursor: (job.approval_status === 'approved' && !allowEditAfterApproval) ? 'not-allowed' : 'pointer',
+                              color: (job.approval_status === 'approved' && !allowEditAfterApproval) ? '#a0aab5' : 'inherit'
+                            }}
+                          >
+                            Edit Job
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(job.id)}
+                            className="delete-opt"
+                            style={{ display: 'block', width: '100%', padding: '12px 15px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '14px', color: '#d9534f', fontWeight: '600' }}
+                          >
+                            Delete
+                          </button>
                         </div>
                       )}
                     </div>
@@ -167,7 +235,7 @@ export const PostedJobs = ({ onViewApplicants }) => {
       )}
 
       {showDeleteModal && (
-        <div className="postedjobs-modal-overlay">
+        <div className="postedjobs-modal-overlay" style={{ zIndex: 999999 }}>
           <div className="postedjobs-modal">
             <p>Do you want to remove this job post?</p>
             <div className="postedjobs-modal-btns">
@@ -179,11 +247,10 @@ export const PostedJobs = ({ onViewApplicants }) => {
       )}
 
       {showSuccessToast && (
-        <div className="postedjobs-toast">
+        <div className="postedjobs-toast" style={{ zIndex: 999999 }}>
           Your job post has been removed <span className="close-icon" onClick={() => setShowSuccessToast(false)}>X</span>
         </div>
       )}
     </div>
   );
 };
- 

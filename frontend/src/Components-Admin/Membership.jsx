@@ -76,10 +76,33 @@ export const Membership = () => {
     }));
   };
 
+  // const handleInputChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setFormData(prev => ({ ...prev, [name]: value }));
+  // };
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const { name, value } = e.target;
+
+  // Bug-20: Restrict numbers and special characters in planName and summary
+  if (name === "planName" || name === "summary") {
+    if (/[^a-zA-Z\s]/.test(value)) return;
+      if (value.length > 100) return;
+  }
+
+   if (name === "summary") {
+    if (value.length > 100) return;
+  }
+  if (name === "planName") {
+    if (value.length > 50) return;
+  }
+
+
+  if (name === "featureLabel") {
+    if (value.length > 50) return;
+  }
+
+  setFormData(prev => ({ ...prev, [name]: value }));
+};
 
   const handleDurationChange = (e) => {
     const value = e.target.value;
@@ -183,6 +206,7 @@ export const Membership = () => {
                 <input
                   type="text"
                   name="planName"
+                  maxLength={50}
                   value={formData.planName}
                   onChange={handleInputChange}
                   placeholder="Premier Employer Plan"
@@ -315,6 +339,7 @@ export const Membership = () => {
                           value={item.label}
                           className="membership-cr-feature-label-input"
                           onChange={(e) => updateFeature(item.id, 'label', e.target.value)}
+                          maxLength={50}
                           style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%' }}
                         />
                       </div>

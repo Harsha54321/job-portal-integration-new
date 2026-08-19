@@ -14,6 +14,21 @@ import { useJobs } from '../JobContext'
 import { Stepper, Step, StepLabel, StepConnector, Typography, Box } from '@mui/material'
 import { styled } from '@mui/material/styles';
 import api from "../api/axios";
+import { isRecentlyPosted } from './OpportunitiesCard';
+
+// Custom hook for scroll lock
+const useScrollLock = (isLocked) => {
+  useEffect(() => {
+    if (isLocked) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isLocked]);
+};
 
 const AnimatedConnector = styled(StepConnector)(({ theme }) => ({
   '& .MuiStepConnector-line': {
@@ -24,7 +39,6 @@ const AnimatedConnector = styled(StepConnector)(({ theme }) => ({
   },
   '&.Mui-active .MuiStepConnector-line': {
     borderColor: '#1976d2',
-
   },
   '&.Mui-completed .MuiStepConnector-line': {
     borderColor: '#1976d2',
@@ -40,6 +54,12 @@ export const AppliedJobsOverview = () => {
   const [appliedJob, setAppliedJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeStep, setActiveStep] = useState(-1);
+
+  // Location popup state
+  const [isLocationPopupOpen, setIsLocationPopupOpen] = useState(false);
+
+  // Apply scroll lock for location popup
+  useScrollLock(isLocationPopupOpen);
 
   // Fetch application by ID
   useEffect(() => {
@@ -66,15 +86,11 @@ export const AppliedJobsOverview = () => {
 
     try {
       await api.patch(`/jobs/applications/${appliedJob.id}/withdraw/`);
-      // Update local page state
       setAppliedJob(prev => ({
         ...prev,
         status: "withdrawn"
       }));
-
-      // Refresh applied jobs in context
       await refreshAppliedJobs();
-
       alert("Application withdrawn successfully");
       navigate("/Job-portal/jobseeker");
     } catch (err) {
@@ -90,13 +106,25 @@ export const AppliedJobsOverview = () => {
     "recruiter_review",
     "shortlisted",
     "interview_called",
+    "offered",
+    "hired",
   ];
 
   useEffect(() => {
     if (!appliedJob?.status) return;
 
-    const index = statusOrder.indexOf(appliedJob.status);
-    setActiveStep(index === -1 ? 0 : index);
+    const status = appliedJob.status.toLowerCase();
+    const storageKey = `last_stage_${appliedJob.id}`;
+
+    if (status === "rejected") {
+      const savedStage = localStorage.getItem(storageKey);
+      const index = statusOrder.indexOf(savedStage);
+      setActiveStep(index === -1 ? 0 : index);
+    } else {
+      localStorage.setItem(storageKey, status);
+      const index = statusOrder.indexOf(status);
+      setActiveStep(index === -1 ? 0 : index);
+    }
   }, [appliedJob]);
 
   // Loading guards
@@ -105,17 +133,46 @@ export const AppliedJobsOverview = () => {
 
   const job = appliedJob.job;
 
-  const formatLocation = (location) => {
+  // Check if job is highlighted
+  const isHighlighted = job.is_highlighted === true;
+  const isRecent = isRecentlyPosted(job.posted_date || job.created_at);
 
-    if (!location) return "Location not specified";
+  // Helper function to get location display with + more
+  const getLocationDisplay = (location, maxDisplay = 2) => {
+    if (!location) return { display: "Location not specified", allLocations: [], hasMore: false };
 
+    let locationsArray = [];
     if (Array.isArray(location)) {
-      return location.join(", ");
+      locationsArray = location;
+    } else if (typeof location === 'string') {
+      locationsArray = location.split(',').map(l => l.trim()).filter(l => l !== "");
+    } else {
+      return { display: "Location not specified", allLocations: [], hasMore: false };
     }
-    return location;
+
+    if (locationsArray.length === 0) {
+      return { display: "Location not specified", allLocations: [], hasMore: false };
+    }
+
+    const displayLocations = locationsArray.slice(0, maxDisplay);
+    const remainingCount = locationsArray.length - maxDisplay;
+    const hasMore = remainingCount > 0;
+
+    let display = displayLocations.join(", ");
+    if (hasMore) {
+      display += ` +${remainingCount} more`;
+    }
+
+    return {
+      display,
+      allLocations: locationsArray,
+      hasMore,
+      remainingCount
+    };
   };
 
-  const locationDisplay = formatLocation(job.location);
+  // Get location info
+  const locationInfo = getLocationDisplay(job.location, 2);
 
   const viewJob = {
     title: job.job_title,
@@ -125,22 +182,22 @@ export const AppliedJobsOverview = () => {
     WorkType: job.work_type,
     experience: job.experience,
     salary: job.salary,
-    location: locationDisplay,
-    logo: job.company.logo || job.company.company_logo,
+    location: locationInfo.display,
+    logo: job.company?.logo || job.company?.company_logo,
     tags: job.job_category || "",
     JobHighlights: job.job_highlights || [],
+    is_highlighted: job.is_highlighted || false,
     Responsibilities: job.responsibilities || [],
     KeySkills: job.key_skills || [],
     jobDescription: job.job_description,
     companyOverview: job.company?.about || "",
     status: {
-      type: appliedJob.job.job_status.toLowerCase(),
+      type: appliedJob.job.job_status?.toLowerCase() || "reviewing application",
       text: appliedJob.job.job_status
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, c => c.toUpperCase()),
+        ?.replace(/_/g, " ")
+        ?.replace(/\b\w/g, c => c.toUpperCase()) || "Reviewing Application",
     },
   };
-
 
   const applicationStatus = [
     {
@@ -163,60 +220,136 @@ export const AppliedJobsOverview = () => {
       label: 'Interview Called',
       sub: "The hiring team has reached out to you."
     },
+    {
+      label: 'Offered',
+      sub: "Congratulations! You have received a job offer."
+    },
+    {
+      label: 'Hired',
+      sub: "You have been successfully hired. Welcome aboard!"
+    },
   ];
 
+  // Determine card class for top card
+  let topCardClassName = "appliedjobsO-job-card";
+  // if (isHighlighted) {
+  //   topCardClassName += " highlighted-job";
+  // } else if (isRecent) {
+  //   topCardClassName += " recent-job";
+  // }
+
+  // Determine card class for details card
+  let detailsCardClassName = "opp-job-details-card";
+  // if (isHighlighted) {
+  //   detailsCardClassName += " highlighted-job";
+  // } else if (isRecent) {
+  //   detailsCardClassName += " recent-job";
+  // }
+
   return (
-
-    <div >
+    <div>
       <Header />
+      <div style={{ margin: "120px 60px 20px 60px", display: "flex", justifyContent: "flex-start" }}>
+        <button
+          className="back-btn"
+          onClick={() => navigate(-1)}
+          style={{ padding: "10px 25px", border: "1px solid #ddd", borderRadius: "8px", background: "#5D98F1", fontWeight: "600", color: "#FFFF", cursor: "pointer" }}
+        >
+          Back
+        </button>
+      </div>
+      <div className={topCardClassName}>
+        <div className="applied-jobs-top-card-grid">
+          <div>
+            {/* <div className="myjobs-card-header">
+              <div><h2 className="myjobs-job-title">{viewJob.title}</h2></div>
+            </div> */}
+            <div className="myjobs-card-header">
+              <div className="myjobs-job-info">
+                <h2 className="myjobs-job-title">
+                  {viewJob.title}
+                </h2>
+              </div>
+            </div>
+            <div style={{ marginTop: "20px" }} className="myjobs-company-sub">
+              <p className="myjobs-company-name">
+                {viewJob.company}
+                <span className="Opportunities-divider">|</span>
+                <span className="star"><img src={starIcon} alt="star" /></span>
+                {viewJob.ratings}
+                <span className="Opportunities-divider">|</span>
+                <span>{viewJob.reviewNo}</span>
+              </p>
+            </div>
+            <div style={{ marginTop: "20px" }} className="Opportunities-job-details">
+              <p className='Opportunities-detail-line'>
+                <img src={time} className='card-icons' alt="time" />
+                {viewJob.WorkType}
+                <span className="Opportunities-divider">|</span>
+                <span>{viewJob.salary}</span>
+                <span className="Opportunities-divider">|</span>
+                <img src={experience} className='card-icons' alt="experience" />
+                {viewJob.experience}
+                <span className="Opportunities-divider">|</span>
+                <img src={place} className='card-icons' alt="location" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }} className='appliedjobsO-job-card'>
-        <div >
-          <div className="myjobs-card-header">
-            <div><h2 className="myjobs-job-title">{viewJob.title}</h2></div>
+                {/* Location with + more functionality */}
+                {locationInfo.hasMore ? (
+                  <>
+                    {locationInfo.allLocations.slice(0, 2).join(", ")}
+                    <span
+                      className="opp-show-more-link"
+                      onClick={() => setIsLocationPopupOpen(true)}
+                    >
+                      +{locationInfo.remainingCount} more
+                    </span>
+                  </>
+                ) : (
+                  viewJob.location
+                )}
+              </p>
+            </div>
+            <div style={{ marginTop: "20px", alignItems: "center", display: "flex", justifyContent: "space-between" }} className="Applied-job-tags">
+              {viewJob.tags && (
+                <div>
+                  <span className={`Opportunities-job-tag ${viewJob.tags?.toLowerCase()}`}>
+                    {viewJob.tags}
+                  </span>
+                </div>
+              )}
 
-          </div>
-          <div style={{ marginTop: "20px" }} className="myjobs-company-sub">
-            <p className="myjobs-company-name"> {viewJob.company} <span className="Opportunities-divider">|</span><span className="star"><img src={starIcon} /></span> {viewJob.ratings}<span className="Opportunities-divider">|</span><span>{viewJob.reviewNo}</span></p>
-          </div>
-          <div style={{ marginTop: "20px" }} className="Opportunities-job-details">
-            <p className='Opportunities-detail-line'><img src={time} className='card-icons' />{viewJob.WorkType} <span className="Opportunities-divider">|</span> <span>{viewJob.salary}</span><span className="Opportunities-divider">|</span> <img src={experience} className='card-icons' />{viewJob.experience} years of experience <span className="Opportunities-divider">|</span><img src={place} className='card-icons' /> Coimbatore </p>
-          </div>
-          <div style={{ marginTop: "20px", alignItems: "center", display: "flex", justifyContent: "space-between" }} className="Applied-job-tags">
-            {viewJob.tags && (
-              <div>
-                <span className={`Opportunities-job-tag ${viewJob.tags?.toLowerCase()}`}>
-                  {viewJob.tags}
+              {viewJob.is_highlighted && (
+                <span className="highlighted-job-label">
+                  ⭐ Highlighted Job
                 </span>
+              )}
+              <span className={`applied-application-status status-${viewJob.status.type.replace(/\s+/g, "_")}`}>
+                {viewJob.status.text}
+              </span>
+            </div>
+            <hr className="Opportunities-separator" />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "end", paddingRight: "50px" }}>
+            {viewJob.logo ? (
+              <img
+                width={150}
+                style={{ marginTop: "50px" }}
+                src={viewJob.logo}
+                alt={viewJob.company}
+              />
+            ) : (
+              <div className="Opportunities-job-logo-placeholder">
+                {viewJob.company.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className={`applied-application-status status-${viewJob.status.type}`}>
-              {viewJob.status.text}
-            </span>
           </div>
-          <hr className="Opportunities-separator" />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "end", paddingRight: "50px" }}>
-
-          {viewJob.logo ? (
-            <img
-              width={150}
-              style={{ marginTop: "50px" }}
-              src={viewJob.logo}
-              alt={viewJob.company}
-            />
-          ) : (
-            <div className="Opportunities-job-logo-placeholder">
-              {viewJob.company.charAt(0).toUpperCase()}
-            </div>
-          )}
         </div>
       </div>
 
       <div className='AppliedJobs-overview-main'>
         <div className='opp-job-main'>
-          <div className="opp-job-details-card">
+          <div className={detailsCardClassName}>
             {/* Job Highlights */}
             <div className="opp-job-highlights">
               <h3>Job Highlights</h3>
@@ -230,11 +363,8 @@ export const AppliedJobsOverview = () => {
             <h3>Company Overview</h3>
             <p>{viewJob.companyOverview}</p>
 
-
             <h3>Job Description</h3>
-            <p>
-              {viewJob.jobDescription}
-            </p>
+            <p>{viewJob.jobDescription}</p>
 
             <h3>Responsibilities</h3>
             <ul>
@@ -243,10 +373,25 @@ export const AppliedJobsOverview = () => {
               ))}
             </ul>
 
-            <h3>Key Details:</h3>
             <p><strong>Role:</strong> {viewJob.title}</p>
             <p><strong>Job Type:</strong> {viewJob.WorkType}</p>
-            <p><strong>Location:</strong> {viewJob.location}</p>
+            <p>
+              <strong>Location:</strong>
+              {/* Location with + more in details section */}
+              {locationInfo.hasMore ? (
+                <>
+                  {locationInfo.allLocations.slice(0, 2).join(", ")}
+                  <span
+                    className="opp-show-more-link"
+                    onClick={() => setIsLocationPopupOpen(true)}
+                  >
+                    +{locationInfo.remainingCount} more
+                  </span>
+                </>
+              ) : (
+                viewJob.location
+              )}
+            </p>
             <p><strong>Experience:</strong> {viewJob.experience}</p>
             <p><strong>Salary:</strong> {viewJob.salary}</p>
 
@@ -274,7 +419,7 @@ export const AppliedJobsOverview = () => {
         </div>
         <div className="status-container">
           <div className="status-header">
-            <img src={breifcase} className='card-icons' />
+            <img src={breifcase} className='card-icons' alt="briefcase" />
             <h3>Application status</h3>
           </div>
 
@@ -305,6 +450,24 @@ export const AppliedJobsOverview = () => {
                 </Step>
               ))}
             </Stepper>
+
+            {/* Rejected banner */}
+            {appliedJob.status?.toLowerCase() === "rejected" && (
+              <Box sx={{
+                mt: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor: '#ffebee',
+                borderLeft: '4px solid #d32f2f',
+              }}>
+                <Typography sx={{ color: '#d32f2f', fontWeight: 700 }}>
+                  ✗ Rejected
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#d32f2f' }}>
+                  Unfortunately, your application was not selected.
+                </Typography>
+              </Box>
+            )}
           </Box>
           {appliedJob.status?.toLowerCase() === "applied" && (
             <button
@@ -323,16 +486,32 @@ export const AppliedJobsOverview = () => {
               Withdraw
             </button>
           )}
-
         </div>
         {appliedJob.status?.toLowerCase() !== "applied" && (
           <p style={{ color: "gray", fontSize: "12px" }}>
             Withdrawal not allowed after screening
           </p>
         )}
-
       </div>
-    </div>
 
+      {/* Location Popup Modal */}
+      {isLocationPopupOpen && (
+        <div className="opp-loc-modal-overlay" onClick={() => setIsLocationPopupOpen(false)}>
+          <div className="opp-loc-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="opp-loc-modal-header">
+              <h3>All Locations</h3>
+              <button className="opp-loc-modal-close" onClick={() => setIsLocationPopupOpen(false)}>
+                &times;
+              </button>
+            </div>
+            <div className="opp-loc-modal-body">
+              {locationInfo.allLocations.map((loc, index) => (
+                <span key={index} className="opp-loc-chip">{loc}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

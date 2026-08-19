@@ -27,43 +27,44 @@ export const ResumeUploadHelp = () => {
   return (
     <>
       <FHeader />
-      <div className="profilehelp-page">
-        <div className="profilehelp-container">
-          <h1 className="profilehelp-title">
-             Resume Upload
+      <div className="resumehelp-page">
+        <p className="resumehelp-updated">
+          {resumeHelpData.updatedDate}
+        </p>
+        <div className="resumehelp-container">
+          <h1 className="resumehelp-title">
+            Resume Upload
           </h1>
 
-          <p className="profilehelp-updated">
-            {resumeHelpData.updatedDate}
-          </p>
-          <p className="profilehelp-intro">
+
+          <p className="resumehelp-intro">
             {resumeHelpData.intro}
           </p>
 
-          <div className="profilehelp-layout">
-            <div className="profilehelp-left">
-               <img 
-                src={ResumeHelpImg} 
-                alt="Resume Upload Process" 
-                style={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
-              />
-            </div>
+          {/* Centered Hero Image Section */}
+          <div className="resumehelp-hero-section">
+            <img
+              src={ResumeHelpImg}
+              alt="Resume Upload Process"
+              className="resumehelp-hero-img"
+            />
+          </div>
 
-            <div className="profilehelp-right">
-              <div className="profilehelp-steps-container" style={{ marginTop: 0 }}>
-                <h2>Resume Upload Summary</h2>
-                <ul className="profilehelp-steps-list">
-                  {resumeUploadSteps.map((step, index) => (
-                    <li key={index}>{step}</li>
-                  ))}
-                </ul>
-              </div>
+          {/* Resume Upload Summary - Now moved down */}
+          <div className="resumehelp-summary-section">
+            <div className="resumehelp-steps-container">
+              <h2 className="resumehelp-summary-title">Resume Upload Summary</h2>
+              <ul className="resumehelp-steps-list">
+                {resumeUploadSteps.map((step, index) => (
+                  <li key={index}>{step}</li>
+                ))}
+              </ul>
             </div>
           </div>
 
-          <div className="profilehelp-detailed-steps">
+          <div className="resumehelp-detailed-steps">
             <h2>Step-by-Step Resume Guidelines:</h2>
-            
+
             <div className="detailed-step">
               <h3>1. Accessing the Profile Area</h3>
               <ul>
@@ -74,13 +75,13 @@ export const ResumeUploadHelp = () => {
             <div className="detailed-step">
               <h3>2. Preparing the File (The "Pre-Upload" Check)</h3>
               <ul>
-                <li><strong>Naming Convention:</strong> Rename your file professionally before uploading. 
-                  <br/><em>Bad: resume_final_v2_updated.pdf</em>
-                  <br/><em>Good: Firstname_Lastname_Developer_Resume.pdf</em>
+                <li><strong>Naming Convention:</strong> Rename your file professionally before uploading.
+                  <br /><em>Bad: resume_final_v2_updated.pdf</em>
+                  <br /><em>Good: Firstname_Lastname_Developer_Resume.pdf</em>
                 </li>
-                <li><strong>Format Selection:</strong> 
-                  <br/><strong>PDF:</strong> Best for preserving layout and fonts across all devices.
-                  <br/><strong>DOCX:</strong> Best if the portal uses older parsing systems to extract text.
+                <li><strong>Format Selection:</strong>
+                  <br /><strong>PDF:</strong> Best for preserving layout and fonts across all devices.
+                  <br /><strong>DOCX:</strong> Best if the portal uses older parsing systems to extract text.
                 </li>
                 <li><strong>Size Constraint:</strong> Ensure your file is under 5MB. Use a PDF compressor if you have many images or icons to avoid rejection.</li>
               </ul>

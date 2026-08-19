@@ -1,47 +1,38 @@
-
 import React, { useState, useEffect } from 'react';
 import './MembershipPlans.css';
 import api from '../api/axios';
 
-export const MembershipPlans = ({ onSelectPlan }) => {
+export const MembershipPlans = ({ onSelectPlan, plans: externalPlans }) => {
     const [activeTab, setActiveTab] = useState('monthly');
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const normalizePlanName = (planName) => {
-        const upperName = planName.toUpperCase();
-        if (upperName.includes('STARTER')) return 'STARTER PLAN';
-        if (upperName.includes('BUSINESS')) return 'BUSINESS PLAN';
-        if (upperName.includes('ENTERPRISE')) return 'ENTERPRISE PLAN';
-        return planName.toUpperCase();
-    };
-
-    const getDisplayName = (planName) => {
-        const normalizedName = normalizePlanName(planName);
-        if (normalizedName === 'STARTER PLAN') return 'STARTER PLAN';
-        if (normalizedName === 'BUSINESS PLAN') return 'BUSINESS PLAN';
-        if (normalizedName === 'ENTERPRISE PLAN') return 'ENTERPRISE PLAN';
-        return planName.toUpperCase();
+    // 🔹 Get color from plan - ALWAYS use plan.color
+    const getPlanColor = (plan) => {
+        // Always use plan.color if it exists
+        if (plan.color) {
+            return plan.color;
+        }
+        // Fallback if no color (should not happen)
+        return '#1E88E5';
     };
 
     useEffect(() => {
-        fetchPlans();
-    }, [activeTab]);
+        if (externalPlans && externalPlans.length > 0) {
+            setPlans(externalPlans);
+            setLoading(false);
+        } else {
+            fetchPlans();
+        }
+    }, [externalPlans]);
 
     const fetchPlans = async () => {
         setLoading(true);
         setError(null);
         try {
-            // Map frontend tab names to backend duration values
-            const durationMap = {
-                'monthly': 'monthly',
-                '6 Months': '6_months',
-                'yearly': 'yearly'
-            };
-
-            const duration = durationMap[activeTab] || 'monthly';
-            const response = await api.get(`/plans/?duration=${duration}`);
+            const response = await api.get('/plans/');
+            console.log('Fetched plans:', response.data);
             setPlans(response.data);
         } catch (err) {
             console.error('Error fetching plans:', err);
@@ -51,116 +42,57 @@ export const MembershipPlans = ({ onSelectPlan }) => {
         }
     };
 
-    // const getFeaturesForPlan = (planName) => {
-    //     if (planName === 'STARTER PLAN') {
-    //         return [
-    //             { text: '3 Jobs Posting', isIncluded: true },
-    //             { text: 'Basic Employer Profile', isIncluded: true },
-    //             { text: 'Standard Support', isIncluded: true },
-    //             { text: 'Account Manager', isIncluded: false },
-    //             { text: 'Analytics', isIncluded: false },
-    //             { text: 'Candidate Search', isIncluded: false },
-    //             { text: 'Highlight Your Job Listing', isIncluded: false },
-    //         ];
-    //     }
-    //     if (planName === 'BUSINESS PLAN') {
-    //         return [
-    //             { text: '30 Jobs Posting', isIncluded: true },
-    //             { text: 'Featured Employer Profile', isIncluded: true },
-    //             { text: 'Resume Database Access', isIncluded: true },
-    //             { text: 'Priority Support', isIncluded: true },
-    //             { text: 'Basic Account Manager', isIncluded: true },
-    //             { text: 'Basic Analytics', isIncluded: true },
-    //             { text: 'Limited Candidate Search', isIncluded: true },
-    //             { text: 'Highlight Your Job Listing', isIncluded: false },
-    //         ];
-    //     }
-    //     // ENTERPRISE PLAN
-    //     return [
-    //         { text: 'Unlimited Jobs Posting', isIncluded: true },
-    //         { text: 'Premium Employer Profile', isIncluded: true },
-    //         { text: 'Full Resume Database Access', isIncluded: true },
-    //         { text: 'Priority Support', isIncluded: true },
-    //         { text: 'Dedicated Account Manager', isIncluded: true },
-    //         { text: 'Advanced Analytics', isIncluded: true },
-    //         { text: 'Unlimited Candidate Search', isIncluded: true },
-    //         { text: 'Highlight Your Job Listing', isIncluded: true },
-    //     ];
-    // };
-
-    const getFeaturesForPlan = (planName) => {
-        const normalizedName = normalizePlanName(planName);
-
-        if (normalizedName === 'STARTER PLAN') {
-            return [
-                { text: '3 Jobs Posting', isIncluded: true },
-                { text: 'Basic Employer Profile', isIncluded: true },
-                { text: 'Standard Support', isIncluded: true },
-                { text: 'Account Manager', isIncluded: false },
-                { text: 'Analytics', isIncluded: false },
-                { text: 'Candidate Search', isIncluded: false },
-                { text: 'Highlight Your Job Listing', isIncluded: false },
-            ];
-        }
-        if (normalizedName === 'BUSINESS PLAN') {
-            return [
-                { text: '30 Jobs Posting', isIncluded: true },
-                { text: 'Featured Employer Profile', isIncluded: true },
-                { text: 'Resume Database Access', isIncluded: true },
-                { text: 'Priority Support', isIncluded: true },
-                { text: 'Basic Account Manager', isIncluded: true },
-                { text: 'Basic Analytics', isIncluded: true },
-                { text: 'Limited Candidate Search', isIncluded: true },
-                { text: 'Highlight Your Job Listing', isIncluded: false },
-            ];
-        }
-        // ENTERPRISE PLAN
-        return [
-            { text: 'Unlimited Jobs Posting', isIncluded: true },
-            { text: 'Premium Employer Profile', isIncluded: true },
-            { text: 'Full Resume Database Access', isIncluded: true },
-            { text: 'Priority Support', isIncluded: true },
-            { text: 'Dedicated Account Manager', isIncluded: true },
-            { text: 'Advanced Analytics', isIncluded: true },
-            { text: 'Unlimited Candidate Search', isIncluded: true },
-            { text: 'Highlight Your Job Listing', isIncluded: true },
-        ];
-    };
-
-    // const getPlanColor = (planName) => {
-    //     if (planName === 'STARTER PLAN') return 'blue';
-    //     if (planName === 'BUSINESS PLAN') return 'orange';
-    //     return 'purple';
-    // };
-
-    const getPlanColor = (planName) => {
-        const normalizedName = normalizePlanName(planName);
-        if (normalizedName === 'STARTER PLAN') return 'blue';
-        if (normalizedName === 'BUSINESS PLAN') return 'orange';
-        return 'purple';
-    };
-
     const handleGetStarted = (plan) => {
+        const isFreePlan = plan.name.toLowerCase() === 'free' || plan.name.toLowerCase() === 'starter plan';
+        if (isFreePlan) {
+            alert("currently disabled for free plans");
+            return;
+        }
+        let pricing = plan.pricing;
+        let duration = activeTab;
+        let priceWithoutTax = 0;
+        let finalPriceWithTax = 0;
+        let priceBreakdown = null;
 
-        const normalizedName = normalizePlanName(plan.name);
-
-        const pricing = plan.pricing;
-
-        const isStarterPlan =
-            normalizePlanName(plan.name) === 'STARTER PLAN';
+        if (isFreePlan) {
+            duration = 'lifetime'; 
+            priceBreakdown = {
+                base_price: 0,
+                total: 0,
+                cgst: 0,
+                sgst: 0,
+                tax_rate: 0
+            };
+        } else if (activeTab === 'monthly') {
+            priceWithoutTax = pricing.monthly.base_price;
+            finalPriceWithTax = pricing.monthly.total;
+            duration = 'monthly';
+            priceBreakdown = pricing.monthly;
+        } else if (activeTab === '6 Months') {
+            priceWithoutTax = pricing.six_months.price_after_discount;
+            finalPriceWithTax = pricing.six_months.total;
+            duration = '6_months';
+            priceBreakdown = pricing.six_months;
+        } else {
+            priceWithoutTax = pricing.yearly.price_after_discount;
+            finalPriceWithTax = pricing.yearly.total;
+            duration = 'yearly';
+            priceBreakdown = pricing.yearly;
+        }
 
         const planData = {
             id: plan.id,
             name: plan.name,
-            price: isStarterPlan ? 1 : pricing.total,
-            subtotal: isStarterPlan ? 1 : pricing.subtotal,
-            cgst: pricing.cgst,
-            sgst: pricing.sgst,
-            discount_percent: pricing.discount_percent,
-            original_price: pricing.original_price,
-            savings: pricing.savings,
-            duration: activeTab,
-            duration_days: pricing.duration_days
+            price: finalPriceWithTax,  
+            displayPrice: priceWithoutTax,  
+            color: plan.color || '#1E88E5',  // Use plan.color with fallback
+            summary: plan.summary,
+            duration: duration,
+            price_breakdown: priceBreakdown,
+            subtotal: priceBreakdown?.price_after_discount || priceBreakdown?.base_price || 0,
+            cgst: priceBreakdown?.cgst || 0,
+            sgst: priceBreakdown?.sgst || 0,
+            tax_rate: priceBreakdown?.tax_rate || 0
         };
 
         onSelectPlan(planData, activeTab);
@@ -184,21 +116,6 @@ export const MembershipPlans = ({ onSelectPlan }) => {
         );
     }
 
-    // Filter out STARTER PLAN for 6 months and yearly tabs (since it's free only monthly)
-    // const displayPlans = plans.filter(plan => {
-    //     if (activeTab !== 'monthly' && plan.name === 'STARTER PLAN') {
-    //         return false;
-    //     }
-    //     return true;
-    // });
-
-    const displayPlans = plans.filter(plan => {
-        if (activeTab !== 'monthly' && normalizePlanName(plan.name) === 'STARTER PLAN') {
-            return false;
-        }
-        return true;
-    });
-
     return (
         <div className="MembershipPlans">
             <div className="MembershipPlans-header-box">
@@ -214,75 +131,108 @@ export const MembershipPlans = ({ onSelectPlan }) => {
                         onClick={() => setActiveTab(tab)}
                     >
                         {tab === 'monthly' ? 'Monthly' : tab === '6 Months' ? '6 Months' : 'Yearly'} Plan
-                        {/* {tab === '6 Months' && <span className="discount-badge">Save 10%</span>}
-                        {tab === 'yearly' && <span className="discount-badge">Save 15%</span>} */}
                     </button>
                 ))}
             </div>
 
-            <div className={`MembershipPlans-grid ${displayPlans.length === 2 ? 'two-cols' : ''}`}>
-                {displayPlans.map((plan, index) => {
-                    const pricing = plan.pricing;
-                    // const isPopular = plan.name === 'BUSINESS PLAN' && activeTab !== 'monthly';
-                    const isPopular = normalizePlanName(plan.name) === 'BUSINESS PLAN' && activeTab !== 'monthly';
+            <div className={`MembershipPlans-grid ${plans.length === 2 ? 'two-cols' : plans.length === 3 ? 'three-cols' : ''}`}>
+                {plans.map((plan, index) => {
+                    const isFreePlan = plan.name.toLowerCase() === 'free' || plan.name.toLowerCase() === 'starter plan';
+                    let displayPrice = 0;      
+                    let tabLabel = 'month';
+                    let pricingData = null;
+                    let originalPrice = null;
+
+                    if (isFreePlan) {
+                        displayPrice = 0;
+                        tabLabel = 'Forever';
+                        pricingData = { discount_percent: 0 };
+                    } else if (activeTab === 'monthly') {
+                        displayPrice = plan.pricing.monthly.base_price;
+                        tabLabel = 'month';
+                        pricingData = plan.pricing.monthly;
+                        originalPrice = plan.pricing.monthly.base_price;
+                    } else if (activeTab === '6 Months') {
+                        displayPrice = plan.pricing.six_months.price_after_discount;
+                        tabLabel = '6 months';
+                        pricingData = plan.pricing.six_months;
+                        originalPrice = plan.pricing.six_months.base_price;
+                    } else {
+                        displayPrice = plan.pricing.yearly.price_after_discount;
+                        tabLabel = 'year';
+                        pricingData = plan.pricing.yearly;
+                        originalPrice = plan.pricing.yearly.base_price;
+                    }
+
+                    // 🔹 Get color from plan - ALWAYS use plan.color
+                    const planColor = getPlanColor(plan);
+
+                    console.log(`Plan: ${plan.name}, Color: ${planColor}`); // Debug log
 
                     return (
-                        <div key={plan.id} className={`MembershipPlans-card ${isPopular ? 'popular' : ''}`}>
-                            {/* {isPopular && (
-                                <div className="popular-badge">MOST POPULAR</div>
-                            )} */}
-                            <div className={`MembershipPlans-banner ${getPlanColor(plan.name)}`}>
-                                {getDisplayName(plan.name)}
+                        <div key={plan.id} className={`MembershipPlans-card ${isFreePlan ? 'free-tier' : ''}`}>
+                            <div 
+                                className="MembershipPlans-banner" 
+                                style={{ backgroundColor: planColor }}
+                            >
+                                {plan.name.toUpperCase()}
                             </div>
+
                             <div className="MembershipPlans-content">
                                 <div className="MembershipPlans-price-box">
                                     <span className="MembershipPlans-amount">
-                                        {normalizePlanName(plan.name) === 'STARTER PLAN' ? (
-                                            'Free'
-                                        ) : (
-                                            <>
-                                                ₹ {Math.round(pricing.total)}
-                                                <small>
-                                                    /{activeTab === 'monthly' ? 'month' :
-                                                        activeTab === '6 Months' ? '6 months' : 'year'}
-                                                </small>
-                                            </>
-                                        )}
+                                        ₹ {Math.round(displayPrice)}
+                                        <small>/{tabLabel}</small>
                                     </span>
-                                    {/* {pricing.discount_percent > 0 && (
-                                        <>
-                                            <span className="discount-text">
-                                                Save {pricing.discount_percent}%
+                                    {!isFreePlan && pricingData?.discount_percent > 0 && (
+                                        <div className="MembershipPlans-discount-info">
+                                            <span className="MembershipPlans-original-price">
+                                                ₹{Math.round(originalPrice)}
                                             </span>
-                                            <div className="original-price">
-                                                Was: ₹ {Math.round(pricing.original_price)}
-                                            </div>
-                                        </>
-                                    )} */}
-                                    <span className="MembershipPlans-subtitle">
-                                        {normalizePlanName(plan.name) === 'STARTER PLAN' ? 'Limited Access' :
-                                            normalizePlanName(plan.name) === 'BUSINESS PLAN' ? 'Basic Plan' : 'Professional Plan'}
-                                    </span>
+                                            <span className="MembershipPlans-discount-badge">
+                                                Save {pricingData.discount_percent}%
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="MembershipPlans-tax-info">
+                                        {isFreePlan ? 'No Hidden Charges' : '+18% GST'}
+                                    </div>
+                                    {plan.summary && (
+                                        <span className="MembershipPlans-subtitle">{plan.summary}</span>
+                                    )}
                                 </div>
+
                                 <hr className="MembershipPlans-divider" />
 
                                 <ul className="MembershipPlans-features-list">
-                                    {getFeaturesForPlan(plan.name).map((feat, i) => (
-                                        <li key={i} className={feat.isIncluded ? 'included' : 'excluded'}>
-                                            <span className="MembershipPlans-icon">
-                                                {feat.isIncluded ? '✔' : '✘'}
-                                            </span>
-                                            {feat.text}
-                                        </li>
-                                    ))}
+                                    {(plan.features || []).map((feat, i) => {
+                                        const isIncluded = feat.included === true || feat.value === 'true';
+                                        let displayText = feat.text;
+
+                                        if (feat.text === 'Jobs Posting' && feat.value !== '0') {
+                                            displayText = `${feat.value} Jobs Posting`;
+                                        } else if (feat.text === 'Highlight Your Job Listing' && feat.value !== '0') {
+                                            displayText = `${feat.value} Highlight Listings`;
+                                        }
+
+                                        return (
+                                            <li key={i} className={isIncluded ? 'included' : 'excluded'}>
+                                                <span className="MembershipPlans-icon">
+                                                    {isIncluded ? '✔' : '✘'}
+                                                </span>
+                                                {displayText}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
 
                                 <button
-                                    className={`MembershipPlans-btn-start ${getPlanColor(plan.name)}`}
+                                    className="MembershipPlans-btn-start"
+                                    style={{ backgroundColor: planColor }}
                                     onClick={() => handleGetStarted(plan)}
-                                    disabled={normalizePlanName(plan.name) === 'STARTER PLAN' && activeTab !== 'monthly'}
+                                    title={isFreePlan ? "This plan is currently disabled" : ""}
                                 >
-                                    Get started
+                                    {isFreePlan ? 'Get Started For Free' : 'Get started'}
                                 </button>
                             </div>
                         </div>

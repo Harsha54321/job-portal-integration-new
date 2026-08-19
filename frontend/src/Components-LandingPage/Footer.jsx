@@ -6,27 +6,26 @@ import { useNavigate } from "react-router-dom";
 export const Footer = () => {
   const navigate = useNavigate()
   
-  
   const accessToken = sessionStorage.getItem("access");
   const userRole = sessionStorage.getItem("userRole");
   const isJobseeker = accessToken && userRole === "jobseeker";
   const isEmployer = accessToken && userRole === "Employer";
   const isLoggedIn = !!accessToken;
  
-  // If logged in, go to path. If not, force redirect to login.
-  const protectedNavigate = (path,state, targetTabName = '') => {
+  // Protected navigate function with targetTab support
+  const protectedNavigate = (path, targetTab) => {
     if (isLoggedIn) {
-      navigate(path, state,{ state: { fromFooter: true, targetTab: targetTabName } });
+      // Already logged in - navigate directly with tab info
+      navigate(path, { state: { fromFooter: true, activeTab: targetTab } });
     } else {
+      // Not logged in - store intended path and tab in sessionStorage
+      sessionStorage.setItem("redirectAfterLogin", path);
+      sessionStorage.setItem("redirectTab", targetTab);
+      
       if (path.toLowerCase().includes('employer')) {
-        navigate('/Job-portal/employer/login', {
-          state: { fromFooter: true, intendedPath: '/Job-portal/Employer/Dashboard', targetTab: targetTabName || 'Dashboard' }
-        });
+        navigate('/Job-portal/employer/login');
       } else {
-        // Only added this state object mapping fallback to your existing redirect
-        navigate('/Job-portal/jobseeker/login', {
-          state: { fromFooter: true, intendedPath: path, targetTab: targetTabName || 'Profile' }
-        });
+        navigate('/Job-portal/jobseeker/login');
       }
     }
   };
@@ -52,6 +51,7 @@ export const Footer = () => {
             <li><span onClick={() => navigate('/Job-portal/jobseeker/ContactUs')}>Contact Us</span></li>
             <li><span onClick={() => { navigate('/Job-portal/jobseeker/FAQ') }} >FAQs</span></li>
             <li><span onClick={() => { navigate('/Job-portal/jobseeker/Blogs') }}>Blog</span></li>
+            <li><span onClick={() => { navigate('/Job-portal/jobseeker/help-center') }}>HelpCenter</span></li>
           </ul>
         </div>
  
@@ -61,9 +61,19 @@ export const Footer = () => {
             <h3>Job Seekers</h3>
             <ul>
               <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/myprofile', 'Profile')}>Create Profile</span></li>
-              <li><span onClick={() => navigate('/Job-portal/jobseeker/jobs')}>Browse Jobs</span></li>
-              <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/myjobs', { state: { activeTab: 'saved' } })}>Saved Jobs</span></li>
-              <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/myjobs', { state: { activeTab: 'applied' } })}> Applied Jobs </span></li>
+              <li><span onClick={() => protectedNavigate('/Job-portal/jobseeker/jobs')}>Browse Jobs</span></li>
+              {/* Saved Jobs - "saved" tab */}
+              <li>
+                <span onClick={() => protectedNavigate('/Job-portal/jobseeker/myjobs', 'saved')}>
+                  Saved Jobs
+                </span>
+              </li>
+              {/* Applied Jobs - "applied" tab */}
+              <li>
+                <span onClick={() => protectedNavigate('/Job-portal/jobseeker/myjobs', 'applied')}>
+                  Applied Jobs
+                </span>
+              </li>
             </ul>
           </div>
         )}
@@ -78,9 +88,9 @@ export const Footer = () => {
                     state: { fromFooter: true, targetTab: 'Post a Job' }
                   });
                 } else {
-                  navigate('/Job-portal/employer/login', {
-                    state: { fromFooter: true, intendedPath: '/Job-portal/Employer/Dashboard', targetTab: 'Post a Job' }
-                  });
+                  sessionStorage.setItem("redirectAfterLogin", '/Job-portal/Employer/Dashboard');
+                  sessionStorage.setItem("redirectTab", 'Post a Job');
+                  navigate('/Job-portal/employer/login');
                 }
               }}>Post a Job</span></li>
  
@@ -90,9 +100,9 @@ export const Footer = () => {
                     state: { fromFooter: true, targetTab: 'Find Talent' }
                   });
                 } else {
-                  navigate('/Job-portal/employer/login', {
-                    state: { fromFooter: true, intendedPath: '/Job-portal/Employer/Dashboard', targetTab: 'Find Talent' }
-                  });
+                  sessionStorage.setItem("redirectAfterLogin", '/Job-portal/Employer/Dashboard');
+                  sessionStorage.setItem("redirectTab", 'Find Talent');
+                  navigate('/Job-portal/employer/login');
                 }
               }}>
                 Find Talent
@@ -104,16 +114,15 @@ export const Footer = () => {
                     state: { fromFooter: true, targetTab: 'Dashboard' }
                   });
                 } else {
-                  navigate('/Job-portal/employer/login', {
-                    state: { fromFooter: true, intendedPath: '/Job-portal/Employer/Dashboard', targetTab: 'Dashboard' }
-                  });
+                  sessionStorage.setItem("redirectAfterLogin", '/Job-portal/Employer/Dashboard');
+                  sessionStorage.setItem("redirectTab", 'Dashboard');
+                  navigate('/Job-portal/employer/login');
                 }
               }}>Employer Dashboard</span></li>
             </ul>
           </div>
         )}
       </div>
- 
  
       <div className="footer-bottom">
         <p>&#169; 2025 JobPortal. All rights reserved.</p>

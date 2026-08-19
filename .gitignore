@@ -1,0 +1,6 @@
+
+# Firebase / Google Cloud credentials
+jobapp/firebase/firebase-service-account.json
+
+# Python virtual environment
+myenv/

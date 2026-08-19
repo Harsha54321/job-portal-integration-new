@@ -1,44 +1,87 @@
 .resumehelp-page {
     margin-top: 102px;
+    padding-bottom: 50px;
 }
 
 .resumehelp-container {
     background: #ffffff;
     padding: 40px 100px 100px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .resumehelp-title {
     color: #0f172a;
-    margin-bottom: 40px;
+    margin: 0 auto 40px auto;
+    /* Centers the container */
     display: flex;
     justify-content: center;
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 700;
+    text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    width: 100%;
+    max-width: 900px;
+    /* Matches the width of the other sections */
 }
 
-.resumehelp-layout {
+.resumehelp-updated {
+    font-size: 13px;
+    color: #64748b;
+    text-align: left;
+    width: 100%;
+    padding: 15px 0 0 30px;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.resumehelp-intro {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #334155;
+    margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+/* Centered Hero Image Section */
+.resumehelp-hero-section {
     display: flex;
-    gap: 60px;
+    justify-content: center;
     align-items: center;
-    margin-bottom: 60px;
+    margin-bottom: 100px;
+    /* Increased from 50px */
+    width: 100%;
 }
 
-.resumehelp-left {
-    flex: 1.2;
-    min-width: 0;
+.resumehelp-hero-img {
+    max-width: 80%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
 }
 
-.resumehelp-right {
-    flex: 1;
-    max-width: 500px;
+/* Summary Section - Moved down */
+.resumehelp-summary-section {
+    margin-bottom: 100px;
+    /* Increased from 60px */
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.resumehelp-steps-container h2 {
-    font-size: 26px;
+.resumehelp-summary-title {
+    font-size: 24px;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 24px;
-    text-align: left;
+    margin-bottom: 30px;
+    text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    width: 100%;
 }
 
 .resumehelp-steps-list {
@@ -52,11 +95,15 @@
     line-height: 1.6;
 }
 
+.resumehelp-steps-list li strong {
+    color: #0f172a;
+    font-weight: 600;
+}
+
 .resumehelp-detailed-steps {
-    margin-top: 80px;
+    margin-top: 40px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
     width: 100%;
     max-width: 900px;
     margin-left: auto;
@@ -70,12 +117,22 @@
     margin-bottom: 30px;
     padding-bottom: 12px;
     border-bottom: 2px solid #e2e8f0;
+    text-align: center;
     width: 100%;
 }
 
 .detailed-step {
     margin-bottom: 30px;
     width: 100%;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border-left: 4px solid #0f172a;
+    transition: all 0.2s ease;
+}
+
+.detailed-step:hover {
+    background: #f1f5f9;
 }
 
 .detailed-step h3 {
@@ -104,26 +161,103 @@
     line-height: 1.6;
 }
 
+.detailed-step li strong {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.detailed-step em {
+    color: #475569;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .resumehelp-container {
+        padding: 40px 50px 60px;
+    }
+}
 
 @media (max-width: 1000px) {
     .resumehelp-container {
         padding: 40px 30px 60px;
     }
 
-    .resumehelp-layout {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 40px;
+    .resumehelp-hero-img {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    .resumehelp-container {
+        padding: 30px 20px 50px;
     }
 
-    .resumehelp-left,
-    .resumehelp-right {
-        max-width: 100%;
-        width: 100%;
-        flex: none;
+    .resumehelp-title {
+        font-size: 26px;
+    }
+
+    .resumehelp-intro {
+        font-size: 14px;
+        padding: 0 10px;
     }
 
     .resumehelp-hero-img {
         max-width: 100%;
+    }
+
+    .resumehelp-summary-title {
+        font-size: 20px;
+    }
+
+    .resumehelp-steps-list li {
+        font-size: 15px;
+    }
+
+    .resumehelp-detailed-steps h2 {
+        font-size: 22px;
+    }
+
+    .detailed-step {
+        padding: 16px;
+    }
+
+    .detailed-step h3 {
+        font-size: 17px;
+    }
+
+    .detailed-step p,
+    .detailed-step li {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .resumehelp-title {
+        font-size: 22px;
+    }
+
+    .resumehelp-intro {
+        font-size: 13px;
+    }
+
+    .resumehelp-detailed-steps h2 {
+        font-size: 19px;
+    }
+
+    .detailed-step {
+        padding: 14px;
+    }
+
+    .detailed-step h3 {
+        font-size: 16px;
+    }
+
+    .resumehelp-steps-list {
+        padding-left: 18px;
+    }
+
+    .resumehelp-steps-list li {
+        font-size: 14px;
     }
 }

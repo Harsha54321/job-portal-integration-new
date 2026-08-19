@@ -42,17 +42,29 @@ import Highlight from '../assets/Employer/HighLight-Active.png'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { HighligtedJobs } from './HighligtedJobs'
 import { PublishedPlans } from './PublishedPlans'
+import { MembershipHub } from './MembershipHub'
 import { SupportHub } from './SupportHub'
 import { AdminSettings } from './AdminSettings'
 import api from '../api/axios'
 import Logout from '../assets/Employer/Elogout.png'
 import { LogoutModal } from '../Components-Jobseeker/LogoutModal'
 import { AdminHeader } from './AdminHeader'
+import Blogpost from '../assets/AdminAssets/blog_white_admin.png'
+import BlogpostAct from '../assets/AdminAssets/blog_yellow_admin.png'
+import { AdminCreateBlog } from './AdminCreateBlog'
+import { AdminBlogPost } from './AdminBlogpost'
+import { AddManagerContact } from './AddManagerContact'
+import AdminManager from '../assets/Employer/User.png'
 
 export const AdminDashboard = () => {
     const { jobs, Alluser, currentEmployer } = useJobs();
-    const [activetab, setActiveTab] = useState('Dashboard');
-    const [subTab, setSubTab] = useState('AdminMonitor')
+    const [activetab, setActiveTab] = useState(() => {
+        return sessionStorage.getItem('adminActiveTab') || 'Dashboard';
+    });
+    const [subTab, setSubTab] = useState(() => {
+        return sessionStorage.getItem('adminSubTab') || 'AdminMonitor';
+    });
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const navigate = useNavigate();
 
     // State for API data
@@ -69,30 +81,130 @@ export const AdminDashboard = () => {
         total_overview: {}
     });
 
-    // Fetch dashboard data from API
+    // ✅ CHECK TOKEN ON MOUNT - NEW
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            setLoading(true);
-            setError(null);
-
-            try {
-                console.log("Fetching admin dashboard data...");
-                const response = await api.get('admin/dashboard/'); // Using your configured api instance
-
-                if (response.status === 200) {
-                    console.log("Dashboard data received:", response.data);
-                    setDashboardData(response.data);
-                }
-            } catch (err) {
-                console.error('Error fetching dashboard data:', err);
-                setError(err.response?.data?.message || err.message || 'Failed to load dashboard data');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
+        const token = sessionStorage.getItem("access");
+        if (!token) {
+            // No token, redirect to role selection
+            window.location.href = "/Job-portal/role-selection";
+            return;
+        }
     }, []);
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'N/A';
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: '2-digit',
+                year: 'numeric'
+            });
+        } catch (e) {
+            return 'N/A';
+        }
+    };
+
+    // Handle updates into persistent system session registers dynamically
+    useEffect(() => {
+        if (activetab) {
+            sessionStorage.setItem('adminActiveTab', activetab);
+        }
+    }, [activetab]);
+
+    // Handle sub tab register persistence dynamically
+    useEffect(() => {
+        if (subTab) {
+            sessionStorage.setItem('adminSubTab', subTab);
+        }
+    }, [subTab]);
+
+    const [lastUpdated, setLastUpdated] = useState(null);
+
+    // ✅ MODIFIED: fetchDashboardData with token validation
+    const fetchDashboardData = async () => {
+        // ✅ Check token before making request
+        const token = sessionStorage.getItem("access");
+        if (!token) {
+            window.location.href = "/Job-portal/role-selection";
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await api.get('admin/dashboard/');
+            if (response.status === 200) {
+                setDashboardData(response.data);
+                setLastUpdated(new Date());
+            }
+        } catch (err) {
+            // ✅ If 401, redirect to role selection
+            if (err.response?.status === 401) {
+                console.log("Authentication failed - Redirecting to role selection");
+                sessionStorage.removeItem("access");
+                sessionStorage.removeItem("refresh");
+                sessionStorage.removeItem("user_type");
+                sessionStorage.removeItem("user_data");
+                sessionStorage.removeItem("user_id");
+                sessionStorage.removeItem("userRole");
+                sessionStorage.removeItem("userData");
+                sessionStorage.removeItem("token");
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("admin_id");
+                window.location.href = "/Job-portal/role-selection";
+                return;
+            }
+            setError(err.response?.data?.message || err.message || 'Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ✅ MODIFIED: Check token before fetching
+    useEffect(() => {
+        const token = sessionStorage.getItem("access");
+        if (token) {
+            fetchDashboardData();
+        } else {
+            window.location.href = "/Job-portal/role-selection";
+        }
+    }, []);
+
+    // ✅ MODIFIED: Logout with role selection redirect
+    const handleLogoutConfirm = async () => {
+        setShowLogoutModal(false);
+
+        try {
+            const refresh = sessionStorage.getItem("refresh");
+
+            if (refresh) {
+                await api.post("logout/", { refresh });
+            }
+        } catch (err) {
+            console.error("Logout failed:", err);
+        } finally {
+            // ✅ Clear all session storage and redirect to role selection
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("access_token");
+            sessionStorage.removeItem("access");
+            sessionStorage.removeItem("refresh");
+            sessionStorage.removeItem("user");
+            sessionStorage.removeItem("userData");
+            sessionStorage.removeItem("user_type");
+            sessionStorage.removeItem("admin_id");
+            sessionStorage.removeItem("adminActiveTab");
+            sessionStorage.removeItem("adminSubTab");
+            sessionStorage.removeItem("adminSupportHubTab");
+            sessionStorage.removeItem("adminMembershipTab");
+            sessionStorage.removeItem("umIsDetailView");
+            sessionStorage.removeItem("umSelectedUser");
+            sessionStorage.clear();
+
+            navigate("/Job-portal/role-selection");
+        }
+    };
 
     // Use API data or fallback to local data
     const overviewStats = dashboardData.overview_stats.length > 0 ?
@@ -214,7 +326,7 @@ export const AdminDashboard = () => {
                                     <div className='Enav-item'>Activity Monitoring</div>
                                 </div>
                             </div>
-                            <div onClick={() => { setActiveTab('User Management'), navigate('/Job-portal/admin/Dashboard') }} className={activetab === "User Management" ? "Admin-Active" : 'Admin-Navbar'}>
+                            <div onClick={() => { setActiveTab('User Management'); navigate('/Job-portal/admin/Dashboard') }} className={activetab === "User Management" ? "Admin-Active" : 'Admin-Navbar'}>
                                 <div className='Admin-Navbox'>
                                     {activetab === "User Management" ? <img src={UserManagementACT} width={15} height={15} alt="dashboard" />
                                         : <img src={UserManagements} width={15} height={15} alt="User Management" />}
@@ -233,6 +345,24 @@ export const AdminDashboard = () => {
                                     {activetab === "SupportHub" ? <img src={TicketsACT} width={15} height={15} alt="dashboard" />
                                         : <img src={Tickets} width={15} height={15} alt="Tickets" />}
                                     <div className='Enav-item'>Support Hub</div>
+                                </div>
+                            </div>
+                            <div onClick={() => setActiveTab('AccountManager')}
+                                className={activetab === "AccountManager" ? "Admin-Active" : 'Admin-Navbar'}>
+                                <div className='Admin-Navbox'>
+                                    {activetab === "AccountManager" ? (
+                                        <img src={AdminManager} width={15} height={15} alt="account manager" />
+                                    ) : (
+                                        <img src={AdminManager} width={15} height={15} alt="account manager" />
+                                    )}
+                                    <div className='Enav-item'>Account Manager</div>
+                                </div>
+                            </div>
+                            <div onClick={() => setActiveTab('Blog Post')} className={activetab === "Blog Post" ? "Admin-Active" : 'Admin-Navbar'}>
+                                <div className='Admin-Navbox'>
+                                    {activetab === "Blog Post" ? <img src={BlogpostAct} width={15} height={15} alt="blog" />
+                                        : <img src={Blogpost} width={15} height={15} alt="blog" />}
+                                    <div className='Enav-item'>Blog Post</div>
                                 </div>
                             </div>
                             <div onClick={() => setActiveTab('settings')} className={activetab === "settings" ? "Admin-Active" : 'Admin-Navbar'}>
@@ -302,9 +432,8 @@ export const AdminDashboard = () => {
 
     return (
         <>
-            <AdminHeader />
+            <AdminHeader onLogoutClick={() => setShowLogoutModal(true)} />
             <div className='AdminContainer'>
-                <AdminHeader onLogoutClick={() => setShowLogoutModal(true)} />
                 <div className='Admin-Sidebar'>
                     <h2 style={{ textAlign: "center", marginTop: "35px" }}>Administrator</h2>
                     <div className='Admin-Sidebar-list'>
@@ -350,11 +479,36 @@ export const AdminDashboard = () => {
                                 <div className='Enav-item'>Support Hub</div>
                             </div>
                         </div>
+                        <div onClick={() => setActiveTab('AccountManager')}
+                            className={activetab === "AccountManager" ? "Admin-Active" : 'Admin-Navbar'}>
+                            <div className='Admin-Navbox'>
+                                {activetab === "AccountManager" ? (
+                                    <img src={AdminManager} width={15} height={15} alt="account manager" />
+                                ) : (
+                                    <img src={AdminManager} width={15} height={15} alt="account manager" />
+                                )}
+                                <div className='Enav-item'>Account Manager</div>
+                            </div>
+                        </div>
+                        <div onClick={() => setActiveTab('Blog Post')} className={activetab === "Blog Post" ? "Admin-Active" : 'Admin-Navbar'}>
+                            <div className='Admin-Navbox'>
+                                {activetab === "Blog Post" ? <img src={BlogpostAct} width={15} height={15} alt="blog" />
+                                    : <img src={Blogpost} width={15} height={15} alt="blog" />}
+                                <div className='Enav-item'>Blog Post</div>
+                            </div>
+                        </div>
                         <div onClick={() => setActiveTab('settings')} className={activetab === "settings" ? "Admin-Active" : 'Admin-Navbar'}>
                             <div className='Admin-Navbox'>
                                 {activetab === "settings" ? <img src={SettingsAct} width={15} height={15} alt="dashboard" />
                                     : <img src={Settings} width={15} height={15} alt="settings" />}
                                 <div className='Enav-item'>Settings</div>
+                            </div>
+                        </div>
+                        {/* Interactive Sidebar Logout Button targeting the criteria component definition */}
+                        <div onClick={() => setShowLogoutModal(true)} className="Admin-Navbar" style={{ cursor: 'pointer' }}>
+                            <div className="Admin-Navbox">
+                                <img src={Logout} width={15} height={15} alt="Logout" />
+                                <div className="Enav-item">Logout</div>
                             </div>
                         </div>
                     </div>
@@ -364,7 +518,13 @@ export const AdminDashboard = () => {
                         <div>
                             <div className='Admin-Welcome-Container'>
                                 <p className='Admin-Welcome-Note'>Welcome Back, Admin</p>
-                                <p className='Admin-Welcome-para'>Your team's success start here. lets make progress together!</p>
+                                <p className='Admin-Welcome-para'>Your team's success starts here. Let's make progress together!</p>
+                            </div><br></br>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <button onClick={fetchDashboardData} className="Admin-create-btn">
+                                    ↻ Refresh
+                                </button>
                             </div>
 
                             <div className='Admin-Overview'>
@@ -410,28 +570,43 @@ export const AdminDashboard = () => {
                                             <img src={Highlight} width={22} alt="" />
                                         </div>
                                         <div className="Admin-jobads-buttons">
-                                            <button onClick={() => setActiveTab('Highlighted Jobs')} className="Admin-create-btn">VIEW ALL</button>
+                                            <button
+                                                onClick={() => {
+                                                    setActiveTab('Highlighted Jobs');
+                                                }}
+                                                className="Admin-create-btn"
+                                            >
+                                                VIEW ALL
+                                            </button>
                                         </div>
                                     </div>
                                     <div style={{ display: "flex", flexDirection: "column", padding: "15px" }}>
-                                        {jobAds.slice(0, 4).map((job, index) => (
-                                            <div className="Admin-job-card" key={job.id || index}>
-                                                <div className="Admin-job-left">
-                                                    <p className="Admin-job-title">{job.title}</p>
-                                                    <span className="Admin-job-under">{job.code || job.id}</span>
-                                                </div>
-                                                <div className="Admin-job-right">
-                                                    <div className="Ads-Count-Cont">
-                                                        <span className="Ads-Count">Posted On</span>
-                                                        <p style={{ margin: "0", fontSize: "11px", color: "rgb(95, 94, 94)", fontWeight: "600" }}>{job.posted}</p>
+                                        {jobAds.slice(0, 4).map((job, index) => {
+                                            // Get the approved date - use approved_at if available
+                                            const approvedDate = job.approved_at || job.posted || job.created_at;
+
+                                            return (
+                                                <div className="Admin-job-card" key={job.id || index}>
+                                                    <div className="Admin-job-left">
+                                                        <p className="Admin-job-title">{job.title}</p>
                                                     </div>
-                                                    <div className="Ads-Count-Cont">
-                                                        <span className="Ads-Count">Highlighted on</span>
-                                                        <p style={{ margin: "0", fontSize: "11px", color: "rgb(95, 94, 94)", fontWeight: "600" }}>{job.highlightOn}</p>
+                                                    <div className="Admin-job-right">
+                                                        <div className="Ads-Count-Cont">
+                                                            <span className="Ads-Count">Approved On</span>
+                                                            <p style={{ margin: "0", fontSize: "11px", color: "rgb(95, 94, 94)", fontWeight: "600" }}>
+                                                                {approvedDate ? formatDate(approvedDate) : 'N/A'}
+                                                            </p>
+                                                        </div>
+                                                        <div className="Ads-Count-Cont">
+                                                            <span className="Ads-Count">Highlighted on</span>
+                                                            <p style={{ margin: "0", fontSize: "11px", color: "rgb(95, 94, 94)", fontWeight: "600" }}>
+                                                                {job.highlighted_at ? formatDate(job.highlighted_at) : (job.highlightOn || 'N/A')}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -536,17 +711,29 @@ export const AdminDashboard = () => {
                     )}
 
                     {activetab === 'Job Monitoring' && <JobMonitoring />}
-                    {activetab === 'Activity Monitoring' && (<ActivityMonitor initialTab={subTab} />)}
+                    {activetab === 'Activity Monitoring' && (
+                        <ActivityMonitor currentTab={subTab} onTabChange={setSubTab} />
+                    )}
                     {activetab === 'User Management' && (<UserManagement />)}
-                    {activetab === 'Membership' && (<PublishedPlans />)}
+                    {activetab === 'Membership' && (<MembershipHub />)}
                     {activetab === 'SupportHub' && (<SupportHub />)}
+                    {activetab === 'AccountManager' && <AddManagerContact />}
                     {activetab === 'settings' && (<AdminSettings />)}
-                    {/* {activetab === 'Highlighted Jobs' && (<HighligtedJobs />)} */}
+                    {activetab === 'Blog Post' && (<AdminBlogPost />)}
                     {activetab === 'Highlighted Jobs' && (
-                        <HighligtedJobs highlightedJobsData={dashboardData.highlighted_jobs} />
+                        <HighligtedJobs highlightedJobsData={dashboardData.highlighted_jobs}
+                            onBack={() => setActiveTab('Dashboard')}
+                        />
                     )}
                 </div>
             </div>
+
+            {/* Context-aware instance hook injection matching specifications */}
+            <LogoutModal
+                show={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleLogoutConfirm}
+            />
         </>
     )
 }

@@ -6,26 +6,37 @@ import place from '../assets/opportunity_location.png'
 import calender from '../assets/calender_card.png'
 import './AppliedJobCard.css'
 import { useNavigate } from "react-router-dom";
-import { formatPostedDate } from "./OpportunitiesCard";
+import { formatPostedDate, isRecentlyPosted } from "./OpportunitiesCard";
+import { LocationDisplay } from './LocationDisplay';
 
 export const AppliedJobCard = ({ appliedJob }) => {
   const navigate = useNavigate();
 
   const job = appliedJob?.job;
   if (!job) return null;
-  console.log("APPLIED CARD DATA:", appliedJob);
 
-  const formatLocation = (location) => {
+  // Determine card styling based on job status
+  const isHighlighted = job.is_highlighted === true;
+  const isRecent = isRecentlyPosted(job.posted_date || job.created_at);
 
-        if (!location) return "Location not specified";
+  // Priority: Highlighted > Recent > Normal
+  let cardClassName = "myjobs-job-card";
+  // if (isHighlighted) {
+  //   cardClassName += " highlighted-job";
+  // } else if (isRecent) {
+  //   cardClassName += " recent-job";
+  // }
 
-        if (Array.isArray(location)) {
-            return location.join(", ");
-        }
-        return location;
-    };
-
-    const locationDisplay = formatLocation(job.location);
+  // Get badge text based on job status
+  const getBadge = () => {
+    // if (isHighlighted) {
+    //   return <span className="job-badge premium-badge">⭐ Featured</span>;
+    // }
+    // if (isRecent) {
+    //   return <span className="job-badge recent-badge">🆕 New</span>;
+    // }
+    return null;
+  };
 
   // 🔹 Adapter: backend data → requirement shape
   const opp = {
@@ -40,7 +51,6 @@ export const AppliedJobCard = ({ appliedJob }) => {
     WorkType: job.work_type || "N/A",
     salary: job.salary || "N/A",
     experience: job.experience || "N/A",
-    location: locationDisplay || "N/A",
 
     posted: formatPostedDate(job.posted_date),
     openings: job.openings || 0,
@@ -57,9 +67,12 @@ export const AppliedJobCard = ({ appliedJob }) => {
   };
 
   return (
-    <div className="myjobs-job-card">
+    <div className={cardClassName}>
+      {/* Badge for highlighted/recent jobs */}
+      {getBadge()}
+
       <div className="myjobs-card-header">
-        <div>
+        <div className="myjobs-job-info">
           <h2 className="myjobs-job-title">{opp.title}</h2>
         </div>
       </div>
@@ -81,16 +94,16 @@ export const AppliedJobCard = ({ appliedJob }) => {
           <img src={time} className='card-icons' />
           {opp.WorkType}
           <span className="Opportunities-divider">|</span>
-          {opp.salary} Lpa
+          {opp.salary}
         </p>
         <p className='Opportunities-detail-line'>
           <img src={experience} className='card-icons' />
-          {opp.experience} years of experience
+          {opp.experience}
         </p>
-        <p className='Opportunities-detail-line'>
-          <img src={place} className='card-icons' />
-          {opp.location}
-        </p>
+        <div className='Opportunities-detail-line'>
+          <img src={place} className='card-icons' alt="location" />
+          <LocationDisplay locations={job.location} />
+        </div>
         <p className='Opportunities-detail-line'>
           <img src={calender} className='card-icons' />
           {opp.posted}
@@ -107,6 +120,13 @@ export const AppliedJobCard = ({ appliedJob }) => {
             {job.job_category}
           </span>
         )}
+        <div className="Opportunities-job-highlighted">
+          {job.is_highlighted && (
+            <span className="highlighted-job-label">
+              ⭐ Highlighted Job
+            </span>
+          )}
+        </div>
       </div>
 
       <hr className="Opportunities-separator" />

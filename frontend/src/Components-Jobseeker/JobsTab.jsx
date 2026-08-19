@@ -162,8 +162,8 @@ export const JobsTab = () => {
                 <button
                     type="button"
                     onClick={handlePrev}
-                    disabled={currentPage === 1}
-                    className='Navigation-btn'
+                    disabled={currentPage <= 1}
+                    className="Navigation-btn"
                 >
                     Previous
                 </button>
@@ -175,8 +175,8 @@ export const JobsTab = () => {
                 <button
                     type="button"
                     onClick={handleNext}
-                    disabled={currentPage === totalPages}
-                    className='Navigation-btn'
+                    disabled={currentPage >= totalPages}
+                    className="Navigation-btn"
                 >
                     Next
                 </button>

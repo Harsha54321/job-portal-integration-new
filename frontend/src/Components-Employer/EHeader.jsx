@@ -8,6 +8,7 @@ import belldot from '../assets/header_bell_dot.png'
 import { Link, useLocation } from 'react-router-dom'
 import { ENotification } from './ENotification'
 import { useJobs } from '../JobContext'
+import helpIcon from "../assets/icon_help.png";
 
 export const EHeader = () => {
 
@@ -15,7 +16,7 @@ export const EHeader = () => {
     const { employershowNotification, setEmployerShowNotification, employerNotifications, chats = [] } = useJobs();
     const location = useLocation();
 
-    const newNotificationsCount = employerNotifications.filter(n => !n.is_read).length;
+    const newNotificationsCount = employerNotifications.filter(n => !n.isRead).length;
 
     const unreadMessagesCount = chats.filter(
         chat => (chat.unread_count || 0) > 0
@@ -100,6 +101,27 @@ export const EHeader = () => {
                             onClose={() => setEmployerShowNotification(false)}
                         />
                     )}
+                </div>
+
+                <div style={{ position: "relative", display: "inline-block" }}>
+                    <Link
+                        to="/Job-portal/jobseeker/help-center"
+                        className="menu-items"
+                        onClick={() => setOpen(false)}
+                        title="Help Center"
+                    >
+                        <img
+                            src={helpIcon}
+                            className="menu-icon"
+                            alt="help"
+                            style={{
+                                width: "30px",   
+                                height: "30px",  
+                                display: "block"
+                            }}
+                        />
+                    </Link>
+
                 </div>
             </div>
         </header>

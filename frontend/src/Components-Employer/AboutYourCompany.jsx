@@ -23,6 +23,8 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
   const [existingLogoSize, setExistingLogoSize] = useState("");
 
   const fromSignup = location.state?.fromSignup || false;
+  // Recover identifying contextual email parameter from signup routing link state
+  const employerEmail = location.state?.employerEmail || "";
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -46,7 +48,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     if (!fromSignup) {
       fetchExistingProfile();
     } else {
-      console.log("Coming from signup, skipping profile fetch");
+      console.log("Coming from signup, skipping profile fetch for email:", employerEmail);
       setIsLoading(false);
     }
   }, [fromSignup]);
@@ -221,7 +223,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     const fullNameRegex = /^[A-Za-z]+( [A-Za-z]+)+$/;
     const employerIdRegex = /^(?=.*[A-Za-z])[A-Za-z0-9](?:[A-Za-z0-9_-]{0,18}[A-Za-z0-9])?$/;
 
-
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Please enter your full name";
     } else if (formData.fullName.length < 3) {
@@ -343,30 +344,22 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
   };
 
   const handleRemoveLogo = () => {
-    setFormData((prev) => ({
-      ...prev,
-      companyLogo: null,
-    }));
-
+    setFormData((prev) => ({ ...prev, companyLogo: null }));
     setExistingLogo(null);
     setShowMenu(false);
   };
 
-
   const handleViewLogo = () => {
     let fileUrl = null;
-
     if (formData.companyLogo) {
       fileUrl = URL.createObjectURL(formData.companyLogo);
-    }
-    else if (existingLogo) {
+    } else if (existingLogo) {
       fileUrl = existingLogo;
     }
 
     if (fileUrl) {
       window.open(fileUrl, "_blank");
     }
-
     setShowMenu(false);
   };
 
@@ -376,7 +369,8 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
     try {
       const response = await api.post("/company/link-to-existing/", {
-        company_name: companyName
+        company_name: companyName,
+        employer_email: employerEmail // Send identifier context explicitly if tokenless
       });
 
       console.log("Linked to existing company:", response.data);
@@ -398,7 +392,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       };
     } catch (err) {
       console.error("Link to company error:", err);
-
       if (err.response?.status === 404) {
         setBackendError("Company not found. Please create a new company.");
       } else if (err.response?.status === 400) {
@@ -406,7 +399,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       } else {
         setBackendError("Failed to link to company. Please try again.");
       }
-
       return { success: false, error: "Link failed" };
     } finally {
       setIsLoading(false);
@@ -498,8 +490,11 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       formDataToSend.append("address1", data.address1);
       if (data.address2) formDataToSend.append("address2", data.address2);
       formDataToSend.append("about", data.about);
-      if (data.companyLogo) {
-        formDataToSend.append("company_logo", data.companyLogo);
+      if (data.companyLogo) formDataToSend.append("company_logo", data.companyLogo);
+      
+      // Explicit onboarding fallback parameter injection
+      if (fromSignup && employerEmail) {
+        formDataToSend.append("employer_email", employerEmail);
       }
 
       const response = await api.post(
@@ -509,7 +504,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       );
 
       console.log("Company profile created:", response.data);
-
       return {
         success: true,
         data: { ...response.data, is_existing: false }
@@ -517,32 +511,30 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
     } catch (err) {
       console.error("Create profile error:", err);
-
       if (err.code === "ERR_NETWORK") {
         setBackendError("Network error. Please check your connection.");
         window.scrollTo({ top: 0, behavior: "smooth" });
         return { success: false, error: "network" };
       }
-
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 && !fromSignup) {
         setBackendError("Session expired. Please login again.");
         return { success: false, error: "unauthorized" };
       }
 
       if (err.response?.status === 400) {
-        const errorData = err.response.data;
+        const errorData = err.response?.data;
         const errorMsg = errorData?.error || "";
 
         if (errorMsg.includes("already exists")) {
           setBackendError("Company already exists.");
           setPendingCompanyName(data.companyName);
           setShowPopup(true);
+          return { success: false, error: "duplicate_company", pending: true };
+        }
 
-          return {
-            success: false,
-            error: "duplicate_company",
-            pending: true
-          };
+        if (errorMsg === "You are already linked to a company") {
+          navigate("/Job-portal/employer/login");
+          return { success: false, error: "already_linked" };
         }
 
         const fieldMapping = {
@@ -559,33 +551,25 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         };
 
         const newErrors = {};
-
         Object.keys(errorData).forEach((key) => {
           const frontendKey = fieldMapping[key];
           if (frontendKey) {
-            newErrors[frontendKey] = Array.isArray(errorData[key])
-              ? errorData[key][0]
-              : errorData[key];
+            newErrors[frontendKey] = Array.isArray(errorData[key]) ? errorData[key][0] : errorData[key];
           }
         });
 
         if (Object.keys(newErrors).length > 0) {
           setErrors(prev => ({ ...prev, ...newErrors }));
           window.scrollTo({ top: 100, behavior: "smooth" });
-          return { success: false, error: "validation" };
+          return { success: false, error: "oops! something went wrong" };
         }
 
         setBackendError(errorMsg || "Invalid data provided.");
-        return { success: false, error: "validation" };
+        return { success: false, error: "oops! something went wrong" };
       }
 
-      setBackendError(
-        err.response?.data?.error ||
-        "Something went wrong. Please try again."
-      );
-
+      setBackendError(err.response?.data?.error || "Something went wrong. Please try again.");
       return { success: false, error: "failed" };
-
     } finally {
       setIsLoading(false);
     }
@@ -600,17 +584,21 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      await api.patch("/profile/employer/", {
+      const payload = {
         full_name: data.fullName,
         employee_id: data.employerId,
-      }, {
+      };
+
+      if (fromSignup && employerEmail) {
+        payload.employer_email = employerEmail;
+      }
+
+      await api.patch("/profile/employer/", payload, {
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
-
       console.log("Employer profile updated");
-
       setErrors(prev => {
         const { employerId, fullName, ...rest } = prev;
         return rest;
@@ -622,14 +610,12 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
     } catch (err) {
       console.error("Employer profile update error:", err);
-
       if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
         const errorMsg = "No internet connection. Please check your network and try again.";
         setBackendError(errorMsg);
         setErrorType("NETWORK_ERROR");
         return { success: false, error: errorMsg, errorType: "NETWORK_ERROR" };
       }
-
       if (err.name === 'AbortError') {
         const errorMsg = "Request is taking too long. Please check your connection and try again.";
         setBackendError(errorMsg);
@@ -643,36 +629,21 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         let specificErrorMsg = "";
 
         if (errorData.employee_id) {
-          const errorMsg = Array.isArray(errorData.employee_id)
-            ? errorData.employee_id[0]
-            : errorData.employee_id;
-
+          const errorMsg = Array.isArray(errorData.employee_id) ? errorData.employee_id[0] : errorData.employee_id;
           newErrors.employerId = errorMsg;
-
-          if (!specificErrorMsg) {
-            specificErrorMsg = errorMsg;
-          }
+          if (!specificErrorMsg) specificErrorMsg = errorMsg;
         }
 
         if (errorData.full_name) {
-          const errorMsg = Array.isArray(errorData.full_name)
-            ? errorData.full_name[0]
-            : errorData.full_name;
-
+          const errorMsg = Array.isArray(errorData.full_name) ? errorData.full_name[0] : errorData.full_name;
           newErrors.fullName = errorMsg;
-
-          if (!specificErrorMsg) {
-            specificErrorMsg = errorMsg;
-          }
+          if (!specificErrorMsg) specificErrorMsg = errorMsg;
         }
 
-        if (errorData.error && !specificErrorMsg) {
-          specificErrorMsg = errorData.error;
-        }
+        if (errorData.error && !specificErrorMsg) specificErrorMsg = errorData.error;
 
         if (Object.keys(newErrors).length > 0) {
           setErrors(prev => ({ ...prev, ...newErrors }));
-
           if (specificErrorMsg) {
             setBackendError(specificErrorMsg);
             setErrorType("VALIDATION_ERROR");
@@ -680,7 +651,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
             setBackendError("Please check your information and try again.");
             setErrorType("VALIDATION_ERROR");
           }
-
           window.scrollTo({ top: 100, behavior: "smooth" });
           return {
             success: false,
@@ -696,21 +666,17 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         return { success: false, error: errorMsg, errorType: "BAD_REQUEST" };
       }
 
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 && !fromSignup) {
         const errorMsg = "Your session has expired. Please login again to continue.";
         setBackendError(errorMsg);
         setErrorType("AUTH_ERROR");
-
-        setTimeout(() => {
-          navigate("/Job-portal/employer/login");
-        }, 2000);
-
+        setTimeout(() => navigate("/Job-portal/employer/login"), 2000);
         return { success: false, error: errorMsg, errorType: "AUTH_ERROR" };
       }
 
       if (err.response?.status === 403) {
         const errorMsg = "You don't have permission to update your profile. Please contact support.";
-        setBackendError(errorMsg);
+      setBackendError(errorMsg);
         setErrorType("PERMISSION_ERROR");
         return { success: false, error: errorMsg, errorType: "PERMISSION_ERROR" };
       }
@@ -819,7 +785,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
               ? backendErrors[key][0] : backendErrors[key];
           }
         });
-
         setErrors(newErrors);
 
         const firstErrorField = Object.keys(newErrors)[0];
@@ -903,14 +868,8 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         companyLogo: result.data.company_logo
       });
 
-      navigate("/Job-portal/Employer/about-your-company/company-verification", {
-        state: {
-          fromSignup: fromSignup,
-          profileId: result.data.company_id,
-          isExistingCompany: true,
-          companyName: pendingCompanyName,
-          fromCompanyProfile: true
-        }
+      navigate("/Job-portal/employer/about-your-company/company-verification", {
+        state: { fromSignup: fromSignup, employerEmail: employerEmail, companyName: pendingCompanyName }
       });
     } else if (result.error !== "Validation failed") {
       setBackendError(result.error || "Failed to link to company");
@@ -932,7 +891,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       return;
     }
 
-    console.log("Saving company profile...");
+    console.log("Saving onboarding step content payload maps...");
 
     const employerResult = await updateEmployerProfile(formData);
     if (!employerResult.success) {
@@ -949,7 +908,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       result = await updateCompanyProfile(formData);
     }
 
-    if (result.success) {
+    if (result && result.success) {
       console.log("Navigating with state:", {
         fromSignup: fromSignup,
         profileId: result.data.id || result.data.company_id,
@@ -963,16 +922,18 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         companyLogo: result.data.company_logo
       });
 
-      navigate("/Job-portal/Employer/about-your-company/company-verification", {
+      // Passing employerEmail context directly into the verification sub-route loop
+      navigate("/Job-portal/employer/about-your-company/company-verification", {
         state: {
           fromSignup: fromSignup,
+          employerEmail: employerEmail,
           profileId: result.data.id || result.data.company_id,
           isExistingCompany: result.data.is_existing || false,
           companyName: formData.companyName,
           fromCompanyProfile: true
         }
       });
-    } else {
+    } else if (result) {
       if (result.errorType === "VALIDATION_ERROR") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else if (result.errorType === "NETWORK_ERROR") {
@@ -1049,18 +1010,8 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
             <p>Do you want to join this existing company instead of creating a new one?</p>
           </div>
           <div className="popup-modal-footer">
-            <button
-              className="popup-btn-cancel"
-              onClick={handleCancelJoin}
-            >
-              No, Use Different Name
-            </button>
-            <button
-              className="popup-btn-confirm"
-              onClick={handleJoinExistingCompany}
-            >
-              Yes, Join Existing Company
-            </button>
+            <button type="button" className="popup-btn-cancel" onClick={handleCancelJoin}>No, Use Different Name</button>
+            <button type="button" className="popup-btn-confirm" onClick={handleJoinExistingCompany}>Yes, Join Existing Company</button>
           </div>
         </div>
       </div>
@@ -1090,7 +1041,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         <h2 className="aboutcompany-title">
           About Your Company
           {fromSignup && <span style={{ fontSize: "14px", color: "#666", marginLeft: "10px" }}>(Step 1 of 2)</span>}
-        </h2>
+        </h2> 
 
         {backendError && (
           <div className="backend-error-message" style={{
@@ -1101,7 +1052,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
           </div>
         )}
 
-        <form className="aboutcompany-form">
+        <form className="aboutcompany-form" onSubmit={(e) => e.preventDefault()}>
           <div className="aboutcompany-form-group">
             <label>Full Name *</label>
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
@@ -1240,9 +1191,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
           <div className="aboutcompany-form-group">
             <label>Company Logo *</label>
-
             <div style={{ flex: 1 }}>
-
               <input
                 type="file"
                 name="companyLogo"
@@ -1252,96 +1201,34 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
                 onChange={handleChange}
               />
 
-
               {!formData.companyLogo && !existingLogo && (
-                <div
-                  className="upload-box"
-                  onClick={() =>
-                    document.getElementById("logoUpload").click()
-                  }
-                >
+                <div className="upload-box" onClick={() => document.getElementById("logoUpload").click()}>
                   Click here to upload
                 </div>
               )}
 
-
               {(formData.companyLogo || existingLogo) && (
                 <div className="file-card">
-
-                  <div
-                    className="aboutcompany-file-left"
-                    onClick={handleViewLogo}
-                  >
+                  <div className="aboutcompany-file-left" onClick={handleViewLogo}>
                     <img src={fileIcon} alt="" />
-
                     <div>
-
-                      <p>
-                        {formData.companyLogo
-                          ? formData.companyLogo.name
-                          : "company-logo"}
-                      </p>
-
-                      <span>
-                        {formData.companyLogo
-                          ? `${(
-                            formData.companyLogo.size /
-                            1024 /
-                            1024
-                          ).toFixed(2)} MB`
-                          : existingLogoSize}
-                      </span>
-
+                      <p>{formData.companyLogo ? formData.companyLogo.name : "company-logo"}</p>
+                      <span>{formData.companyLogo ? `${(formData.companyLogo.size / 1024 / 1024).toFixed(2)} MB` : existingLogoSize}</span>
                     </div>
                   </div>
 
-
                   <div className="menu-wrapper">
-
-                    <button
-                      type="button"
-                      className="dots-btn"
-                      onClick={() =>
-                        setShowMenu(!showMenu)
-                      }
-                    >
-                      ⋮
-                    </button>
-
-
+                    <button type="button" className="dots-btn" onClick={() => setShowMenu(!showMenu)}>⋮</button>
                     {showMenu && (
                       <div className="file-menu">
-
-                        <button
-                          type="button"
-                          onClick={handleViewLogo}
-                        >
-                          View
-                        </button>
-
-
-                        <button
-                          type="button"
-                          onClick={handleRemoveLogo}
-                        >
-                          Remove
-                        </button>
-
+                        <button type="button" onClick={handleViewLogo}>View</button>
+                        <button type="button" onClick={handleRemoveLogo}>Remove</button>
                       </div>
                     )}
-
                   </div>
-
                 </div>
               )}
-
-
-              {errors.companyLogo && (
-                <span className="error-msg">
-                  {errors.companyLogo}
-                </span>
-              )}
-
+              {errors.companyLogo && <span className="error-msg">{errors.companyLogo}</span>}
             </div>
           </div>
 
@@ -1432,19 +1319,13 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
               <button type="button" className="aboutcompany-save-btn" onClick={handleSave} disabled={isLoading}>
                 {isLoading ? "Saving..." : "Save"}
               </button>
-              <button
-                type="button"
-                className="aboutcompany-discard-btn"
-                onClick={handleDiscard}
-                disabled={isLoading}
-              >
+              <button type="button" className="aboutcompany-discard-btn" onClick={handleDiscard} disabled={isLoading}>
                 Cancel
               </button>
             </div>
           )}
         </form>
       </div>
-
       {!hideNavigation && <Footer />}
     </>
   );

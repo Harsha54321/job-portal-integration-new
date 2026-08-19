@@ -13,6 +13,7 @@ import { EHeader } from './EHeader';
 import { Footer } from '../Components-LandingPage/Footer';
 import { useJobs } from '../JobContext';
 import api from '../api/axios';
+import { LocationDisplay } from '../Components-Jobseeker/LocationDisplay';
 
 export const PostJobPreview = () => {
   const { state } = useLocation();
@@ -139,11 +140,39 @@ export const PostJobPreview = () => {
       const res = await api.get('/jobs/highlight-limit/');
       const limit = res.data;
 
-      console.log("Highlight Limit Response:", limit);
-      setHighlightLimit(limit);
+      console.log("🔍 Full Highlight Limit Response:", JSON.stringify(limit, null, 2));
+
+      // ✅ Check if response has an error
+      if (limit.error) {
+        console.log("❌ API returned error:", limit.error);
+        // This means limit is reached - show popup with error message
+        setHighlightLimit({
+          plan: 'N/A',
+          total: 0,
+          used: 0,
+          remaining: 0,
+          errorMessage: limit.error
+        });
+        setLimitExceeded(true);
+        setLimitLoading(false);
+        // ✅ POPUP WILL SHOW with error message
+        return;
+      }
+
+      // ✅ Map the API response to our expected fields
+      const mappedLimit = {
+        plan: limit.plan || 'N/A',
+        total: limit.total || 0,
+        used: limit.used || 0,
+        remaining: limit.remaining || 0
+      };
+
+      console.log("📊 Mapped Limit Data:", mappedLimit);
+      setHighlightLimit(mappedLimit);
 
       // Case 1: No active subscription plan at all
-      if (!limit.total || limit.total === 0) {
+      if (mappedLimit.total === 0) {
+        console.log("❌ No active plan - showing popup");
         setNoPlan(true);
         setLimitExceeded(true);
         setLimitLoading(false);
@@ -151,32 +180,46 @@ export const PostJobPreview = () => {
       }
 
       // Case 2: Plan exists but all highlights used up
-      if (limit.used >= limit.total) {
+      if (mappedLimit.used >= mappedLimit.total) {
+        console.log("❌ Limit exceeded - showing popup");
         setLimitExceeded(true);
         setLimitLoading(false);
         return;
       }
 
       // Case 3: Highlights available — proceed
+      console.log("✅ Highlights available - proceeding");
       setShowHighlightPopup(false);
       handleFinalPost(true);
 
     } catch (err) {
-      console.error("Failed to fetch highlight limit:", err);
       setLimitLoading(false);
 
-      const errMsg = extractErrorMessage(err);
+      const errorData = err?.response?.data;
+      const errorMsg = errorData?.error || errorData?.detail || errorData?.message || '';
 
-      // API failed — give user option to still post without highlight
+      if (errorMsg) {
+        // Any backend error → show in popup, no alert
+        setHighlightLimit({
+          plan: errorData?.plan || 'N/A',
+          total: errorData?.total || 0,
+          used: errorData?.used || 0,
+          remaining: errorData?.remaining || 0,
+          errorMessage: errorMsg
+        });
+        setLimitExceeded(true);
+        return;
+      }
+
+      // Only true network/unknown errors get the confirm dialog
+      const errMsg = extractErrorMessage(err);
       const proceed = window.confirm(
         `Could not verify highlight limit.\n(${errMsg})\n\nDo you want to post this job without highlight instead?`
       );
-
       if (proceed) {
         setShowHighlightPopup(false);
         handleFinalPost(false);
       }
-      // If user cancels — popup stays open so they can retry
     }
   };
 
@@ -208,6 +251,7 @@ export const PostJobPreview = () => {
           ? state.responsibilities
           : state.responsibilities?.split(',').map(r => r.trim()) || [],
         shift: Array.isArray(state.shift) ? state.shift[0] : state.shift,
+        is_highlighted: withHighlight,
       };
 
       // ── EDIT flow ──
@@ -371,15 +415,15 @@ export const PostJobPreview = () => {
                     <img src={time} className='card-icons' alt="time" />
                     {job.work_duration}
                     <span className="Opportunities-divider">|</span>
-                    ₹ {job.salary} Lpa
+                    ₹ {job.salary}
                   </p>
                   <p className='Opportunities-detail-line'>
                     <img src={experience} className='card-icons' alt="exp" />
-                    {job.experience} years of experience
+                    {job.experience}
                   </p>
                   <p className='Opportunities-detail-line'>
                     <img src={place} className='card-icons' alt="loc" />
-                    {Array.isArray(job.location) ? job.location.join(", ") : job.location}
+                    <LocationDisplay locations={job.location} />
                   </p>
                 </div>
 
@@ -419,7 +463,7 @@ export const PostJobPreview = () => {
             <div className="opp-job-details-card">
               <div className="opp-job-highlights">
                 <h4>Job highlights</h4>
-                <ul>
+                <ul className="jobpost-previous-description-list">
                   {job.job_highlights?.filter(h => h && h.trim() !== "").map((highlight, i) => (
                     <li key={i}>{highlight}</li>
                   ))}
@@ -459,16 +503,16 @@ export const PostJobPreview = () => {
                 </ul>
               </div>
 
-              <h4>Key Details:</h4>
+              {/* <h4>Key Details:</h4> */}
               <div className="jobpost-previous-meta-info-grid">
                 <p><strong>Role:</strong> {formatDisplay(job.job_title)}</p>
                 <p><strong>Industry Type:</strong> {formatDisplay(state.industry_type)}</p>
                 <p><strong>Department:</strong> {formatDisplay(state.department)}</p>
                 <p><strong>Job Type:</strong> {formatDisplay(job.work_type)}</p>
-                <p><strong>Experience level:</strong> {job.experience} years</p>
-                <p>
+                <p><strong>Experience level:</strong> {job.experience}</p>
+                <p style={{ display: 'flex', gap: '5px' }}>
                   <strong>Location:</strong>{' '}
-                  {Array.isArray(job.location) ? job.location.join(", ") : job.location}
+                  <LocationDisplay locations={job.location} />
                 </p>
                 <p><strong>Shift:</strong> {job.shift}</p>
                 <p><strong>Education:</strong> {formatDisplay(state.education)}</p>
@@ -583,33 +627,47 @@ export const PostJobPreview = () => {
                 textAlign: 'left',
                 lineHeight: '1.8'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span><strong>Plan:</strong></span>
-                  <span>{highlightLimit.plan}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span><strong>Total Highlights:</strong></span>
-                  <span>{highlightLimit.total}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span><strong>Used:</strong></span>
-                  <span>{highlightLimit.used}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span><strong>Remaining:</strong></span>
-                  <span style={{ fontWeight: 700, color: '#b91c1c' }}>
-                    {highlightLimit.remaining}
-                  </span>
-                </div>
-                <div style={{
-                  marginTop: '10px',
-                  paddingTop: '10px',
-                  borderTop: '1px solid #fca5a5',
-                  fontSize: '12px',
-                  color: '#b91c1c'
-                }}>
-                  ⚠️ You can still post this job without the highlight feature.
-                </div>
+                {/* ✅ Check if there's an error message from API */}
+                {highlightLimit.errorMessage ? (
+                  <>
+                    <p style={{ margin: '0 0 6px', fontWeight: 600 }}>
+                      ⚠️ {highlightLimit.errorMessage}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#991b1b' }}>
+                      You can still post this job without the highlight feature.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span><strong>Plan:</strong></span>
+                      <span>{highlightLimit.plan}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span><strong>Total Highlights:</strong></span>
+                      <span>{highlightLimit.total}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span><strong>Used:</strong></span>
+                      <span>{highlightLimit.used}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span><strong>Remaining:</strong></span>
+                      <span style={{ fontWeight: 700, color: '#b91c1c' }}>
+                        {highlightLimit.remaining}
+                      </span>
+                    </div>
+                    <div style={{
+                      marginTop: '10px',
+                      paddingTop: '10px',
+                      borderTop: '1px solid #fca5a5',
+                      fontSize: '12px',
+                      color: '#b91c1c'
+                    }}>
+                      ⚠️ You can still post this job without the highlight feature.
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

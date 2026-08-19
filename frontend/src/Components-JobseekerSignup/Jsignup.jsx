@@ -17,7 +17,10 @@ export const Jsignup = () => {
   const location = useLocation();
   const redirectTo = location.state?.redirectTo || "/Job-portal/jobseeker/";
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isMobileLoading, setIsMobileLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [passwordShow, setPasswordShow] = useState(true);
   const [confirmPasswordShow, setConfirmPasswordShow] = useState(true);
 
@@ -30,6 +33,46 @@ export const Jsignup = () => {
   const [emailForOtp, setEmailForOtp] = useState("");
   const [mobileForOtp, setMobileForOtp] = useState("");
 
+  // Jobseeker platform settings - only what's needed
+  const [jobseekerSettings, setJobseekerSettings] = useState({
+    emailVer: false,      // camelCase from API
+    phoneVer: false,      // camelCase from API
+    domainRest: false,    // camelCase from API
+    allowedDomains: []    // camelCase from API
+  });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  // Fetch jobseeker platform settings when component mounts
+  useEffect(() => {
+    const fetchJobseekerSettings = async () => {
+      try {
+        const response = await api.get('/jobseeker/settings/');
+        // Map API response to our state
+        console.log(response.data);
+
+        setJobseekerSettings({
+          emailVer: response.data.emailVer || false,
+          phoneVer: response.data.phoneVer || false,
+          domainRest: response.data.domainRest || false,
+          allowedDomains: response.data.allowedDomains || []
+        });
+      } catch (error) {
+        console.error('Failed to fetch jobseeker settings:', error);
+        // On error, use default settings (email verification enabled, phone disabled)
+        setJobseekerSettings({
+          emailVer: true,
+          phoneVer: false,
+          domainRest: false,
+          allowedDomains: []
+        });
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchJobseekerSettings();
+  }, []);
+
   useEffect(() => {
     let interval;
     if (timer > 0) {
@@ -37,12 +80,28 @@ export const Jsignup = () => {
         setTimer((prev) => prev - 1);
       }, 1000);
     } else if (timer === 0 && (showEmailOtp || showMobileOtp)) {
-      if (timer === 0 && (showEmailOtp || showMobileOtp)) {
-        clearInterval(interval);
-      }
+      clearInterval(interval);
     }
     return () => clearInterval(interval);
   }, [timer, showEmailOtp, showMobileOtp]);
+
+  useEffect(() => {
+    if (showEmailOtp) {
+      const t = setTimeout(() => {
+        document.getElementById('otp-email-0')?.focus();
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [showEmailOtp]);
+
+  useEffect(() => {
+    if (showMobileOtp) {
+      const t = setTimeout(() => {
+        document.getElementById('otp-mobile-0')?.focus();
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [showMobileOtp]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -50,13 +109,8 @@ export const Jsignup = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const togglePasswordView = () => {
-    setPasswordShow((prev) => !prev);
-  };
-
-  const toggleConfirmPasswordView = () => {
-    setConfirmPasswordShow((prev) => !prev);
-  };
+  const togglePasswordView = () => setPasswordShow((prev) => !prev);
+  const toggleConfirmPasswordView = () => setConfirmPasswordShow((prev) => !prev);
 
   const initialValues = {
     username: "",
@@ -69,10 +123,119 @@ export const Jsignup = () => {
   const [formValues, setFormValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
 
+  // Helper function to validate email format
+  const isValidEmailFormat = (email) => {
+    // Must have @ and .
+    if (!email.includes('@') || !email.includes('.')) {
+      return false;
+    }
+
+    // Split email into local part and domain
+    const parts = email.split('@');
+    if (parts.length !== 2) {
+      return false;
+    }
+
+    const localPart = parts[0];
+    const domain = parts[1];
+
+    // Local part must have at least one alphabetic character
+    if (!/[a-zA-Z]/.test(localPart)) {
+      return false;
+    }
+
+    // Local part must not be empty
+    if (localPart.length === 0) {
+      return false;
+    }
+
+    // Domain must have at least one dot and not be empty
+    if (domain.length === 0 || !domain.includes('.')) {
+      return false;
+    }
+
+    return true;
+  };
+
+  // // Helper function to check if email domain is allowed
+  // const isEmailDomainAllowed = (email) => {
+  //   // If domain restriction is disabled, allow all domains
+  //   if (!jobseekerSettings.domainRest) {
+  //     return true;
+  //   }
+
+  //   // If domain restriction is enabled but no domains specified, treat as all domains allowed
+  //   if (jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length === 0) {
+  //     return true;
+  //   }
+
+  //   // Extract domain from email
+  //   const emailParts = email.split('@');
+  //   if (emailParts.length !== 2) {
+  //     return false; // Invalid email format
+  //   }
+
+  //   const domain = emailParts[1].toLowerCase().trim();
+
+  //   // Check if domain is in allowed list
+  //   return jobseekerSettings.allowedDomains.some(allowedDomain =>
+  //     allowedDomain.toLowerCase().trim() === domain
+  //   );
+  // };
+
+  const isEmailDomainAllowed = (email) => {
+    // If domain restriction is disabled, allow all domains
+    if (!jobseekerSettings.domainRest) {
+      return true;
+    }
+
+    // If domain restriction is enabled but no domains specified, treat as all domains allowed
+    if (jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length === 0) {
+      return true;
+    }
+
+    // Extract domain from email
+    const emailParts = email.split('@');
+    if (emailParts.length !== 2) {
+      return false; // Invalid email format
+    }
+
+    const domain = emailParts[1].toLowerCase().trim();
+
+    // Check if domain is in allowed list
+    return jobseekerSettings.allowedDomains.some(allowedDomain =>
+      allowedDomain.toLowerCase().trim() === domain
+    );
+  };
+
+
+  // // Helper function to validate email (format + domain)
+  const validateEmail = (email) => {
+    if (!email.trim()) {
+      return { valid: false, error: "Email is required" };
+    }
+
+    if (!isValidEmailFormat(email)) {
+      return { valid: false, error: "Please enter a valid email address (e.g., name@domain.com)" };
+    }
+
+    if (!isEmailDomainAllowed(email)) {
+      const allowedDomainsList = jobseekerSettings.allowedDomains.join(', ');
+      return {
+        valid: false,
+        error: `Email domain not allowed. Please use an email from: ${allowedDomainsList}`
+      };
+    }
+
+    return { valid: true, error: null };
+  };
+
+  
+
   const handleForm = (e) => {
     const { name, value } = e.target;
     if (name === "phone") {
-      const onlyNums = value.replace(/[^0-9]/g, "")
+      const onlyNums = value.replace(/[^0-9]/g, "");
       if (onlyNums.length <= 10) {
         setFormValues({ ...formValues, [name]: onlyNums });
         setErrors({ ...errors, [name]: "" });
@@ -83,26 +246,22 @@ export const Jsignup = () => {
     setErrors({ ...errors, [name]: "" });
   };
 
+  // ─── EMAIL OTP ──────────────────────────────────────────────────────────────
+
   const sendEmailOtp = async () => {
     const email = formValues.email;
 
-    if (!email) {
-      alert("Please enter your email first");
+    // Validate email format and domain
+    const validation = validateEmail(email);
+    if (!validation.valid) {
+      setErrors({ ...errors, email: validation.error });
       return;
     }
 
-    const emailRegex = /^(?=[^a-zA-Z]*[a-zA-Z])[a-zA-Z0-9]+@(gmail|yahoo|outlook|hotmail|fabaos)\.[a-zA-Z]{2,}$/i;
-    if (!emailRegex.test(email)) {
-      setErrors({ ...errors, email: "Please enter a valid email address" });
-      return;
-    }
-
-    setIsLoading(true);
+    setIsEmailLoading(true);
 
     try {
-      const response = await api.post('send-email-otp/', {
-        email: email
-      });
+      const response = await api.post('send-email-otp/', { email });
 
       if (response.status === 200 || response.status === 201) {
         alert(`OTP sent to ${email}`);
@@ -119,7 +278,6 @@ export const Jsignup = () => {
       }
     } catch (err) {
       console.error('Send OTP error:', err);
-      console.log('Full error response:', err.response);
 
       if (err.response?.status === 400) {
         const errorMsg = err.response?.data?.error || err.response?.data?.message;
@@ -134,7 +292,7 @@ export const Jsignup = () => {
         alert('Failed to send OTP. Please check your connection.');
       }
     } finally {
-      setIsLoading(false);
+      setIsEmailLoading(false);
     }
   };
 
@@ -146,7 +304,7 @@ export const Jsignup = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsEmailLoading(true);
 
     try {
       const response = await api.post('/verify-email-otp/', {
@@ -169,14 +327,14 @@ export const Jsignup = () => {
       }
     } catch (err) {
       console.error('Verify OTP error:', err);
-      console.log('Full error response:', err.response);
-
       const errorMsg = err.response?.data?.error || err.response?.data?.message || "Verification failed. Please try again.";
       alert(errorMsg);
     } finally {
-      setIsLoading(false);
+      setIsEmailLoading(false);
     }
   };
+
+  // ─── MOBILE OTP ─────────────────────────────────────────────────────────────
 
   const sendMobileOtp = async () => {
     const phone = formValues.phone;
@@ -192,7 +350,7 @@ export const Jsignup = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsMobileLoading(true);
 
     try {
       setTimeout(() => {
@@ -201,14 +359,14 @@ export const Jsignup = () => {
         setMobileForOtp(phone);
         setShowMobileOtp(true);
         setOtpValues((prev) => ({ ...prev, mobileOtp: "" }));
-        setIsLoading(false);
+        setIsMobileLoading(false);
       }, 1000);
 
       console.log('Test OTP for mobile: 123456');
     } catch (err) {
       console.error('Send Mobile OTP error:', err);
       alert('Failed to send OTP. Please try again.');
-      setIsLoading(false);
+      setIsMobileLoading(false);
     }
   };
 
@@ -220,7 +378,7 @@ export const Jsignup = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsMobileLoading(true);
 
     try {
       if (code === "123456") {
@@ -240,18 +398,19 @@ export const Jsignup = () => {
       console.error('Verify Mobile OTP error:', err);
       alert("Verification failed. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsMobileLoading(false);
     }
   };
+
+  // ─── FORM SUBMIT ────────────────────────────────────────────────────────────
 
   const validateForm = () => {
     const newErrors = {};
 
-    const regexOfMail = /^[a-zA-Z][a-zA-Z0-9]*@(gmail|yahoo|outlook|hotmail|fabaos)\.[a-zA-Z]{2,}$/;
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^?&*]{8,}$/;
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{}|:;"'<>,.?/~`\\])[A-Za-z\d!@#$%^&*()_+\-=\[\]{}|:;"'<>,.?/~`\\]{8,}$/;
     const regexofUppercase = /^(?=.*[A-Z]).+$/;
     const regexofNumber = /^(?=.*\d).+$/;
-    const regexofSpecialChar = /^(?=.*[!@#$%^&*]).+$/;
+    const regexofSpecialChar = /^(?=.*[!@#$%^&*()_+\-=\[\]{}|:;"'<>,.?/~`\\]).+$/;
     const regexofUserName = /^[A-Za-z_][A-Za-z0-9_]{3,19}$/;
     const regexofMobile = /^[6-9]\d{9}$/;
 
@@ -261,12 +420,23 @@ export const Jsignup = () => {
       newErrors.username = "Start with letter, 4-20 characters, letters & numbers only";
     }
 
+    // Email validation - ALWAYS check format and domain
     if (!formValues.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!regexOfMail.test(formValues.email)) {
-      newErrors.email = "Email must start with a letter and valid email";
-    } else if (!isEmailVerified) {
-      newErrors.email = "Please verify your email via OTP";
+    } else {
+      // Check email format first
+      if (!isValidEmailFormat(formValues.email)) {
+        newErrors.email = "Please enter a valid email address (e.g., name@domain.com)";
+      }
+      // Check domain restriction
+      else if (!isEmailDomainAllowed(formValues.email)) {
+        const allowedDomainsList = jobseekerSettings.allowedDomains.join(', ');
+        newErrors.email = `Email domain not allowed. Please use an email from: ${allowedDomainsList}`;
+      }
+      // Check verification ONLY if email verification is enabled
+      else if (jobseekerSettings.emailVer && !isEmailVerified) {
+        newErrors.email = "Please verify your email via OTP";
+      }
     }
 
     if (!formValues.password.trim()) {
@@ -293,7 +463,8 @@ export const Jsignup = () => {
       newErrors.phone = "Mobile number is required";
     } else if (!regexofMobile.test(formValues.phone)) {
       newErrors.phone = "Invalid mobile number format (Must starts with 6-9)";
-    } else if (!isMobileVerified) {
+    } else if (jobseekerSettings.phoneVer && !isMobileVerified) {
+      // Only require mobile verification if it's enabled in settings
       newErrors.phone = "Please verify your mobile number via OTP";
     }
 
@@ -304,11 +475,9 @@ export const Jsignup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return false;
-    }
+    if (!validateForm()) return false;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const response = await api.post('/register/jobseeker/', {
@@ -330,9 +499,7 @@ export const Jsignup = () => {
         setIsMobileVerified(false);
 
         setTimeout(() => {
-          navigate("/Job-portal/jobseeker/login", {
-            state: { redirectTo }
-          });
+          navigate("/Job-portal/jobseeker/login", { state: { redirectTo } });
         }, 2000);
       } else {
         alert("Signup failed. Please try again.");
@@ -344,94 +511,68 @@ export const Jsignup = () => {
         const errorData = err.response.data;
 
         if (errorData.email) {
-          setErrors((prev) => ({
-            ...prev,
-            email: Array.isArray(errorData.email) ? errorData.email[0] : errorData.email
-          }));
+          setErrors((prev) => ({ ...prev, email: Array.isArray(errorData.email) ? errorData.email[0] : errorData.email }));
         }
         if (errorData.username) {
-          setErrors((prev) => ({
-            ...prev,
-            username: Array.isArray(errorData.username) ? errorData.username[0] : errorData.username
-          }));
+          setErrors((prev) => ({ ...prev, username: Array.isArray(errorData.username) ? errorData.username[0] : errorData.username }));
         }
         if (errorData.phone) {
-          setErrors((prev) => ({
-            ...prev,
-            phone: Array.isArray(errorData.phone) ? errorData.phone[0] : errorData.phone
-          }));
+          setErrors((prev) => ({ ...prev, phone: Array.isArray(errorData.phone) ? errorData.phone[0] : errorData.phone }));
         }
         if (errorData.password) {
-          setErrors((prev) => ({
-            ...prev,
-            password: Array.isArray(errorData.password) ? errorData.password[0] : errorData.password
-          }));
+          setErrors((prev) => ({ ...prev, password: Array.isArray(errorData.password) ? errorData.password[0] : errorData.password }));
         }
-        if (errorData.message) {
-          alert(errorData.message);
-        }
-        if (errorData.error) {
-          alert(errorData.error);
-        }
+        if (errorData.message) alert(errorData.message);
+        if (errorData.error) alert(errorData.error);
       } else {
         alert("Signup failed. Please check your connection.");
       }
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      setIsLoading(true)
+  // ─── GOOGLE LOGIN ───────────────────────────────────────────────────────────
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsSubmitting(true);
+
+    try {
       const response = await api.post(
         "/google-login/",
-        {
-          token: credentialResponse.credential,
-          user_type: "jobseeker"
-        },
-        {
-          headers: {
-            "Content-Type": "application/json"
-          }
-        }
-      )
+        { token: credentialResponse.credential, user_type: "jobseeker" },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      sessionStorage.setItem("access", response.data.access)
-      sessionStorage.setItem("refresh", response.data.refresh)
-      sessionStorage.setItem("user", JSON.stringify(response.data.user))
-      sessionStorage.setItem("user_type", response.data.user.user_type)
+      sessionStorage.setItem("access", response.data.access);
+      sessionStorage.setItem("refresh", response.data.refresh);
+      sessionStorage.setItem("user", JSON.stringify(response.data.user));
+      sessionStorage.setItem("user_type", response.data.user.user_type);
 
-      alert("Google Signup Successful")
-
-      navigate("/Job-portal/jobseeker")
-
+      alert("Google Signup Successful");
+      navigate("/Job-portal/jobseeker");
     } catch (error) {
-      alert(error.response?.data?.error || "Google Login Failed")
+      alert(error.response?.data?.error || "Google Login Failed");
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-
+  // ─── OTP MODAL ──────────────────────────────────────────────────────────────
 
   const renderOtpModal = (type) => {
     const isEmail = type === 'email';
     const targetValue = isEmail ? formValues.email : formValues.phone;
     const otpKey = isEmail ? "emailOtp" : "mobileOtp";
     const isCurrentlyVerified = isEmail ? isEmailVerified : isMobileVerified;
+    const isOtpLoading = isEmail ? isEmailLoading : isMobileLoading;
 
     if (isCurrentlyVerified) {
       return (
         <div className="otp-modal-overlay">
           <div className="otp-modal-content success-popup-content">
             <div className="verified-container">
-              <img
-                src={Verified}
-                alt="Verified Success"
-                className="verified-popup-img"
-              />
+              <img src={Verified} alt="Verified Success" className="verified-popup-img" />
             </div>
           </div>
         </div>
@@ -477,9 +618,7 @@ export const Jsignup = () => {
                         const newOtp = (otpValues[otpKey] || "").split("");
                         newOtp[index] = val;
                         const combinedOtp = newOtp.join("");
-
                         setOtpValues({ ...otpValues, [otpKey]: combinedOtp });
-
                         if (val && index < 5) {
                           document.getElementById(`otp-${type}-${index + 1}`).focus();
                         }
@@ -489,9 +628,15 @@ export const Jsignup = () => {
                       if (e.key === "Backspace" && !otpValues[otpKey]?.[index] && index > 0) {
                         document.getElementById(`otp-${type}-${index - 1}`).focus();
                       }
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const currentOtp = otpValues[otpKey] || "";
+                        if (currentOtp.length === 6) {
+                          isEmail ? verifyEmailOtp(e) : verifyMobileOtp(e);
+                        }
+                      }
                     }}
-                    autoFocus={index === 0}
-                    disabled={isLoading}
                   />
                 ))}
               </div>
@@ -512,9 +657,9 @@ export const Jsignup = () => {
                 type="button"
                 className="verify-final-btn"
                 onClick={() => isEmail ? verifyEmailOtp() : verifyMobileOtp()}
-                disabled={isLoading}
+                disabled={isOtpLoading}
               >
-                {isLoading ? "Verifying..." : "Verify"}
+                {isOtpLoading ? "Verifying..." : "Verify"}
               </button>
             </>
           ) : (
@@ -525,9 +670,9 @@ export const Jsignup = () => {
                 type="button"
                 className="verify-final-btn"
                 onClick={() => isEmail ? sendEmailOtp() : sendMobileOtp()}
-                disabled={isLoading}
+                disabled={isOtpLoading}
               >
-                {isLoading ? "Sending..." : "Resend New OTP"}
+                {isOtpLoading ? "Sending..." : "Resend New OTP"}
               </button>
             </div>
           )}
@@ -535,6 +680,19 @@ export const Jsignup = () => {
       </div>
     );
   };
+
+  // ─── RENDER ─────────────────────────────────────────────────────────────────
+
+  // Show loading indicator while fetching settings
+  // if (isLoadingSettings) {
+  //   return (
+  //     <div className="j-sign-up-page">
+  //       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+  //         <div>Loading...</div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
@@ -550,7 +708,6 @@ export const Jsignup = () => {
 
           <div className="j-sign-up-header-links">
             <span className="no-account">Already have an account?</span>
-
             <Link
               to="/Job-portal/jobseeker/login"
               state={{
@@ -564,9 +721,12 @@ export const Jsignup = () => {
             >
               Login
             </Link>
-            <Link to="/Job-portal/role-selection" className="header-back-btn">
+            <button
+              onClick={() => navigate(-1)}
+              className="header-back-btn"
+            >
               ← Back
-            </Link>
+            </button>
           </div>
         </header>
 
@@ -577,7 +737,9 @@ export const Jsignup = () => {
 
           <form onSubmit={handleSubmit} className="j-sign-up-form">
             <h2>Sign up for Jobseeker</h2>
-            <label>User name</label>
+
+            {/* Username */}
+            <label>User Name</label>
             <input
               type="text"
               name="username"
@@ -590,60 +752,59 @@ export const Jsignup = () => {
               }}
               placeholder="Create your Username"
               className={errors.username ? "input-error" : ""}
-              disabled={isLoading}
+              disabled={isSubmitting}
             />
             {errors.username && <span className="error-msg">{errors.username}</span>}
 
+            {/* Email - Conditional Verification based on settings */}
             <label>Email ID</label>
             <div className="input-container">
               <input
-                type="text"
+                type="email"
                 name="email"
                 value={formValues.email}
                 onChange={handleForm}
                 placeholder="Enter Email"
                 className={errors.email ? "input-error" : ""}
-                disabled={isEmailVerified || isLoading}
+                disabled={isEmailVerified || isEmailLoading}
               />
-              {!isEmailVerified && formValues.email.length > 0 && (
+              {/* Show verify button ONLY if email verification is enabled AND email is not empty AND not verified */}
+              {jobseekerSettings.emailVer && !isEmailVerified && formValues.email.length > 0 && (
                 <button
                   type="button"
                   className="jsignup-small-verify-btn"
-                  disabled={isLoading}
+                  disabled={isEmailLoading}
                   onClick={() => {
-                    const emailRegex = /^[a-zA-Z][a-zA-Z0-9._%+-]*@(gmail|yahoo|outlook|hotmail|fabaos)\.com$/;
-
-                    if (!formValues.email.trim()) {
-                      setErrors({
-                        ...errors,
-                        email: "Email is required"
-                      });
+                    // Validate email format and domain
+                    const validation = validateEmail(formValues.email);
+                    if (!validation.valid) {
+                      setErrors({ ...errors, email: validation.error });
                       return;
                     }
-
-                    if (!emailRegex.test(formValues.email)) {
-                      setErrors({
-                        ...errors,
-                        email: "Enter valid email (gmail, yahoo, outlook, hotmail)"
-                      });
-                      return;
-                    }
-
-                    setErrors({
-                      ...errors,
-                      email: ""
-                    });
-
-                    sendEmailOtp("email");
+                    setErrors({ ...errors, email: "" });
+                    sendEmailOtp();
                   }}
                 >
-                  Verify
+                  {isEmailLoading ? "Sending..." : "Verify"}
                 </button>
               )}
-              {isEmailVerified && <span className="verified-badge"> Verified</span>}
+              {/* Show verified badge if email is verified OR email verification is disabled */}
+              {(isEmailVerified || !jobseekerSettings.emailVer) && (
+                <span className="verified-badge">
+                  {!jobseekerSettings.emailVer ? "" : "Verified"}
+                </span>
+              )}
             </div>
             {errors.email && <span className="error-msg">{errors.email}</span>}
 
+            {/* Show allowed domains hint when domain restriction is enabled - ALWAYS show regardless of email verification */}
+            {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
+              <span className="hint-text" style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
+              </span>
+            )}
+
+            {/* Password */}
             <label>Password</label>
             <div className="password-wrapper">
               <input
@@ -653,14 +814,25 @@ export const Jsignup = () => {
                 onChange={handleForm}
                 placeholder="Create a new password"
                 className={errors.password ? "input-error" : ""}
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
-              <span className="eye-icon" onClick={togglePasswordView}>
+              {/* <span className="eye-icon" onClick={togglePasswordView}>
                 <img src={passwordShow ? eyeHide : eye} className='show-icon' alt='show' />
-              </span>
+              </span> */}
+              <button
+                type="button"
+                className="eye-icon"
+                onClick={togglePasswordView}
+                aria-label={passwordShow ? "Show password" : "Hide password"}
+                tabIndex={0}
+              >
+                <img src={passwordShow ? eyeHide : eye} className='show-icon' alt='' />
+              </button>
+
             </div>
             {errors.password && <span className="error-msg">{errors.password}</span>}
 
+            {/* Confirm Password */}
             <label>Confirm Password</label>
             <div className="password-wrapper">
               <input
@@ -670,14 +842,24 @@ export const Jsignup = () => {
                 onChange={handleForm}
                 placeholder="Confirm password"
                 className={errors.confirmpassword ? "input-error" : ""}
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
-              <span className="eye-icon" onClick={toggleConfirmPasswordView}>
+              {/* <span className="eye-icon" onClick={toggleConfirmPasswordView}>
                 <img src={confirmPasswordShow ? eyeHide : eye} className='show-icon' alt='show' />
-              </span>
+              </span> */}
+              <button
+                type="button"
+                className="eye-icon"
+                onClick={toggleConfirmPasswordView}
+                aria-label={confirmPasswordShow ? "Show confirm password" : "Hide confirm password"}
+                tabIndex={0}
+              >
+                <img src={confirmPasswordShow ? eyeHide : eye} className='show-icon' alt='' />
+              </button>
             </div>
             {errors.confirmpassword && <span className="error-msg">{errors.confirmpassword}</span>}
 
+            {/* Mobile - Conditional Verification based on settings */}
             <label>Mobile number</label>
             <div className="input-container">
               <input
@@ -691,46 +873,43 @@ export const Jsignup = () => {
                 }}
                 placeholder="Enter mobile number"
                 className={errors.phone ? "input-error" : ""}
-                disabled={isMobileVerified || isLoading}
+                disabled={isMobileVerified || isMobileLoading}
               />
-              {!isMobileVerified && /^[6-9]\d{9}$/.test(formValues.phone) && (
+              {/* Show verify button ONLY if mobile verification is enabled AND phone is valid AND not verified */}
+              {jobseekerSettings.phoneVer && !isMobileVerified && /^[6-9]\d{9}$/.test(formValues.phone) && (
                 <button
                   type="button"
                   className="jsignup-small-verify-btn"
-                  disabled={isLoading}
+                  disabled={isMobileLoading}
                   onClick={() => {
                     const phoneRegex = /^[6-9]\d{9}$/;
-
                     if (!formValues.phone.trim()) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        phone: "Mobile number is required"
-                      }));
+                      setErrors((prev) => ({ ...prev, phone: "Mobile number is required" }));
                       return;
                     }
-
                     if (!phoneRegex.test(formValues.phone)) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        phone: "Enter valid 10-digit mobile number"
-                      }));
+                      setErrors((prev) => ({ ...prev, phone: "Enter valid 10-digit mobile number" }));
                       return;
                     }
-
                     setErrors((prev) => ({ ...prev, phone: "" }));
-
                     sendMobileOtp();
                   }}
                 >
-                  Verify
+                  {isMobileLoading ? "Sending..." : "Verify"}
                 </button>
               )}
-              {isMobileVerified && <span className="verified-badge">Verified</span>}
+              {/* Show verified badge if mobile is verified OR mobile verification is disabled */}
+              {(isMobileVerified || !jobseekerSettings.phoneVer) && (
+                <span className="verified-badge">
+                  {!jobseekerSettings.phoneVer ? "" : "Verified"}
+                </span>
+              )}
             </div>
             {errors.phone && <span className="error-msg">{errors.phone}</span>}
 
-            <button type="submit" className="j-sign-up-submit" disabled={isLoading}>
-              {isLoading ? "Signing up..." : "Signup"}
+            {/* Submit */}
+            <button type="submit" className="j-sign-up-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Signing up..." : "Signup"}
             </button>
 
             <div className="divider">Or Continue with</div>

@@ -222,6 +222,12 @@
   font-size: 17px;
   background: #0d6efd;
   color: #fff;
+  transition: all 0.3s ease;
+}
+.apply-form-primary-btn:hover {
+  opacity: 0.92;
+  transform: scale(1.02);
+  cursor: pointer;
 }
 
 .apply-form-secondary-btn {
@@ -233,6 +239,12 @@
   font-size: 17px;
   background: rgb(244, 104, 104);
   color: #fff;
+  transition: all 0.3s ease;
+}
+.apply-form-secondary-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.02);
+  cursor: pointer;
 }
 .error-text {
   color: #d32f2f;
@@ -245,6 +257,119 @@
   border: 1px solid #d32f2f !important;
   outline: none !important;
   background-color: #fffafa !important;
+}
+/* Add these styles at the end of your CSS file */
+
+/* Success Overlay Styles */
+.success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.success-content {
+  background: white;
+  padding: 40px 50px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.5s ease;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+  animation: bounceIn 0.6s ease;
+}
+
+.success-content h2 {
+  color: #0f172a;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.success-content p {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.success-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.success-progress-fill {
+  height: 100%;
+  background: #0d6efd;
+  border-radius: 2px;
+  animation: progressBar 5s linear forwards;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes progressBar {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.apply-form-primary-btn:disabled,
+.apply-form-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 

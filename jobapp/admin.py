@@ -26,7 +26,9 @@ from .models import (
     CompanyVerification,
     JobSeekerProfile,
     User,
-    CompanyProfile
+    CompanyProfile,
+    AccountManager,
+    EmployerAccountManagerAssignment
 )
 
 User = get_user_model()
@@ -301,7 +303,8 @@ class ComplaintAdmin(admin.ModelAdmin):
         'mobile',
         'reason',
         'status',
-        'created_at'
+        'created_at',
+        'original_job_id'  # Add this to display the stored job ID
     )
     list_filter = ('status', 'created_at')
     search_fields = (
@@ -309,10 +312,11 @@ class ComplaintAdmin(admin.ModelAdmin):
         'last_name',
         'email',
         'mobile',
-        'reason'
+        'reason',
+        'original_job_id',  # Add this for searching by job ID
     )
     ordering = ('-created_at',)
-    readonly_fields = ('created_at', 'user')
+    readonly_fields = ('created_at', 'user', 'original_job_id')
     list_per_page = 20
 
     def full_name(self, obj):
@@ -405,4 +409,28 @@ class PaymentMethodAdmin(admin.ModelAdmin):
     list_filter = ['method_type', 'is_default']
     search_fields = ['user__email', 'card_holder_name']
     raw_id_fields = ['user']
- 
+
+@admin.register(AccountManager)
+class AccountManagerAdmin(admin.ModelAdmin):
+    list_display = ['full_name', 'email', 'phone', 'department', 'is_active', 'created_at']
+    list_filter = ['department', 'is_active']
+    search_fields = ['full_name', 'email', 'phone']
+    ordering = ['order', 'full_name']
+
+
+@admin.register(EmployerAccountManagerAssignment)
+class EmployerAccountManagerAssignmentAdmin(admin.ModelAdmin):
+    list_display = ['employer', 'account_manager', 'is_primary', 'assigned_at']
+    list_filter = ['is_primary']
+    search_fields = ['employer__email', 'account_manager__full_name']
+
+# jobapp/admin.py
+
+from .models import FAQ
+
+@admin.register(FAQ)
+class FAQAdmin(admin.ModelAdmin):
+    list_display = ['question', 'keywords', 'created_at']
+    search_fields = ['question', 'answer', 'keywords']
+    list_filter = ['created_at']
+    ordering = ['-created_at']

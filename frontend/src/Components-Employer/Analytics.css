@@ -24,7 +24,7 @@
 .analytics-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0px 10px ;
+  padding: 0px 10px 30px 10px;   /* CHANGED: added 60px bottom padding */
 }
  
 .card {
