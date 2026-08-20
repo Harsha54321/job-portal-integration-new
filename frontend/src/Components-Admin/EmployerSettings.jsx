@@ -593,7 +593,7 @@ export const EmployerSettings = () => {
           </h2>
 
           {[
-            { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: true },
+            { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: false },
             { label: 'Allow Multiple Users', id: 'multipleUsers', disabled: true },
             { label: 'Show Company Reviews', id: 'companyReviews', disabled: true },
             { label: 'Enable Company Branding', id: 'companyBranding', disabled: true },

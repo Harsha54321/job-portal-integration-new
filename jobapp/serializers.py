@@ -811,6 +811,10 @@ class CompanyReviewSerializer(serializers.ModelSerializer):
 # REMOVED: CompanySerializer - Using CompanyProfileSerializer instead    
 
 class CompanyProfileSerializer(serializers.ModelSerializer):
+    parent_company_name = serializers.CharField(
+        source='parent_company.company_name',
+        read_only=True
+    )
     logo_url = serializers.SerializerMethodField(
         read_only=True
     )
@@ -827,6 +831,13 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
         model = CompanyProfile
         fields = [
             'id',
+            'company_type',
+            'parent_company',
+            'parent_company_name',
+            'partner_category',
+            'services_offered',
+            'authorization_contact',
+            'authorization_document',
             'company_name',
             'company_moto',
             'contact_person',
@@ -861,6 +872,33 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             'total_reviews',
             'reviews'
         ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        company_type = attrs.get('company_type', getattr(self.instance, 'company_type', 'main'))
+        parent_company = attrs.get('parent_company', getattr(self.instance, 'parent_company', None))
+        if company_type == CompanyProfile.CompanyType.PARTNER and not parent_company:
+            raise serializers.ValidationError({
+                'parent_company': 'Select the main company for a partner company.'
+            })
+        if company_type == CompanyProfile.CompanyType.PARTNER:
+            required_partner_fields = {
+                'partner_category': 'Partner type is required.',
+                'services_offered': 'Services offered are required.',
+                'authorization_contact': 'Authorization contact is required.',
+            }
+            missing = {
+                field: message
+                for field, message in required_partner_fields.items()
+                if not attrs.get(field, getattr(self.instance, field, '') if self.instance else '').strip()
+            }
+            if missing:
+                raise serializers.ValidationError(missing)
+        if company_type == CompanyProfile.CompanyType.MAIN and parent_company:
+            raise serializers.ValidationError({
+                'parent_company': 'A main company cannot have a parent company.'
+            })
+        return attrs
  
     # ─────────────────────────────────────────
     # LOGO URL
@@ -1223,10 +1261,12 @@ class PostAJobSerializer(serializers.ModelSerializer):
             hasattr(obj, 'employer')
             and obj.employer
             and hasattr(obj.employer, 'employer_profile')
-            and obj.employer.employer_profile.company
         ):
+            company = obj.company or obj.employer.employer_profile.company
+            if not company:
+                return None
             return CompanyProfileSerializer(
-                obj.employer.employer_profile.company,
+                company,
                 context=self.context
             ).data
 
@@ -1480,13 +1520,14 @@ class JobReadSerializer(serializers.ModelSerializer):
 
         if obj.employer and hasattr(obj.employer, 'employer_profile'):
 
-            if obj.employer.employer_profile.company:
+            company = obj.company or obj.employer.employer_profile.company
+            if company:
 
                 # Pass the context to CompanyProfileSerializer
 
                 return CompanyProfileSerializer(
 
-                    obj.employer.employer_profile.company,
+                    company,
 
                     context=self.context  # This is the key fix
 
@@ -2515,6 +2556,11 @@ class CompanyVerificationSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'status',
             'employer',
+            'company',
+            'parent_approval_status',
+            'parent_approval_comment',
+            'parent_approved_by',
+            'parent_approved_at',
             'created_at'
         ]
         extra_kwargs = {

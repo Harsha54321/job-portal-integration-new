@@ -53,6 +53,7 @@ import { ReportAJob } from './Components-Jobseeker/ReportAJob'
 import { OtpVerification } from './Components-JobseekerSignup/OtpVerification'
 import { AboutYourCompany } from './Components-Employer/AboutYourCompany'
 import { CompanyVerify } from './Components-Employer/CompanyVerify'
+import { PartnerCompanies } from './Components-Employer/PartnerCompanies'
 import { PostJobForm } from './Components-Employer/PostJobForm'
 import { PostJobPreview } from './Components-Employer/PostJobPreview'
 import { PostedJobs } from './Components-Employer/PostedJobs'
@@ -212,6 +213,10 @@ const router = createBrowserRouter([
           {
             path: 'about-your-company/company-verification',
             element: <CompanyVerify />,
+          },
+          {
+            path: 'PartnerCompanies',
+            element: <PartnerCompanies />,
           },
           {
             path: 'PostJob',

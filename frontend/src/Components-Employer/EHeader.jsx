@@ -44,6 +44,9 @@ export const EHeader = () => {
             </div> */}
 
             <div className="auth-links">
+                <Link to="/Job-portal/Employer/PartnerCompanies" style={{ marginRight: "16px", fontWeight: 600 }}>
+                    Partner Companies
+                </Link>
                 <div style={{ position: "relative" }}>
                     <Link to="/Job-portal/Employer/Chat">
                         <img

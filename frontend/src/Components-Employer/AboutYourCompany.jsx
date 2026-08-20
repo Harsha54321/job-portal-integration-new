@@ -29,6 +29,12 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
   const [formData, setFormData] = useState({
     fullName: "",
     employerId: "",
+    companyType: "main",
+    parentCompanyName: "",
+    partnerCategory: "",
+    servicesOffered: "",
+    authorizationContact: "",
+    authorizationDocument: null,
     companyName: "",
     companyMoto: "",
     contactPerson: "",
@@ -174,6 +180,12 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       const newFormData = {
         fullName: employerData?.full_name || "",
         employerId: employerData?.employee_id || "",
+        companyType: companyData?.company_type || "main",
+        parentCompanyName: companyData?.parent_company_name || "",
+        partnerCategory: companyData?.partner_category || "",
+        servicesOffered: companyData?.services_offered || "",
+        authorizationContact: companyData?.authorization_contact || "",
+        authorizationDocument: null,
         companyName: companyData?.company_name || "",
         companyMoto: companyData?.company_moto || "",
         contactPerson: companyData?.contact_person || "",
@@ -481,6 +493,16 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("company_name", data.companyName);
+      formDataToSend.append("company_type", data.companyType || "main");
+      if (data.companyType === "partner" && data.parentCompanyName) {
+        formDataToSend.append("parent_company_name", data.parentCompanyName);
+        formDataToSend.append("partner_category", data.partnerCategory || "");
+        formDataToSend.append("services_offered", data.servicesOffered || "");
+        formDataToSend.append("authorization_contact", data.authorizationContact || "");
+        if (data.authorizationDocument) {
+          formDataToSend.append("authorization_document", data.authorizationDocument);
+        }
+      }
       formDataToSend.append("company_moto", data.companyMoto);
       formDataToSend.append("contact_person", data.contactPerson);
       formDataToSend.append("contact_number", data.contactNumber);
@@ -722,6 +744,13 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("company_name", data.companyName);
+      formDataToSend.append("company_type", data.companyType || "main");
+      if (data.companyType === "partner") {
+        formDataToSend.append("partner_category", data.partnerCategory || "");
+        formDataToSend.append("services_offered", data.servicesOffered || "");
+        formDataToSend.append("authorization_contact", data.authorizationContact || "");
+        if (data.authorizationDocument) formDataToSend.append("authorization_document", data.authorizationDocument);
+      }
       formDataToSend.append("company_moto", data.companyMoto);
       formDataToSend.append("contact_person", data.contactPerson);
       formDataToSend.append("contact_number", data.contactNumber);
@@ -1086,6 +1115,57 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
               {errors.employerId && <span className="error-msg">{errors.employerId}</span>}
             </div>
           </div>
+
+          <div className="aboutcompany-form-group">
+            <label>Company Relationship *</label>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <select
+                name="companyType"
+                value={formData.companyType}
+                onChange={handleChange}
+                disabled={isLoading}
+              >
+                <option value="main">Main company</option>
+                <option value="partner">Partner / consultancy company</option>
+              </select>
+            </div>
+          </div>
+
+          {formData.companyType === "partner" && (
+            <>
+              <div className="aboutcompany-form-group">
+                <label>Main Company Name *</label>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  <input
+                    className={errors.parentCompanyName ? "input-error" : ""}
+                    type="text"
+                    name="parentCompanyName"
+                    placeholder="Enter the verified main company name"
+                    value={formData.parentCompanyName}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  />
+                  {errors.parentCompanyName && <span className="error-msg">{errors.parentCompanyName}</span>}
+                </div>
+              </div>
+              <div className="aboutcompany-form-group">
+                <label>Partner Type *</label>
+                <input type="text" name="partnerCategory" placeholder="Consultancy, staffing, vendor..." value={formData.partnerCategory} onChange={handleChange} disabled={isLoading} />
+              </div>
+              <div className="aboutcompany-form-group">
+                <label>Services Offered *</label>
+                <textarea name="servicesOffered" placeholder="Describe the services this partner provides" value={formData.servicesOffered} onChange={handleChange} disabled={isLoading} rows={3} />
+              </div>
+              <div className="aboutcompany-form-group">
+                <label>Parent Authorization Contact *</label>
+                <input type="text" name="authorizationContact" placeholder="Parent company approver or agreement reference" value={formData.authorizationContact} onChange={handleChange} disabled={isLoading} />
+              </div>
+              <div className="aboutcompany-form-group">
+                <label>Authorization Document</label>
+                <input type="file" name="authorizationDocument" accept=".pdf,.jpg,.jpeg,.png" onChange={handleChange} disabled={isLoading} />
+              </div>
+            </>
+          )}
 
           <div className="aboutcompany-form-group">
             <label>Company Name *</label>

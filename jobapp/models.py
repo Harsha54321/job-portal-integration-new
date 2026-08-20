@@ -523,6 +523,13 @@ class PostAJob(models.Model):
         on_delete=models.CASCADE,
         related_name='post_a_jobs'
     )
+    company = models.ForeignKey(
+        'CompanyProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='jobs'
+    )
  
     job_title = models.CharField(max_length=255)
     industry_type = models.JSONField(default=list, blank=True)
@@ -1229,6 +1236,14 @@ class CompanyVerification(models.Model):
         on_delete=models.CASCADE,
         related_name="company_verification"
     )
+
+    company = models.ForeignKey(
+        'CompanyProfile',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='verification_requests'
+    )
  
     legal_name = models.CharField(max_length=255)
     registration_number = models.CharField(max_length=255)  # REMOVED unique=True
@@ -1263,6 +1278,22 @@ class CompanyVerification(models.Model):
         default="Pending",
         db_index=True
     )
+
+    parent_approval_status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="Pending",
+        db_index=True
+    )
+    parent_approval_comment = models.TextField(blank=True)
+    parent_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_partner_verifications'
+    )
+    parent_approved_at = models.DateTimeField(null=True, blank=True)
  
     created_at = models.DateTimeField(auto_now_add=True)
  
@@ -1283,27 +1314,27 @@ class CompanyVerification(models.Model):
         if self.status == "Verified" and previous_status != "Verified":
             employer_profile = self.employer.employer_profile
            
-            # Find or create company profile
-            company_profile, created = CompanyProfile.objects.get_or_create(
-                company_name=self.legal_name,
-                defaults={
-                    'website': self.website_url,
-                    'company_moto': '',
-                    'contact_person': employer_profile.full_name or '',
-                    'contact_number': self.phone_number,
-                    'company_email': self.official_email,
-                    'company_size': '',
-                    'address1': '',
-                    'about': '',
-                    'company_logo': None,
-                    'created_by': self.employer
-                }
-            )
-           
-            # If company already exists, update with latest info if needed
-            if not created:
-                # Optionally update company details
-                pass
+            company_profile = self.company
+            if not company_profile:
+                company_profile, created = CompanyProfile.objects.get_or_create(
+                    company_name=self.legal_name,
+                    defaults={
+                        'website': self.website_url,
+                        'company_moto': '',
+                        'contact_person': employer_profile.full_name or '',
+                        'contact_number': self.phone_number,
+                        'company_email': self.official_email,
+                        'company_size': '',
+                        'address1': '',
+                        'about': '',
+                        'company_logo': None,
+                        'created_by': self.employer
+                    }
+                )
+                self.company = company_profile
+                CompanyVerification.objects.filter(pk=self.pk).update(
+                    company=company_profile
+                )
            
             # Link employer to company
             if not employer_profile.company:
@@ -1317,6 +1348,31 @@ class CompanyVerification(models.Model):
 # About Company
  
 class CompanyProfile(models.Model):
+
+    class CompanyType(models.TextChoices):
+        MAIN = 'main', 'Main company'
+        PARTNER = 'partner', 'Partner / consultancy company'
+
+    parent_company = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='partner_companies'
+    )
+    company_type = models.CharField(
+        max_length=10,
+        choices=CompanyType.choices,
+        default=CompanyType.MAIN
+    )
+    partner_category = models.CharField(max_length=100, blank=True)
+    services_offered = models.TextField(blank=True)
+    authorization_contact = models.CharField(max_length=255, blank=True)
+    authorization_document = models.FileField(
+        upload_to='company/partner-authorizations/',
+        null=True,
+        blank=True
+    )
  
     company_name = models.CharField(max_length=255)
     company_moto = models.CharField(max_length=255)

@@ -74,6 +74,8 @@ from .views import (
     ContactMessageCreateAPIView,
     SubmitCompanyVerification,
     CompanyVerificationAction,
+    ParentCompanyVerificationAction,
+    ParentCompanyPartnersView,
     CreateJobPreviewView,
     PreviewJobView,
     PublishJobView,
@@ -303,6 +305,9 @@ urlpatterns = [
     # Company Verify 
     path("company/verify/", SubmitCompanyVerification.as_view()),
     path("admin/company-verification/<int:pk>/", CompanyVerificationAction.as_view()),
+    path("company/parent-verification/<int:pk>/", ParentCompanyVerificationAction.as_view()),
+    path("company/partners/", ParentCompanyPartnersView.as_view()),
+    path("company/partners/<int:pk>/", ParentCompanyPartnersView.as_view()),
     
     # Post a Job
     path('jobs/preview/', CreateJobPreviewView.as_view(), name='job-preview'),
