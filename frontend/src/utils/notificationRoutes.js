@@ -18,7 +18,6 @@ const EMPLOYER_ROUTES = {
     weekly_report: () => ({ path: "/Job-portal/Employer/WeeklySummary" }),
     ticket_submitted: (roid) => ({ path: DASHBOARD_PATH, state: { targetTab: "MyTickets", targetTicketId: roid } }),
     ticket_status_updated: (roid) => ({ path: DASHBOARD_PATH, state: { targetTab: "MyTickets", targetTicketId: roid } }),
-    partner_verification_parent_approval: () => ({ path: "/Job-portal/Employer/PartnerCompanies" }),
     // account_manager_removed: (roid) => ({ path: DASHBOARD_PATH, state: { targetTab: "AccountManager", targetManagerId: roid  } }), // no need it here, keep it for future update if needed
     // new_message: (roid) => ({ path: `/Job-portal/Employer/Chat`, state:{ userId : roid } }),
 };

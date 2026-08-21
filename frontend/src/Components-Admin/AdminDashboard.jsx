@@ -56,6 +56,8 @@ import { AdminBlogPost } from './AdminBlogpost'
 import { AddManagerContact } from './AddManagerContact'
 import AdminManager from '../assets/Employer/User.png'
 
+import AdminAnnouncementModeration from './AdminAnnouncementModeration'
+
 export const AdminDashboard = () => {
     const { jobs, Alluser, currentEmployer } = useJobs();
     const [activetab, setActiveTab] = useState(() => {
@@ -333,6 +335,15 @@ export const AdminDashboard = () => {
                                     <div className='Enav-item'>User Management</div>
                                 </div>
                             </div>
+
+                            {/* Announcements Tab in Loading Sidebar */}
+                            <div onClick={() => setActiveTab("Announcements")} className={activetab === "Announcements" ? "Admin-Active" : 'Admin-Navbar'}>
+                                <div className='Admin-Navbox'>
+                                    <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px' }}>📢</span>
+                                    <div className='Enav-item'>Announcements</div>
+                                </div>
+                            </div>
+
                             <div onClick={() => setActiveTab('Membership')} className={activetab === "Membership" ? "Admin-Active" : 'Admin-Navbar'}>
                                 <div className='Admin-Navbox'>
                                     {activetab === "Membership" ? <img src={MembershipsAct} width={15} height={15} alt="dashboard" />
@@ -465,6 +476,15 @@ export const AdminDashboard = () => {
                                 <div className='Enav-item'>User Management</div>
                             </div>
                         </div>
+
+                        {/* Announcements Tab in Main Sidebar */}
+                        <div onClick={() => setActiveTab("Announcements")} className={activetab === "Announcements" ? "Admin-Active" : 'Admin-Navbar'}>
+                            <div className='Admin-Navbox'>
+                                <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px' }}>📢</span>
+                                <div className='Enav-item'>Announcements</div>
+                            </div>
+                        </div>
+
                         <div onClick={() => setActiveTab('Membership')} className={activetab === "Membership" ? "Admin-Active" : 'Admin-Navbar'}>
                             <div className='Admin-Navbox'>
                                 {activetab === "Membership" ? <img src={MembershipsAct} width={15} height={15} alt="dashboard" />
@@ -715,6 +735,10 @@ export const AdminDashboard = () => {
                         <ActivityMonitor currentTab={subTab} onTabChange={setSubTab} />
                     )}
                     {activetab === 'User Management' && (<UserManagement />)}
+                    
+                    {/* Render Announcements Moderation Component */}
+                    {activetab === 'Announcements' && <AdminAnnouncementModeration />}
+
                     {activetab === 'Membership' && (<MembershipHub />)}
                     {activetab === 'SupportHub' && (<SupportHub />)}
                     {activetab === 'AccountManager' && <AddManagerContact />}

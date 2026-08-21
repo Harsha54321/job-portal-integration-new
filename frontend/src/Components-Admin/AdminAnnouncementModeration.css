@@ -1,0 +1,179 @@
+.aam-container {
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  padding: 32px 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #1e293b;
+}
+
+.aam-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.aam-header {
+  background: #ffffff;
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.aam-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.aam-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.aam-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.aam-search,
+.aam-select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+  background: #f8fafc;
+}
+
+.aam-table-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.aam-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.aam-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.aam-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.aam-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: #94a3b8;
+}
+
+.aam-company-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aam-logo-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-weight: 700;
+}
+
+.aam-logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.aam-item-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.aam-item-desc {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aam-type-badge {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.aam-status-badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.aam-status-badge.published {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.aam-status-badge.draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.aam-btn-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.aam-btn {
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aam-approve {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.aam-reject {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.aam-delete {
+  background: #fef2f2;
+  color: #991b1b;
+}

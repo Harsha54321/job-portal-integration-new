@@ -111,7 +111,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(
             hour=9,
             minute=0,
-            day_of_week='monday'
+            # day_of_week='monday'
         ),
     },
  
@@ -234,6 +234,8 @@ DATABASES = {
 #     }
 # }
  
+
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 EMAIL_HOST = 'smtp.gmail.com'
@@ -251,6 +253,7 @@ EMAIL_HOST_USER = 'adminjobportal1@gmail.com'
 EMAIL_HOST_PASSWORD = 'zhxy xkmq nvun nrvp'
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+ 
  
  
 # Password validation
@@ -327,7 +330,7 @@ FRONTEND_URL = "http://localhost:5173"
 
 SITE_URL = "http://127.0.0.1:8000"
 # SITE_URL = "http://54.183.89.14"
-#SITE_URL = "https://jobportal.stacklycloud.com"
+# SITE_URL = "https://jobportal.stacklycloud.com"
 GOOGLE_CLIENT_ID = "534453822581-vvarj10pdfecp6ouht0qi1a4j6q333ak.apps.googleusercontent.com"
 # GOOGLE_CLIENT_ID = "105293618059-al95762js6gc2o9umchkb3la0mnirhs1.apps.googleusercontent.com"
 #GOOGLE_CLIENT_ID = "146646258104-184rcr7uv1mpttpi8bjf9tjq2r2ijg1i.apps.googleusercontent.com"

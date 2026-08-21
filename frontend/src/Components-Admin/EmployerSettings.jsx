@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./EmployerSettings.css";
 import Info from '../assets/AdminAssets/Circle-Info.png';
 import api from "../api/axios";
-import Registration from '../assets/AdminAssets/registrationAccess.png';
+import Registration from '../assets/AdminAssets/RegistrationAccess.png';
 
 export const EmployerSettings = () => {
 
@@ -593,8 +593,8 @@ export const EmployerSettings = () => {
           </h2>
 
           {[
-            { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: false },
-            { label: 'Allow Multiple Users', id: 'multipleUsers', disabled: true },
+            { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: true },
+            { label: 'Allow Multiple Users', id: 'multipleUsers', disabled: false },
             { label: 'Show Company Reviews', id: 'companyReviews', disabled: true },
             { label: 'Enable Company Branding', id: 'companyBranding', disabled: true },
             { label: 'Allow Job Highlighting', id: 'featuredEmployer', disabled: false },
@@ -605,8 +605,8 @@ export const EmployerSettings = () => {
                 id={`pref-${pref.id}`}
                 checked={settings.preferences[pref.id]}
                 onChange={(e) => handleChange('preferences', pref.id, e.target.checked, true)}
-                disabled={pref.disabled}
-                title={pref.disabled ? "Under implementation" : ""}
+
+
               />
               <label htmlFor={`pref-${pref.id}`} style={{ cursor: 'pointer' }}>
                 {pref.label}

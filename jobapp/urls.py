@@ -74,8 +74,6 @@ from .views import (
     ContactMessageCreateAPIView,
     SubmitCompanyVerification,
     CompanyVerificationAction,
-    ParentCompanyVerificationAction,
-    ParentCompanyPartnersView,
     CreateJobPreviewView,
     PreviewJobView,
     PublishJobView,
@@ -157,6 +155,12 @@ from .views import (
     JobseekerDisable2FAView,
     JobseekerLoginSend2FAOTPView,
     JobseekerLoginVerify2FAView,
+    
+    CompanyAnnouncementListCreateView,
+    CompanyAnnouncementDetailView,
+    AdminAnnouncementModerationListView,
+    AdminAnnouncementApproveView,
+    AdminAnnouncementRejectView,
 
     # REMOVED: Company-related view imports (CompanyListView, CompanyDetailView, etc.)
 )
@@ -305,9 +309,6 @@ urlpatterns = [
     # Company Verify 
     path("company/verify/", SubmitCompanyVerification.as_view()),
     path("admin/company-verification/<int:pk>/", CompanyVerificationAction.as_view()),
-    path("company/parent-verification/<int:pk>/", ParentCompanyVerificationAction.as_view()),
-    path("company/partners/", ParentCompanyPartnersView.as_view()),
-    path("company/partners/<int:pk>/", ParentCompanyPartnersView.as_view()),
     
     # Post a Job
     path('jobs/preview/', CreateJobPreviewView.as_view(), name='job-preview'),
@@ -511,4 +512,15 @@ urlpatterns = [
     path('jobseeker/2fa/disable/', JobseekerDisable2FAView.as_view(), name='jobseeker-2fa-disable'),
     path('jobseeker/login/send-otp/', JobseekerLoginSend2FAOTPView.as_view(), name='jobseeker-login-send-otp'),
     path('jobseeker/login/verify-otp/', JobseekerLoginVerify2FAView.as_view(), name='jobseeker-login-verify-otp'),
+
+
+# Announcements (Employer & Jobseeker)
+path('announcements/', CompanyAnnouncementListCreateView.as_view(), name='announcement-list-create'),
+path('announcements/<int:pk>/', CompanyAnnouncementDetailView.as_view(), name='announcement-detail'),
+
+# Announcements (Admin Moderation)
+path('admin/announcements/', AdminAnnouncementModerationListView.as_view(), name='admin-announcements-list'),
+path('admin/announcements/<int:pk>/approve/', AdminAnnouncementApproveView.as_view(), name='admin-announcement-approve'),
+path('admin/announcements/<int:pk>/reject/', AdminAnnouncementRejectView.as_view(), name='admin-announcement-reject'),
+path('admin/announcements/<int:pk>/', CompanyAnnouncementDetailView.as_view(), name='admin-announcement-delete'),
 ]

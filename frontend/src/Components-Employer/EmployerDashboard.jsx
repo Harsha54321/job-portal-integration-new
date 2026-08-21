@@ -43,6 +43,7 @@ import { LocationDisplay } from '../Components-Jobseeker/LocationDisplay';
 // import { MyTickets } from './MyTickets'
 import RaisedTickets from '../Components-Jobseeker/RaisedTickets'
 import TicketIcon from '../assets/AdminAssets/Tickets.png'
+import CompanyBranding from './CompanyBranding'
 
 export const EmployerDashboard = () => {
     const { currentEmployer, getJobStats, refreshEmployerData } = useJobs();
@@ -466,6 +467,13 @@ export const EmployerDashboard = () => {
                                     {activetab === 'My Profile' ? <img src={ProfileAct} height={15} width={15} alt="My Profile" /> : <img src={Profile} height={15} width={15} alt="My Profile" />}
                                     <div className='Enav-item'>My Profile</div>
                                 </div>
+
+                                {/* ✅ Added Company Branding in Expanded Sidebar */}
+                                <div onClick={() => verificationStatus.isVerified && setActiveTab('Company Branding')} className={activetab === 'Company Branding' ? "Active" : 'Navbox'}>
+                                    <span style={{ fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px' }}>🎨</span>
+                                    <div className='Enav-item'>Company Branding</div>
+                                </div>
+
                                 <div onClick={() => setActiveTab('AccountManager')}
                                     className={activetab === 'AccountManager' ? "Active" : 'Navbox'}>
                                     {activetab === 'AccountManager' ? (
@@ -516,6 +524,12 @@ export const EmployerDashboard = () => {
                                 <div onClick={() => setActiveTab('My Profile')} className={activetab === 'My Profile' ? "Active1" : 'Navbox1'} title="View and edit your profile">
                                     {activetab === 'My Profile' ? <img src={ProfileAct} height={15} width={15} alt="My Profile" /> : <img src={Profile} height={15} width={15} alt="My Profile" />}
                                 </div>
+
+                                {/* ✅ Added Company Branding in Collapsed Sidebar */}
+                                <div onClick={() => verificationStatus.isVerified && setActiveTab('Company Branding')} className={activetab === 'Company Branding' ? "Active1" : 'Navbox1'} title="Company Branding & Announcements">
+                                    <span style={{ fontSize: '15px' }}>🎨</span>
+                                </div>
+
                                 <div onClick={() => setActiveTab('AccountManager')}
                                     className={activetab === 'AccountManager' ? "Active1" : 'Navbox1'}
                                     title="Account Manager">
@@ -797,6 +811,12 @@ export const EmployerDashboard = () => {
                     {activetab === 'My Profile' && (
                         <AboutYourCompany hideNavigation={true} setActiveTab={setActiveTab} />
                     )}
+
+                    {/* ✅ Render Company Branding View */}
+                    {activetab === 'Company Branding' && (
+                        <CompanyBranding />
+                    )}
+
                     {activetab === 'AccountManager' && <AddManagerSupport targetManagerId={pendingTargetManagerId} />}
                     {activetab === 'MyTickets' && (
                         <RaisedTickets role="employer" onBack={() => setActiveTab('Dashboard')} targetTicketId={pendingTargetTicketId} />

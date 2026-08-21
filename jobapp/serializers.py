@@ -811,10 +811,6 @@ class CompanyReviewSerializer(serializers.ModelSerializer):
 # REMOVED: CompanySerializer - Using CompanyProfileSerializer instead    
 
 class CompanyProfileSerializer(serializers.ModelSerializer):
-    parent_company_name = serializers.CharField(
-        source='parent_company.company_name',
-        read_only=True
-    )
     logo_url = serializers.SerializerMethodField(
         read_only=True
     )
@@ -831,15 +827,9 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
         model = CompanyProfile
         fields = [
             'id',
-            'company_type',
-            'parent_company',
-            'parent_company_name',
-            'partner_category',
-            'services_offered',
-            'authorization_contact',
-            'authorization_document',
             'company_name',
             'company_moto',
+            'tagline',
             'contact_person',
             'contact_number',
             'company_email',
@@ -872,33 +862,6 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             'total_reviews',
             'reviews'
         ]
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        company_type = attrs.get('company_type', getattr(self.instance, 'company_type', 'main'))
-        parent_company = attrs.get('parent_company', getattr(self.instance, 'parent_company', None))
-        if company_type == CompanyProfile.CompanyType.PARTNER and not parent_company:
-            raise serializers.ValidationError({
-                'parent_company': 'Select the main company for a partner company.'
-            })
-        if company_type == CompanyProfile.CompanyType.PARTNER:
-            required_partner_fields = {
-                'partner_category': 'Partner type is required.',
-                'services_offered': 'Services offered are required.',
-                'authorization_contact': 'Authorization contact is required.',
-            }
-            missing = {
-                field: message
-                for field, message in required_partner_fields.items()
-                if not attrs.get(field, getattr(self.instance, field, '') if self.instance else '').strip()
-            }
-            if missing:
-                raise serializers.ValidationError(missing)
-        if company_type == CompanyProfile.CompanyType.MAIN and parent_company:
-            raise serializers.ValidationError({
-                'parent_company': 'A main company cannot have a parent company.'
-            })
-        return attrs
  
     # ─────────────────────────────────────────
     # LOGO URL
@@ -1031,6 +994,41 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
  
         return attrs
  
+ 
+# Company Announcement Serializers
+from .models import CompanyAnnouncement
+
+class SimpleCompanyBrandingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyProfile
+        fields = ['id', 'company_name', 'company_logo', 'brand_color', 'tagline']
+
+class CompanyAnnouncementSerializer(serializers.ModelSerializer):
+    company = SimpleCompanyBrandingSerializer(read_only=True)
+
+    class Meta:
+        model = CompanyAnnouncement
+        fields = [
+            'id',
+            'company',
+            'title',
+            'description',
+            'image',
+            'announcement_type',
+            'start_date',
+            'end_date',
+            'status',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'company', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if not hasattr(request.user, 'employer_profile') or not request.user.employer_profile.company:
+            raise serializers.ValidationError("No company profile associated with this employer account.")
+        validated_data['company'] = request.user.employer_profile.company
+        return super().create(validated_data)
 
 # EmployerProfile Serializers
 class EmployerProfileReadSerializer(serializers.ModelSerializer):
@@ -1261,12 +1259,10 @@ class PostAJobSerializer(serializers.ModelSerializer):
             hasattr(obj, 'employer')
             and obj.employer
             and hasattr(obj.employer, 'employer_profile')
+            and obj.employer.employer_profile.company
         ):
-            company = obj.company or obj.employer.employer_profile.company
-            if not company:
-                return None
             return CompanyProfileSerializer(
-                company,
+                obj.employer.employer_profile.company,
                 context=self.context
             ).data
 
@@ -1520,14 +1516,13 @@ class JobReadSerializer(serializers.ModelSerializer):
 
         if obj.employer and hasattr(obj.employer, 'employer_profile'):
 
-            company = obj.company or obj.employer.employer_profile.company
-            if company:
+            if obj.employer.employer_profile.company:
 
                 # Pass the context to CompanyProfileSerializer
 
                 return CompanyProfileSerializer(
 
-                    company,
+                    obj.employer.employer_profile.company,
 
                     context=self.context  # This is the key fix
 
@@ -2556,11 +2551,6 @@ class CompanyVerificationSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'status',
             'employer',
-            'company',
-            'parent_approval_status',
-            'parent_approval_comment',
-            'parent_approved_by',
-            'parent_approved_at',
             'created_at'
         ]
         extra_kwargs = {
@@ -3132,23 +3122,10 @@ class AdminCompanySerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
     certificate = serializers.SerializerMethodField()
     verification = serializers.CharField(source='get_status_display')
-    company_type = serializers.CharField(source='company.company_type', read_only=True)
-    parent_company_name = serializers.CharField(source='company.parent_company.company_name', read_only=True)
-    partner_category = serializers.CharField(source='company.partner_category', read_only=True)
-    services_offered = serializers.CharField(source='company.services_offered', read_only=True)
-    authorization_contact = serializers.CharField(source='company.authorization_contact', read_only=True)
-    parent_approval_status = serializers.CharField(read_only=True)
-    company_profile = serializers.SerializerMethodField()
-    verification_details = serializers.SerializerMethodField()
  
     class Meta:
         model = CompanyVerification
-        fields = [
-            'id', 'name', 'user', 'date', 'certificate', 'verification',
-            'company_type', 'parent_company_name', 'partner_category',
-            'services_offered', 'authorization_contact',
-            'parent_approval_status', 'company_profile', 'verification_details'
-        ]
+        fields = ['id', 'name', 'user', 'date', 'certificate', 'verification']
  
     def get_date(self, obj):
         return obj.created_at.strftime("%d %B %Y") if obj.created_at else None
@@ -3160,33 +3137,9 @@ class AdminCompanySerializer(serializers.ModelSerializer):
         return "No"
  
     def get_name(self, obj):
-        if obj.company:
-            return obj.company.company_name
         if hasattr(obj.employer, 'employer_profile') and obj.employer.employer_profile.company:
             return obj.employer.employer_profile.company.company_name
         return obj.legal_name
-
-    def get_company_profile(self, obj):
-        if not obj.company:
-            return None
-        return CompanyProfileSerializer(obj.company, context=self.context).data
-
-    def get_verification_details(self, obj):
-        return {
-            'legal_name': obj.legal_name,
-            'registration_number': obj.registration_number,
-            'tax_id': obj.tax_id,
-            'website_url': obj.website_url,
-            'official_email': obj.official_email,
-            'phone_number': obj.phone_number,
-            'parent_approval_status': obj.parent_approval_status,
-            'company_type': obj.company.company_type if obj.company else None,
-            'parent_company_name': obj.company.parent_company.company_name if obj.company and obj.company.parent_company else None,
-            'partner_category': obj.company.partner_category if obj.company else '',
-            'services_offered': obj.company.services_offered if obj.company else '',
-            'authorization_contact': obj.company.authorization_contact if obj.company else '',
-            'verification': obj.get_status_display(),
-        }
 
 class AdminCompanyDetailSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -3220,8 +3173,6 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
         return "No"
 
     def get_name(self, obj):
-        if obj.company:
-            return obj.company.company_name
         if hasattr(obj.employer, 'employer_profile') and obj.employer.employer_profile.company:
             return obj.employer.employer_profile.company.company_name
         return obj.legal_name
@@ -3230,9 +3181,7 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         company = None
 
-        if obj.company:
-            company = obj.company
-        elif hasattr(obj.employer, "employer_profile"):
+        if hasattr(obj.employer, "employer_profile"):
             company = obj.employer.employer_profile.company
 
         if not company:
@@ -3279,19 +3228,6 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
             "website_url": obj.website_url,
             "official_email": obj.official_email,
             "phone_number": obj.phone_number,
-            "company_type": obj.company.company_type if obj.company else None,
-            "parent_company_name": (
-                obj.company.parent_company.company_name
-                if obj.company and obj.company.parent_company else None
-            ),
-            "partner_category": obj.company.partner_category if obj.company else "",
-            "services_offered": obj.company.services_offered if obj.company else "",
-            "authorization_contact": obj.company.authorization_contact if obj.company else "",
-            "authorization_document": (
-                request.build_absolute_uri(obj.company.authorization_document.url)
-                if request and obj.company and obj.company.authorization_document else None
-            ),
-            "parent_approval_status": obj.parent_approval_status,
             # Use registration_certificate instead
             "registration_certificate": registration_certificate_url,
             "tax_certificate": tax_certificate_url,

@@ -984,7 +984,6 @@ EVENT_CATEGORY_MAP = {
     "company_verification_updated": "companies",
     "company_profile_created" : "companies",
     "company_verification_submitted": "companies",
-    "partner_verification_parent_approval": "companies",
     "account_manager_assigned": "companies",
     "account_manager_removed": "companies",
 

@@ -53,7 +53,6 @@ import { ReportAJob } from './Components-Jobseeker/ReportAJob'
 import { OtpVerification } from './Components-JobseekerSignup/OtpVerification'
 import { AboutYourCompany } from './Components-Employer/AboutYourCompany'
 import { CompanyVerify } from './Components-Employer/CompanyVerify'
-import { PartnerCompanies } from './Components-Employer/PartnerCompanies'
 import { PostJobForm } from './Components-Employer/PostJobForm'
 import { PostJobPreview } from './Components-Employer/PostJobPreview'
 import { PostedJobs } from './Components-Employer/PostedJobs'
@@ -76,6 +75,9 @@ import { requestAndRegisterNotificationPermission, listenForForegroundMessages }
 import RoleSignupLanding from './Components-LandingPage/RoleSignupLanding';
 import  WeeklySummary  from './Components-Employer/WeeklySummary';
 import RaisedTickets from './Components-Jobseeker/RaisedTickets';
+import CompanyBranding from './Components-Employer/CompanyBranding';
+import JobseekerAnnouncements from './Components-Jobseeker/CompanyAnnouncements';
+import AdminAnnouncementModeration from './Components-Admin/AdminAnnouncementModeration';
 
 const Layout = () => {
   useInactivityLogout()
@@ -144,6 +146,7 @@ const router = createBrowserRouter([
           { path: 'ContactUs', element: <ContactUs /> },
           { path: 'FAQ', element: <FAQ /> },
           { path: 'mytickets', element: <RaisedTickets role="jobseeker" /> },
+          { path: 'announcements', element: <JobseekerAnnouncements /> },
           {
             path: 'Blogs',
             children: [
@@ -215,10 +218,6 @@ const router = createBrowserRouter([
             element: <CompanyVerify />,
           },
           {
-            path: 'PartnerCompanies',
-            element: <PartnerCompanies />,
-          },
-          {
             path: 'PostJob',
             element: <PostJobForm />
           },
@@ -272,6 +271,14 @@ const router = createBrowserRouter([
             path: 'WeeklySummary',
             element: <WeeklySummary/>
           },
+          {
+            path: 'CompanyBranding',
+            element: <CompanyBranding />
+          },
+          {
+            path: 'Announcements',
+            element: <CompanyBranding />
+          },
         ]
 
       },
@@ -282,6 +289,10 @@ const router = createBrowserRouter([
           { path: 'login/forgotpassword', element: <Aforgotpassword /> },
           { path: 'login/forgotpassword/createpassword', element: <Acreatepassword /> },
           { path: 'Dashboard', element: <AdminDashboard /> },
+          {
+            path: 'announcements-moderation',
+            element: <AdminAnnouncementModeration />
+          },
         ]
       },
     ]

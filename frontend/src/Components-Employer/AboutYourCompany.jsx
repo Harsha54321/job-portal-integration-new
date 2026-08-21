@@ -19,6 +19,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
   const [originalData, setOriginalData] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [pendingCompanyName, setPendingCompanyName] = useState("");
+  const [pendingWebsite, setPendingWebsite] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   const [existingLogoSize, setExistingLogoSize] = useState("");
 
@@ -29,12 +30,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
   const [formData, setFormData] = useState({
     fullName: "",
     employerId: "",
-    companyType: "main",
-    parentCompanyName: "",
-    partnerCategory: "",
-    servicesOffered: "",
-    authorizationContact: "",
-    authorizationDocument: null,
     companyName: "",
     companyMoto: "",
     contactPerson: "",
@@ -180,12 +175,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       const newFormData = {
         fullName: employerData?.full_name || "",
         employerId: employerData?.employee_id || "",
-        companyType: companyData?.company_type || "main",
-        parentCompanyName: companyData?.parent_company_name || "",
-        partnerCategory: companyData?.partner_category || "",
-        servicesOffered: companyData?.services_offered || "",
-        authorizationContact: companyData?.authorization_contact || "",
-        authorizationDocument: null,
         companyName: companyData?.company_name || "",
         companyMoto: companyData?.company_moto || "",
         contactPerson: companyData?.contact_person || "",
@@ -375,14 +364,14 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     setShowMenu(false);
   };
 
-  const linkToExistingCompany = async (companyName) => {
+  const linkToExistingCompany = async (website) => {
     setIsLoading(true);
     setBackendError("");
 
     try {
       const response = await api.post("/company/link-to-existing/", {
-        company_name: companyName,
-        employer_email: employerEmail // Send identifier context explicitly if tokenless
+        website: website,
+        employer_email: employerEmail
       });
 
       console.log("Linked to existing company:", response.data);
@@ -493,16 +482,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("company_name", data.companyName);
-      formDataToSend.append("company_type", data.companyType || "main");
-      if (data.companyType === "partner" && data.parentCompanyName) {
-        formDataToSend.append("parent_company_name", data.parentCompanyName);
-        formDataToSend.append("partner_category", data.partnerCategory || "");
-        formDataToSend.append("services_offered", data.servicesOffered || "");
-        formDataToSend.append("authorization_contact", data.authorizationContact || "");
-        if (data.authorizationDocument) {
-          formDataToSend.append("authorization_document", data.authorizationDocument);
-        }
-      }
       formDataToSend.append("company_moto", data.companyMoto);
       formDataToSend.append("contact_person", data.contactPerson);
       formDataToSend.append("contact_number", data.contactNumber);
@@ -513,7 +492,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       if (data.address2) formDataToSend.append("address2", data.address2);
       formDataToSend.append("about", data.about);
       if (data.companyLogo) formDataToSend.append("company_logo", data.companyLogo);
-      
+
       // Explicit onboarding fallback parameter injection
       if (fromSignup && employerEmail) {
         formDataToSend.append("employer_email", employerEmail);
@@ -547,9 +526,36 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         const errorData = err.response?.data;
         const errorMsg = errorData?.error || "";
 
+        // 1) Website-duplicate -> join popup (MUST come before the generic "already exists" check)
+        if (errorMsg === "company website already exists") {
+          setErrors(prev => ({
+            ...prev,
+            website: "This website is already registered with another company."
+          }));
+          setBackendError("A company with this website already exists.");
+          setPendingCompanyName(errorData.existing_company_name);
+          setPendingWebsite(data.website);
+          setShowPopup(true);
+          window.scrollTo({ top: 100, behavior: "smooth" });
+          return { success: false, error: "duplicate_website", pending: true };
+        }
+
+        // 2) Blocked by admin (allow_multiple_users = False)
+        if (errorMsg.includes("multiple users not allowed")) {
+          setErrors(prev => ({
+            ...prev,
+            website: errorMsg
+          }));
+          setBackendError(errorMsg);
+          window.scrollTo({ top: 100, behavior: "smooth" });
+          return { success: false, error: "blocked_by_admin" };
+        }
+
+        // 3) Company-name duplicate (generic)
         if (errorMsg.includes("already exists")) {
           setBackendError("Company already exists.");
           setPendingCompanyName(data.companyName);
+          setPendingWebsite(data.website);
           setShowPopup(true);
           return { success: false, error: "duplicate_company", pending: true };
         }
@@ -698,7 +704,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
       if (err.response?.status === 403) {
         const errorMsg = "You don't have permission to update your profile. Please contact support.";
-      setBackendError(errorMsg);
+        setBackendError(errorMsg);
         setErrorType("PERMISSION_ERROR");
         return { success: false, error: errorMsg, errorType: "PERMISSION_ERROR" };
       }
@@ -744,13 +750,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("company_name", data.companyName);
-      formDataToSend.append("company_type", data.companyType || "main");
-      if (data.companyType === "partner") {
-        formDataToSend.append("partner_category", data.partnerCategory || "");
-        formDataToSend.append("services_offered", data.servicesOffered || "");
-        formDataToSend.append("authorization_contact", data.authorizationContact || "");
-        if (data.authorizationDocument) formDataToSend.append("authorization_document", data.authorizationDocument);
-      }
       formDataToSend.append("company_moto", data.companyMoto);
       formDataToSend.append("contact_person", data.contactPerson);
       formDataToSend.append("contact_number", data.contactNumber);
@@ -888,7 +887,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
   const handleJoinExistingCompany = async () => {
     setShowPopup(false);
-    const result = await linkToExistingCompany(pendingCompanyName);
+    const result = await linkToExistingCompany(pendingWebsite);
 
     if (result.success) {
       setCompanyProfile({
@@ -908,7 +907,9 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
   const handleCancelJoin = () => {
     setShowPopup(false);
     setPendingCompanyName("");
-    setErrors({ companyName: "Please use a different company name" });
+    setPendingWebsite("");
+    setErrors({ companyName: "Please use a another company name" });
+    setErrors({ website: "Please use another company website link " })
   };
 
   const handleNext = async (e) => {
@@ -1070,7 +1071,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         <h2 className="aboutcompany-title">
           About Your Company
           {fromSignup && <span style={{ fontSize: "14px", color: "#666", marginLeft: "10px" }}>(Step 1 of 2)</span>}
-        </h2> 
+        </h2>
 
         {backendError && (
           <div className="backend-error-message" style={{
@@ -1115,57 +1116,6 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
               {errors.employerId && <span className="error-msg">{errors.employerId}</span>}
             </div>
           </div>
-
-          <div className="aboutcompany-form-group">
-            <label>Company Relationship *</label>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <select
-                name="companyType"
-                value={formData.companyType}
-                onChange={handleChange}
-                disabled={isLoading}
-              >
-                <option value="main">Main company</option>
-                <option value="partner">Partner / consultancy company</option>
-              </select>
-            </div>
-          </div>
-
-          {formData.companyType === "partner" && (
-            <>
-              <div className="aboutcompany-form-group">
-                <label>Main Company Name *</label>
-                <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                  <input
-                    className={errors.parentCompanyName ? "input-error" : ""}
-                    type="text"
-                    name="parentCompanyName"
-                    placeholder="Enter the verified main company name"
-                    value={formData.parentCompanyName}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                  />
-                  {errors.parentCompanyName && <span className="error-msg">{errors.parentCompanyName}</span>}
-                </div>
-              </div>
-              <div className="aboutcompany-form-group">
-                <label>Partner Type *</label>
-                <input type="text" name="partnerCategory" placeholder="Consultancy, staffing, vendor..." value={formData.partnerCategory} onChange={handleChange} disabled={isLoading} />
-              </div>
-              <div className="aboutcompany-form-group">
-                <label>Services Offered *</label>
-                <textarea name="servicesOffered" placeholder="Describe the services this partner provides" value={formData.servicesOffered} onChange={handleChange} disabled={isLoading} rows={3} />
-              </div>
-              <div className="aboutcompany-form-group">
-                <label>Parent Authorization Contact *</label>
-                <input type="email" name="authorizationContact" placeholder="parent.authorizer@company.com" value={formData.authorizationContact} onChange={handleChange} disabled={isLoading} />
-              </div>
-              <div className="aboutcompany-form-group">
-                <label>Authorization Document</label>
-                <input type="file" name="authorizationDocument" accept=".pdf,.jpg,.jpeg,.png" onChange={handleChange} disabled={isLoading} />
-              </div>
-            </>
-          )}
 
           <div className="aboutcompany-form-group">
             <label>Company Name *</label>

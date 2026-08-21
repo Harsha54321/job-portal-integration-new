@@ -34,8 +34,6 @@ from django.db.models.functions import (
 )
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from django.core.mail import send_mail
-from email.utils import parseaddr
 
 from .serializers import (
     JobSeekerRegistrationSerializer,
@@ -1384,24 +1382,13 @@ class CreateJobPreviewView(generics.CreateAPIView):
             raise PermissionDenied("You must link a company first")
  
         # ── Company verification ────────────────────────────────────
-        verification = CompanyVerification.objects.filter(
+        if not CompanyVerification.objects.filter(
             employer=user,
             status="Verified"
-        ).select_related('company').first()
-        if not verification:
+        ).exists():
             raise PermissionDenied(
                 "Company must be verified before posting jobs"
             )
-
-        company = user.employer_profile.company
-        if (
-            company.company_type == CompanyProfile.CompanyType.PARTNER
-            and verification.parent_approval_status != 'Verified'
-        ):
-            raise PermissionDenied(
-                "Parent company approval is required before posting jobs"
-            )
-        effective_company = company.parent_company if company.parent_company_id else company
  
         # ── Active subscription ─────────────────────────────────────
         subscription = (
@@ -1490,7 +1477,6 @@ class CreateJobPreviewView(generics.CreateAPIView):
         # ── Save job ────────────────────────────────────────────────
         job = serializer.save(
             employer=user,
-            company=effective_company,
             is_published=False,
             approval_status=PostAJob.ApprovalStatus.PENDING,
             is_highlighted=is_highlighted,
@@ -3841,6 +3827,7 @@ class NewsletterSubscribeAPIView(APIView):
 
 class SubmitCompanyVerification(APIView):
     permission_classes = [IsAuthenticated]
+   
     def post(self, request):
         if request.user.user_type != "employer":
             return Response(
@@ -3856,6 +3843,45 @@ class SubmitCompanyVerification(APIView):
             return Response({
                 "error": "You already submitted verification"
             })
+
+        # ─────────────────────────────
+        # GST / TAX-ID DUPLICATE CHECK
+        # ─────────────────────────────
+
+        tax_id = request.data.get('tax_id')
+
+        subscription = Subscription.objects.filter(
+            user=request.user, status='active'
+        ).select_related('plan').first()
+
+        platform = None
+        if subscription:
+            platform = EmployerPlatformSettings.objects.filter(
+                plan=subscription.plan,
+                account_status=request.user.status
+            ).first()
+
+        if tax_id and (not platform or not platform.allow_multiple_users):
+            normalized_new = normalize_gst(tax_id)
+
+            duplicate_exists = any(
+                normalize_gst(cv.tax_id) == normalized_new
+                for cv in CompanyVerification.objects.exclude(
+                    employer=request.user
+                ).only('id', 'tax_id')
+            )
+
+            if duplicate_exists:
+                return Response(
+                    {
+                        "error": (
+                            "multiple users not allowed for this "
+                            "company, blocked by admin"
+                        )
+                    },
+                    status=400
+                )
+
         serializer = (
             CompanyVerificationSerializer(
                 data=request.data,
@@ -3866,52 +3892,12 @@ class SubmitCompanyVerification(APIView):
         )
         if serializer.is_valid():
             verification = serializer.save(
-                employer=request.user,
-                company=getattr(request.user.employer_profile, 'company', None)
-            )
-            company = verification.company
-            parent_employers = EmployerProfile.objects.filter(
-                company=company.parent_company,
-                user__user_type='employer'
-            ).select_related('user') if company and company.parent_company_id else EmployerProfile.objects.none()
-
-            if company and company.company_type == CompanyProfile.CompanyType.PARTNER:
-                authorization_email = parseaddr(company.authorization_contact)[1]
-                if authorization_email:
-                    try:
-                        send_mail(
-                            subject=f"Partner company approval required: {company.company_name}",
-                            message=(
-                                f"{company.company_name} has requested to join "
-                                f"{company.parent_company.company_name}. "
-                                "Please sign in to the Job Portal and review this approval request "
-                                "from the Partner Companies page."
-                            ),
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[authorization_email],
-                            fail_silently=False,
-                        )
-                    except Exception:
-                        logger.exception(
-                            "Unable to send partner approval email to %s",
-                            authorization_email,
-                        )
-
-                for parent_profile in parent_employers:
-                    NotificationService.create_notification(
-                        recipient=parent_profile.user,
-                        title="Partner company approval required",
-                        message=f"Review and approve {company.company_name} before admin verification.",
-                        event_type="partner_verification_parent_approval",
-                        notification_type="system",
-                        related_object_id=verification.id
-                    )
-            else:
-                parent_employers = EmployerProfile.objects.none()
-
-            # Main-company requests go directly to administrators.
-            admin_recipients = User.objects.filter(user_type="admin") if not parent_employers.exists() else User.objects.none()
-            for admin in admin_recipients:
+        employer=request.user
+    )
+            #new added
+            for admin in User.objects.filter(
+                user_type="admin"
+            ):
 
                 NotificationService.create_notification(
 
@@ -3961,17 +3947,6 @@ class CompanyVerificationAction(APIView):
         # This should work if frontend sends "Reject"
         if status_value not in ["Verified", "Reject"]:
             return Response({"error": "Invalid status"}, status=400)
-
-        if (
-            verification.company
-            and verification.company.company_type == CompanyProfile.CompanyType.PARTNER
-            and status_value == "Verified"
-            and verification.parent_approval_status != "Verified"
-        ):
-            return Response(
-                {"error": "Parent company approval is required before admin approval."},
-                status=400
-            )
  
         verification.status = status_value
         verification.save()
@@ -3993,93 +3968,6 @@ class CompanyVerificationAction(APIView):
         return Response({
             "message": f"Company {status_value} successfully"
         })
-
-
-class ParentCompanyVerificationAction(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def patch(self, request, pk):
-        verification = get_object_or_404(
-            CompanyVerification.objects.select_related('company', 'company__parent_company'),
-            pk=pk
-        )
-        parent_company = verification.company.parent_company if verification.company else None
-        if request.user.user_type != 'employer' or not parent_company or not EmployerProfile.objects.filter(
-            user=request.user,
-            company=parent_company
-        ).exists():
-            return Response({'error': 'Only a parent-company employer can approve this partner.'}, status=403)
-
-        status_value = request.data.get('status')
-        if status_value not in ['Verified', 'Reject', 'Hold']:
-            return Response({'error': 'Invalid status'}, status=400)
-
-        verification.parent_approval_status = status_value
-        verification.parent_approval_comment = request.data.get('comment', '')
-        verification.parent_approved_by = request.user
-        verification.parent_approved_at = timezone.now()
-        verification.save(update_fields=[
-            'parent_approval_status', 'parent_approval_comment',
-            'parent_approved_by', 'parent_approved_at'
-        ])
-
-        if status_value == 'Verified':
-            for admin in User.objects.filter(user_type='admin'):
-                NotificationService.create_notification(
-                    recipient=admin,
-                    title='Partner company ready for admin review',
-                    message=f'{verification.company.company_name} was approved by its parent company.',
-                    event_type='company_verification_submitted',
-                    notification_type='system',
-                    related_object_id=verification.id
-                )
-        return Response({'message': f'Partner company {status_value.lower()} successfully'})
-
-
-class ParentCompanyPartnersView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def _parent_company(self, request):
-        profile = getattr(request.user, 'employer_profile', None)
-        company = getattr(profile, 'company', None)
-        return company if company and company.company_type == CompanyProfile.CompanyType.MAIN else None
-
-    def get(self, request):
-        company = self._parent_company(request)
-        if not company:
-            return Response({'error': 'Only a main-company employer can manage partner companies.'}, status=403)
-        partners = company.partner_companies.prefetch_related('verification_requests__employer', 'employers')
-        results = []
-        for partner in partners:
-            verification = partner.verification_requests.order_by('-created_at').first()
-            results.append({
-                'id': partner.id,
-                'company_name': partner.company_name,
-                'partner_category': partner.partner_category,
-                'services_offered': partner.services_offered,
-                'authorization_contact': partner.authorization_contact,
-                'company_email': partner.company_email,
-                'website': partner.website,
-                'employers': [
-                    {'id': employer.user_id, 'email': employer.user.email, 'name': employer.full_name}
-                    for employer in partner.employers.select_related('user').all()
-                ],
-                'parent_approval_status': verification.parent_approval_status if verification else 'Pending',
-                'admin_status': verification.status if verification else 'Pending',
-                'verification_id': verification.id if verification else None,
-            })
-        return Response(results)
-
-    def delete(self, request, pk):
-        company = self._parent_company(request)
-        partner = get_object_or_404(CompanyProfile, pk=pk, parent_company=company, company_type=CompanyProfile.CompanyType.PARTNER)
-        EmployerProfile.objects.filter(company=partner).update(company=None)
-        CompanyVerification.objects.filter(company=partner).update(
-            parent_approval_status='Reject', status='Reject', parent_approval_comment='Removed by parent company'
-        )
-        partner.parent_company = None
-        partner.save(update_fields=['parent_company'])
-        return Response({'message': 'Partner company removed successfully'})
 
 # ============ COMPANY PROFILE VIEWS ============
 
@@ -4133,34 +4021,7 @@ class CompanyProfileCreateView(APIView):
                     status=400
                 )
 
-        company_type = request.data.get('company_type', CompanyProfile.CompanyType.MAIN)
-        parent_company_name = request.data.get('parent_company_name')
-        if company_type == CompanyProfile.CompanyType.PARTNER:
-            if not platform or not platform.allow_multiple_company:
-                return Response(
-                    {'error': 'Partner companies are not enabled for your plan.'},
-                    status=403
-                )
-            if not parent_company_name:
-                return Response(
-                    {'parent_company': 'Main company name is required for a partner company.'},
-                    status=400
-                )
-            parent_company = CompanyProfile.objects.filter(
-                company_name__iexact=parent_company_name.strip(),
-                company_type=CompanyProfile.CompanyType.MAIN
-            ).first()
-            if not parent_company:
-                return Response(
-                    {'parent_company': 'Main company was not found.'},
-                    status=404
-                )
-        else:
-            company_type = CompanyProfile.CompanyType.MAIN
-            parent_company = None
-
-     
-
+        # serializer = CompanyProfileSerializer(
         company_name = request.data.get(
             'company_name'
         )
@@ -4185,15 +4046,47 @@ class CompanyProfileCreateView(APIView):
                 status=400
             )
 
- 
+             # ─────────────────────────────
+        # WEBSITE-BASED DUPLICATE CHECK
+        # ─────────────────────────────
 
-        serializer_data = request.data.copy()
-        serializer_data['company_type'] = company_type
-        if parent_company:
-            serializer_data['parent_company'] = parent_company.id
+        website = request.data.get('website')
+
+        if website:
+            normalized_new = normalize_website(website)
+
+            existing_by_website = None
+            for cp in CompanyProfile.objects.all().only('id', 'website', 'company_name'):
+                if normalize_website(cp.website) == normalized_new:
+                    existing_by_website = cp
+                    break
+
+            if existing_by_website:
+                if not platform or not platform.allow_multiple_users:
+                    # Admin disabled multiple users -> hard block
+                    return Response(
+                        {
+                            "error": (
+                                "multiple users not allowed for this "
+                                "company, blocked by admin"
+                            )
+                        },
+                        status=400
+                    )
+                else:
+                    # Admin allows multiple users -> don't auto-create,
+                    # tell frontend to show the join popup instead
+                    return Response(
+                        {
+                            "error": "company website already exists",
+                            "existing_company_name": existing_by_website.company_name,
+                            "existing_company_id": existing_by_website.id
+                        },
+                        status=400
+                    )
 
         serializer = CompanyProfileSerializer(
-            data=serializer_data,
+            data=request.data,
             context={
                 'request': request,
                 'platform': platform
@@ -4201,11 +4094,7 @@ class CompanyProfileCreateView(APIView):
         )
 
         if serializer.is_valid():
-            company = serializer.save(
-                created_by=request.user,
-                company_type=company_type,
-                parent_company=parent_company
-            )
+            company = serializer.save()
 
             if hasattr(
                 request.user,
@@ -4271,6 +4160,134 @@ class CompanyProfileCreateView(APIView):
         return Response(
             serializer.errors,
             status=400
+        )
+        
+
+# company announcement views
+from .models import CompanyAnnouncement
+from .serializers import CompanyAnnouncementSerializer
+
+class CompanyAnnouncementListCreateView(APIView):
+    """
+    GET  /api/announcements/ -> Returns announcements:
+                                - Employers see their own company announcements.
+                                - Jobseekers & public see all active published announcements.
+    POST /api/announcements/ -> Employer creates an announcement for their linked company.
+    """
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def get(self, request):
+        company_id = request.query_params.get("company_id")
+        now = timezone.now()
+
+        # If authenticated employer is fetching their list
+        if request.user.is_authenticated and request.user.user_type == "employer":
+            if hasattr(request.user, "employer_profile") and request.user.employer_profile.company:
+                qs = CompanyAnnouncement.objects.filter(
+                    company=request.user.employer_profile.company
+                ).select_related('company')
+                serializer = CompanyAnnouncementSerializer(qs, many=True, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Jobseeker / public view: only active & published
+        qs = CompanyAnnouncement.objects.filter(
+            status="published",
+            start_date__lte=now
+        ).filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=now)
+        ).select_related('company')
+
+        if company_id:
+            qs = qs.filter(company_id=company_id)
+
+        serializer = CompanyAnnouncementSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if request.user.user_type != "employer":
+            return Response(
+                {"error": "Only employers can create announcements."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        if not hasattr(request.user, 'employer_profile') or not request.user.employer_profile.company:
+            return Response(
+                {"error": "Please link a company to your profile before creating announcements."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = CompanyAnnouncementSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        if serializer.is_valid():
+            announcement = serializer.save()
+            return Response(
+                CompanyAnnouncementSerializer(announcement, context={'request': request}).data,
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CompanyAnnouncementDetailView(APIView):
+    """
+    DELETE /api/announcements/<pk>/ -> Deletes an announcement (Company Owner or Admin).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        announcement = get_object_or_404(CompanyAnnouncement, id=pk)
+        
+        is_owner = (
+            hasattr(request.user, 'employer_profile') and 
+            request.user.employer_profile.company == announcement.company
+        )
+        is_admin = request.user.user_type == 'admin'
+
+        if not (is_owner or is_admin):
+            return Response(
+                {"error": "You do not have permission to delete this announcement."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        announcement.delete()
+        return Response({"message": "Announcement deleted successfully."}, status=status.HTTP_200_OK)
+
+
+class AdminAnnouncementModerationListView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserType]
+
+    def get(self, request):
+        qs = CompanyAnnouncement.objects.select_related('company').order_by('-created_at')
+        serializer = CompanyAnnouncementSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminAnnouncementApproveView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserType]
+
+    def patch(self, request, pk):
+        announcement = get_object_or_404(CompanyAnnouncement, id=pk)
+        announcement.status = "published"
+        announcement.save(update_fields=['status', 'updated_at'])
+        return Response(
+            {"message": "Announcement approved and published successfully.", "status": "published"},
+            status=status.HTTP_200_OK
+        )
+
+
+class AdminAnnouncementRejectView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserType]
+
+    def patch(self, request, pk):
+        announcement = get_object_or_404(CompanyAnnouncement, id=pk)
+        announcement.status = "draft"
+        announcement.save(update_fields=['status', 'updated_at'])
+        return Response(
+            {"message": "Announcement rejected and moved to draft.", "status": "draft"},
+            status=status.HTTP_200_OK
         )
  
 class CompanyProfileDetailView(APIView):
@@ -4408,39 +4425,58 @@ class CompanyProfileByIdView(APIView):
         
 class LinkToExistingCompanyView(APIView):
     permission_classes = [IsEmployerOrAdmin]
-    
+
     def post(self, request):
-        company_name = request.data.get('company_name')
-        
-        if not company_name:
-            return Response({"error": "Company name is required"}, status=400)
-        
-        # Find existing company (case-insensitive)
-        company = CompanyProfile.objects.filter(company_name__iexact=company_name).first()
-        
+        website = request.data.get('website')
+
+        if not website:
+            return Response(
+                {"error": "Website is required"},
+                status=400
+            )
+
+        normalized_new = normalize_website(website)
+
+        company = None
+        for cp in CompanyProfile.objects.all().only('id', 'website', 'company_name'):
+            if normalize_website(cp.website) == normalized_new:
+                company = cp
+                break
+
         if not company:
-            return Response({"error": "Company not found. Please create a new company."}, status=404)
-        
+            return Response(
+                {"error": "Company not found. Please create a new company."},
+                status=404
+            )
+
         # Check if employer already has a company
         if hasattr(request.user, 'employer_profile') and request.user.employer_profile.company:
-            return Response({
-                "error": f"You are already linked to company: {request.user.employer_profile.company.company_name}"
-            }, status=400)
-        
+            return Response(
+                {
+                    "error": f"You are already linked to company: {request.user.employer_profile.company.company_name}"
+                },
+                status=400
+            )
+
         # Link employer to existing company
         if hasattr(request.user, 'employer_profile'):
             request.user.employer_profile.company = company
             request.user.employer_profile.save()
-            
-            return Response({
-                "message": f"Successfully linked to existing company: {company.company_name}",
-                "company_id": company.id,
-                "company_name": company.company_name,
-                "is_existing": True
-            }, status=200)
-        
-        return Response({"error": "Employer profile not found"}, status=400)        
- 
+
+            return Response(
+                {
+                    "message": f"Successfully linked to existing company: {company.company_name}",
+                    "company_id": company.id,
+                    "company_name": company.company_name,
+                    "is_existing": True
+                },
+                status=200
+            )
+
+        return Response(
+            {"error": "Employer profile not found"},
+            status=400
+        )
     
 
 # ============ OTP VIEWS ============
@@ -4714,15 +4750,7 @@ class CompanyVerificationStatusView(APIView):
 
         return Response({
             "status": verification.status,
-            "parent_approval_status": verification.parent_approval_status,
-            "is_verified": (
-                verification.status == "Verified"
-                and (
-                    not verification.company
-                    or verification.company.company_type == CompanyProfile.CompanyType.MAIN
-                    or verification.parent_approval_status == "Verified"
-                )
-            )
+            "is_verified": verification.status == "Verified"
         }, status=status.HTTP_200_OK)
  
 
@@ -5975,6 +6003,8 @@ from django.db.models import Q
 import hashlib
 
 import logging
+import re
+
  
 from .models import (
 
@@ -5985,6 +6015,22 @@ from .models import (
 )
 
 from .services import Admin2FAService, AdminSecurityService
+
+def normalize_website(url: str) -> str:
+    if not url:
+        return ""
+    url = url.strip().lower()
+    url = re.sub(r'^https?://', '', url)
+    url = re.sub(r'^www\.', '', url)
+    return url.rstrip('/')
+
+
+def normalize_gst(value: str) -> str:
+    if not value:
+        return ""
+    return re.sub(r'\s+', '', value.strip().upper())
+
+
 logger = logging.getLogger(__name__)
 class AdminLoginView(APIView):
     permission_classes = [AllowAny]
@@ -6382,14 +6428,8 @@ class DashboardView(APIView):
 class AdminCompanyListView(APIView):
     #permission_classes = [IsAuthenticated, IsAdminUserType] enable in prod
     def get(self, request):
-        queryset = CompanyVerification.objects.select_related(
-            'employer', 'company', 'company__parent_company'
-        ).order_by('-created_at')
-        serializer = AdminCompanySerializer(
-            queryset,
-            many=True,
-            context={'request': request}
-        )
+        queryset = CompanyVerification.objects.select_related('employer')
+        serializer = AdminCompanySerializer(queryset, many=True)
         return Response(serializer.data)
 
 
@@ -6402,7 +6442,6 @@ class AdminCompanyDetailView(APIView):
                 "employer",
                 "employer__employer_profile",
                 "employer__employer_profile__company",
-                "company__parent_company",
             ),
             pk=pk
         )

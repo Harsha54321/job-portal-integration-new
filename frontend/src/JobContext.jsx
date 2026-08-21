@@ -573,6 +573,7 @@ export const JobProvider = ({ children }) => {
         const load = async () => {
             try {
                 console.log("🚀 Initial data load starting...");
+                console.log(" Initial data load starting for role:", userType);
                 setLoading(true);
 
                 await fetchAllJobs();
@@ -580,6 +581,9 @@ export const JobProvider = ({ children }) => {
                 await fetchNotifications();
 
                 if (userType === "jobseeker") {
+                    await fetchAllJobs();
+                    await fetchChats();
+                    await fetchNotifications();
                     const res = await api.get("profile/jobseeker/");
                     setCurrentUser(res.data);
                     console.log("✅ Jobseeker data loaded");
@@ -587,7 +591,13 @@ export const JobProvider = ({ children }) => {
 
                 if (userType === "employer") {
                     await fetchEmployerData();
+                    await fetchChats();
+                    await fetchNotifications();
                     console.log("✅ Employer data loaded");
+                } else if (userType === "admin") {
+                    // Admin only fetches notifications; skips jobseeker/employer specific APIs
+                    await fetchNotifications();
+                    console.log("✅ Admin session initialized");
                 }
 
                 console.log("✅ Initial data load complete");
@@ -603,8 +613,9 @@ export const JobProvider = ({ children }) => {
 
     useEffect(() => {
         const token = sessionStorage.getItem("access");
+        const userType = sessionStorage.getItem("user_type");
 
-        if (!token) return;
+        if (!token || userType === "admin") return;
 
         const interval = setInterval(() => {
             fetchChats();
