@@ -1158,7 +1158,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
               </div>
               <div className="aboutcompany-form-group">
                 <label>Parent Authorization Contact *</label>
-                <input type="text" name="authorizationContact" placeholder="Parent company approver or agreement reference" value={formData.authorizationContact} onChange={handleChange} disabled={isLoading} />
+                <input type="email" name="authorizationContact" placeholder="parent.authorizer@company.com" value={formData.authorizationContact} onChange={handleChange} disabled={isLoading} />
               </div>
               <div className="aboutcompany-form-group">
                 <label>Authorization Document</label>

@@ -34,6 +34,8 @@ from django.db.models.functions import (
 )
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from django.core.mail import send_mail
+from email.utils import parseaddr
 
 from .serializers import (
     JobSeekerRegistrationSerializer,
@@ -3874,6 +3876,27 @@ class SubmitCompanyVerification(APIView):
             ).select_related('user') if company and company.parent_company_id else EmployerProfile.objects.none()
 
             if company and company.company_type == CompanyProfile.CompanyType.PARTNER:
+                authorization_email = parseaddr(company.authorization_contact)[1]
+                if authorization_email:
+                    try:
+                        send_mail(
+                            subject=f"Partner company approval required: {company.company_name}",
+                            message=(
+                                f"{company.company_name} has requested to join "
+                                f"{company.parent_company.company_name}. "
+                                "Please sign in to the Job Portal and review this approval request "
+                                "from the Partner Companies page."
+                            ),
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[authorization_email],
+                            fail_silently=False,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Unable to send partner approval email to %s",
+                            authorization_email,
+                        )
+
                 for parent_profile in parent_employers:
                     NotificationService.create_notification(
                         recipient=parent_profile.user,
@@ -6359,8 +6382,14 @@ class DashboardView(APIView):
 class AdminCompanyListView(APIView):
     #permission_classes = [IsAuthenticated, IsAdminUserType] enable in prod
     def get(self, request):
-        queryset = CompanyVerification.objects.select_related('employer')
-        serializer = AdminCompanySerializer(queryset, many=True)
+        queryset = CompanyVerification.objects.select_related(
+            'employer', 'company', 'company__parent_company'
+        ).order_by('-created_at')
+        serializer = AdminCompanySerializer(
+            queryset,
+            many=True,
+            context={'request': request}
+        )
         return Response(serializer.data)
 
 
@@ -6373,6 +6402,7 @@ class AdminCompanyDetailView(APIView):
                 "employer",
                 "employer__employer_profile",
                 "employer__employer_profile__company",
+                "company__parent_company",
             ),
             pk=pk
         )

@@ -3132,10 +3132,23 @@ class AdminCompanySerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
     certificate = serializers.SerializerMethodField()
     verification = serializers.CharField(source='get_status_display')
+    company_type = serializers.CharField(source='company.company_type', read_only=True)
+    parent_company_name = serializers.CharField(source='company.parent_company.company_name', read_only=True)
+    partner_category = serializers.CharField(source='company.partner_category', read_only=True)
+    services_offered = serializers.CharField(source='company.services_offered', read_only=True)
+    authorization_contact = serializers.CharField(source='company.authorization_contact', read_only=True)
+    parent_approval_status = serializers.CharField(read_only=True)
+    company_profile = serializers.SerializerMethodField()
+    verification_details = serializers.SerializerMethodField()
  
     class Meta:
         model = CompanyVerification
-        fields = ['id', 'name', 'user', 'date', 'certificate', 'verification']
+        fields = [
+            'id', 'name', 'user', 'date', 'certificate', 'verification',
+            'company_type', 'parent_company_name', 'partner_category',
+            'services_offered', 'authorization_contact',
+            'parent_approval_status', 'company_profile', 'verification_details'
+        ]
  
     def get_date(self, obj):
         return obj.created_at.strftime("%d %B %Y") if obj.created_at else None
@@ -3147,9 +3160,33 @@ class AdminCompanySerializer(serializers.ModelSerializer):
         return "No"
  
     def get_name(self, obj):
+        if obj.company:
+            return obj.company.company_name
         if hasattr(obj.employer, 'employer_profile') and obj.employer.employer_profile.company:
             return obj.employer.employer_profile.company.company_name
         return obj.legal_name
+
+    def get_company_profile(self, obj):
+        if not obj.company:
+            return None
+        return CompanyProfileSerializer(obj.company, context=self.context).data
+
+    def get_verification_details(self, obj):
+        return {
+            'legal_name': obj.legal_name,
+            'registration_number': obj.registration_number,
+            'tax_id': obj.tax_id,
+            'website_url': obj.website_url,
+            'official_email': obj.official_email,
+            'phone_number': obj.phone_number,
+            'parent_approval_status': obj.parent_approval_status,
+            'company_type': obj.company.company_type if obj.company else None,
+            'parent_company_name': obj.company.parent_company.company_name if obj.company and obj.company.parent_company else None,
+            'partner_category': obj.company.partner_category if obj.company else '',
+            'services_offered': obj.company.services_offered if obj.company else '',
+            'authorization_contact': obj.company.authorization_contact if obj.company else '',
+            'verification': obj.get_status_display(),
+        }
 
 class AdminCompanyDetailSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -3183,6 +3220,8 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
         return "No"
 
     def get_name(self, obj):
+        if obj.company:
+            return obj.company.company_name
         if hasattr(obj.employer, 'employer_profile') and obj.employer.employer_profile.company:
             return obj.employer.employer_profile.company.company_name
         return obj.legal_name
@@ -3191,7 +3230,9 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         company = None
 
-        if hasattr(obj.employer, "employer_profile"):
+        if obj.company:
+            company = obj.company
+        elif hasattr(obj.employer, "employer_profile"):
             company = obj.employer.employer_profile.company
 
         if not company:
@@ -3238,6 +3279,19 @@ class AdminCompanyDetailSerializer(serializers.ModelSerializer):
             "website_url": obj.website_url,
             "official_email": obj.official_email,
             "phone_number": obj.phone_number,
+            "company_type": obj.company.company_type if obj.company else None,
+            "parent_company_name": (
+                obj.company.parent_company.company_name
+                if obj.company and obj.company.parent_company else None
+            ),
+            "partner_category": obj.company.partner_category if obj.company else "",
+            "services_offered": obj.company.services_offered if obj.company else "",
+            "authorization_contact": obj.company.authorization_contact if obj.company else "",
+            "authorization_document": (
+                request.build_absolute_uri(obj.company.authorization_document.url)
+                if request and obj.company and obj.company.authorization_document else None
+            ),
+            "parent_approval_status": obj.parent_approval_status,
             # Use registration_certificate instead
             "registration_certificate": registration_certificate_url,
             "tax_certificate": tax_certificate_url,

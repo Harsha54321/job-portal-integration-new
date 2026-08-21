@@ -931,6 +931,40 @@ export const ActivityMonitor = ({ currentTab, onTabChange }) => {
                   </div>
 
                   <div>
+                    <span>Company Relationship</span>
+                    <p>
+                      {selectedCompany.verification_details?.company_type === "partner"
+                        ? "Partner / consultancy company"
+                        : "Main company"}
+                    </p>
+                  </div>
+
+                  {selectedCompany.verification_details?.company_type === "partner" && (
+                    <>
+                      <div>
+                        <span>Parent Company</span>
+                        <p>{selectedCompany.verification_details?.parent_company_name || "Not provided"}</p>
+                      </div>
+                      <div>
+                        <span>Partner Type</span>
+                        <p>{selectedCompany.verification_details?.partner_category || "Not provided"}</p>
+                      </div>
+                      <div className="company-details-full">
+                        <span>Services Offered</span>
+                        <p>{selectedCompany.verification_details?.services_offered || "Not provided"}</p>
+                      </div>
+                      <div>
+                        <span>Authorization Contact</span>
+                        <p>{selectedCompany.verification_details?.authorization_contact || "Not provided"}</p>
+                      </div>
+                      <div>
+                        <span>Parent Approval</span>
+                        <p>{selectedCompany.verification_details?.parent_approval_status || "Pending"}</p>
+                      </div>
+                    </>
+                  )}
+
+                  <div>
                     <span>Submitted By</span>
                     <p>
                       {selectedCompany.verification_details?.submitted_by ||
