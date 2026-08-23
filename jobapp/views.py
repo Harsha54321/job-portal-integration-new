@@ -3839,19 +3839,21 @@ class SubmitCompanyVerification(APIView):
                 },
                 status=status.HTTP_403_FORBIDDEN
             )
+            
+        # ─────────────────────────────
+        # CHECK IF ALREADY SUBMITTED
+        # ─────────────────────────────
         if CompanyVerification.objects.filter(employer=request.user).exists():
             return Response({
                 "error": "You already submitted verification"
-            })
+            }, status=400)
 
         # ─────────────────────────────
-        # GST / TAX-ID DUPLICATE CHECK
+        # GET SUBSCRIPTION & PLATFORM SETTINGS
         # ─────────────────────────────
-
-        tax_id = request.data.get('tax_id')
-
         subscription = Subscription.objects.filter(
-            user=request.user, status='active'
+            user=request.user, 
+            status='active'
         ).select_related('plan').first()
 
         platform = None
@@ -3861,77 +3863,146 @@ class SubmitCompanyVerification(APIView):
                 account_status=request.user.status
             ).first()
 
+        # ─────────────────────────────
+        # GST / TAX-ID DUPLICATE CHECK
+        # ─────────────────────────────
+        tax_id = request.data.get('tax_id')
+        registration_number = request.data.get('registration_number')
+        official_email = request.data.get('official_email')
+        legal_name = request.data.get('legal_name')
+
+        # ─────────────────────────────
+        # CHECK: Multiple users restriction for TAX ID
+        # ─────────────────────────────
         if tax_id and (not platform or not platform.allow_multiple_users):
             normalized_new = normalize_gst(tax_id)
-
-            duplicate_exists = any(
-                normalize_gst(cv.tax_id) == normalized_new
-                for cv in CompanyVerification.objects.exclude(
-                    employer=request.user
-                ).only('id', 'tax_id')
-            )
+            
+            # Check if any other employer has this tax ID
+            duplicate_exists = False
+            for cv in CompanyVerification.objects.exclude(
+                employer=request.user
+            ).only('id', 'tax_id'):
+                if normalize_gst(cv.tax_id) == normalized_new:
+                    duplicate_exists = True
+                    break
 
             if duplicate_exists:
                 return Response(
                     {
                         "error": (
-                            "multiple users not allowed for this "
-                            "company, blocked by admin"
+                            "This tax ID / GST is already registered with another company. "
+                            "Multiple users are not allowed for this company."
                         )
                     },
                     status=400
                 )
 
-        serializer = (
-            CompanyVerificationSerializer(
-                data=request.data,
-                context={
-                    'request': request
-                }
-            )
+        # ─────────────────────────────
+        # CHECK: Multiple users restriction for REGISTRATION NUMBER
+        # ─────────────────────────────
+        if registration_number and (not platform or not platform.allow_multiple_users):
+            normalized_reg = normalize_registration(registration_number)
+            
+            duplicate_exists = False
+            for cv in CompanyVerification.objects.exclude(
+                employer=request.user
+            ).only('id', 'registration_number'):
+                if normalize_reg(cv.registration_number) == normalized_reg:
+                    duplicate_exists = True
+                    break
+
+            if duplicate_exists:
+                return Response(
+                    {
+                        "error": (
+                            "This registration number is already registered with another company. "
+                            "Multiple users are not allowed for this company."
+                        )
+                    },
+                    status=400
+                )
+
+        # ─────────────────────────────
+        # CHECK: Multiple users restriction for OFFICIAL EMAIL
+        # ─────────────────────────────
+        if official_email and (not platform or not platform.allow_multiple_users):
+            normalized_email = official_email.strip().lower()
+            
+            duplicate_exists = CompanyVerification.objects.filter(
+                official_email__iexact=normalized_email
+            ).exclude(
+                employer=request.user
+            ).exists()
+
+            if duplicate_exists:
+                return Response(
+                    {
+                        "error": (
+                            "This official email is already registered with another company. "
+                            "Multiple users are not allowed for this company."
+                        )
+                    },
+                    status=400
+                )
+
+        # ─────────────────────────────
+        # CHECK: Multiple users restriction for LEGAL NAME
+        # ─────────────────────────────
+        if legal_name and (not platform or not platform.allow_multiple_users):
+            normalized_legal_name = legal_name.strip().lower()
+            
+            duplicate_exists = CompanyVerification.objects.filter(
+                legal_name__iexact=normalized_legal_name
+            ).exclude(
+                employer=request.user
+            ).exists()
+
+            if duplicate_exists:
+                return Response(
+                    {
+                        "error": (
+                            "This legal name is already registered with another company. "
+                            "Multiple users are not allowed for this company."
+                        )
+                    },
+                    status=400
+                )
+
+        # ─────────────────────────────
+        # PROCEED WITH VERIFICATION
+        # ─────────────────────────────
+        serializer = CompanyVerificationSerializer(
+            data=request.data,
+            context={'request': request}
         )
+        
         if serializer.is_valid():
-            verification = serializer.save(
-        employer=request.user
-    )
-            #new added
-            for admin in User.objects.filter(
-                user_type="admin"
-            ):
-
+            verification = serializer.save(employer=request.user)
+            
+            # Notify admins
+            for admin in User.objects.filter(user_type="admin"):
                 NotificationService.create_notification(
-
                     recipient=admin,
-
                     title="New Company Verification",
-
                     message=(
                         f"Company verification submitted by "
                         f"{request.user.email} "
                         f"and is pending approval."
                     ),
-
                     event_type="company_verification_submitted",
-
                     notification_type="system",
-
                     related_object_id=verification.id
                 )
-                #--
+                
             return Response(
                 {
-                    "message": (
-                        "Verification submitted "
-                        "successfully"
-                    ),
+                    "message": "Verification submitted successfully",
                     "status": "pending"
                 },
                 status=status.HTTP_201_CREATED
             )
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CompanyVerificationAction(APIView):
     permission_classes = [IsAdminUser]
@@ -3972,84 +4043,67 @@ class CompanyVerificationAction(APIView):
 # ============ COMPANY PROFILE VIEWS ============
 
 class CompanyProfileCreateView(APIView):
-
     permission_classes = [IsEmployerOrAdmin]
 
     def post(self, request):
+        # ─────────────────────────────
+        # ACTIVE SUBSCRIPTION CHECK
+        # ─────────────────────────────
+        subscription = Subscription.objects.filter(
+            user=request.user,
+            status='active'
+        ).select_related('plan').first()
         
-        subscription = (
-            Subscription.objects.filter(
-                user=request.user,
-                status='active'
-            ).select_related(
-                'plan'
-            ).first()
-        )
         platform = None
-
         if subscription:
-            platform = (
-                EmployerPlatformSettings.objects.filter(
-        
-                    plan=subscription.plan,
-        
-                    account_status=request.user.status
-        
-                ).first()
-            )
+            platform = EmployerPlatformSettings.objects.filter(
+                plan=subscription.plan,
+                account_status=request.user.status
+            ).first()
 
-        if (
-            hasattr(
-                request.user,
-                'employer_profile'
-            )
-            and
-            request.user.employer_profile.company
-        ):
-            if (
-                not platform
-                or
-                not platform.allow_multiple_company
-            ):
+        # ─────────────────────────────
+        # CHECK IF USER IS ALREADY LINKED TO A COMPANY
+        # ─────────────────────────────
+        if hasattr(request.user, 'employer_profile') and request.user.employer_profile.company:
+            if not platform or not platform.allow_multiple_company:
                 return Response(
-                    {
-                        "error": (
-                            "You are already "
-                            "linked to a company"
-                        )
-                    },
+                    {"error": "You are already linked to a company"},
                     status=400
                 )
 
-        # serializer = CompanyProfileSerializer(
-        company_name = request.data.get(
-            'company_name'
-        )
+        # ─────────────────────────────
+        # COMPANY NAME DUPLICATE CHECK
+        # ─────────────────────────────
+        company_name = request.data.get('company_name')
 
-        existing_company = (
-            CompanyProfile.objects.filter(
+        if company_name:
+            existing_company = CompanyProfile.objects.filter(
                 company_name__iexact=company_name
             ).first()
-        )
 
-        if existing_company:
-
-            return Response(
-                {
-                    "error": (
-                        f"A company with the name "
-                        f"'{company_name}' already "
-                        f"exists. Please use a "
-                        f"different name."
+            if existing_company:
+                # Check if multiple users are allowed
+                if not platform or not platform.allow_multiple_users:
+                    return Response(
+                        {
+                            "error": "multiple users not allowed for this company, blocked by admin"
+                        },
+                        status=400
                     )
-                },
-                status=400
-            )
+                else:
+                    # Multiple users allowed - send existing company info for joining
+                    return Response(
+                        {
+                            "error": "company name already exists",
+                            "existing_company_name": existing_company.company_name,
+                            "existing_company_id": existing_company.id
+                        },
+                        status=400
+                    )
 
-             # ─────────────────────────────
+        # ─────────────────────────────
         # WEBSITE-BASED DUPLICATE CHECK
         # ─────────────────────────────
-
         website = request.data.get('website')
 
         if website:
@@ -4062,20 +4116,16 @@ class CompanyProfileCreateView(APIView):
                     break
 
             if existing_by_website:
+                # Check if multiple users are allowed
                 if not platform or not platform.allow_multiple_users:
-                    # Admin disabled multiple users -> hard block
                     return Response(
                         {
-                            "error": (
-                                "multiple users not allowed for this "
-                                "company, blocked by admin"
-                            )
+                            "error": "multiple users not allowed for this company, blocked by admin"
                         },
                         status=400
                     )
                 else:
-                    # Admin allows multiple users -> don't auto-create,
-                    # tell frontend to show the join popup instead
+                    # Multiple users allowed - send existing company info for joining
                     return Response(
                         {
                             "error": "company website already exists",
@@ -4085,6 +4135,9 @@ class CompanyProfileCreateView(APIView):
                         status=400
                     )
 
+        # ─────────────────────────────
+        # PROCEED WITH CREATION
+        # ─────────────────────────────
         serializer = CompanyProfileSerializer(
             data=request.data,
             context={
@@ -4096,71 +4149,41 @@ class CompanyProfileCreateView(APIView):
         if serializer.is_valid():
             company = serializer.save()
 
-            if hasattr(
-                request.user,
-                'employer_profile'
-            ):
-
-                request.user.employer_profile.company = (
-                    company
-                )
+            if hasattr(request.user, 'employer_profile'):
+                request.user.employer_profile.company = company
                 request.user.employer_profile.save()
 
             NotificationService.create_notification(
                 recipient=request.user,
                 title="Company Profile Created",
-                message=(
-                    f"Your company profile "
-                    f"'{company.company_name}' "
-                    f"has been created successfully."
-                ),
+                message=f"Your company profile '{company.company_name}' has been created successfully.",
                 category="company",
                 event_type="company_profile_created",
                 notification_type="system",
                 related_object_id=company.id
             )
-            #new added 
+
             for admin in User.objects.filter(user_type="admin"):
-
                 NotificationService.create_notification(
-
                     recipient=admin,
-
                     title="New Company Profile Created",
-
-                    message=(
-                        f"Company profile "
-                        f"'{company.company_name}' "
-                        f"has been created by "
-                        f"{request.user.email}."
-                    ),
-
+                    message=f"Company profile '{company.company_name}' has been created by {request.user.email}.",
                     event_type="company_profile_created",
-
                     notification_type="system",
-
                     related_object_id=company.id
                 )
-            #--
+
             return Response(
                 {
-                    "message": (
-                        "Company profile created "
-                        "successfully"
-                    ),
+                    "message": "Company profile created successfully",
                     "company_id": company.id,
-                    "company_name": (
-                        company.company_name
-                    ),
+                    "company_name": company.company_name,
                     "is_existing": False
                 },
                 status=201
             )
-       
-        return Response(
-            serializer.errors,
-            status=400
-        )
+
+        return Response(serializer.errors, status=400)
         
 
 # company announcement views

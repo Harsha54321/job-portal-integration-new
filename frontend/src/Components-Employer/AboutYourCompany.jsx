@@ -393,14 +393,21 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
       };
     } catch (err) {
       console.error("Link to company error:", err);
+
       if (err.response?.status === 404) {
         setBackendError("Company not found. Please create a new company.");
       } else if (err.response?.status === 400) {
-        setBackendError(err.response?.data?.error || "Cannot link to this company");
+        const errorMsg = err.response?.data?.error || "";
+        if (errorMsg.includes("multiple users not allowed")) {
+          setBackendError("Multiple users are not allowed for this company.");
+        } else {
+          setBackendError(errorMsg || "Cannot link to this company.");
+        }
       } else {
         setBackendError("Failed to link to company. Please try again.");
       }
-      return { success: false, error: "Link failed" };
+
+      return { success: false, error: err.response?.data?.error || "Link failed" };
     } finally {
       setIsLoading(false);
     }
@@ -512,59 +519,63 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
     } catch (err) {
       console.error("Create profile error:", err);
+
+      // ── Network Error ──
       if (err.code === "ERR_NETWORK") {
         setBackendError("Network error. Please check your connection.");
         window.scrollTo({ top: 0, behavior: "smooth" });
         return { success: false, error: "network" };
       }
+
+      // ── Authentication Error ──
       if (err.response?.status === 401 && !fromSignup) {
         setBackendError("Session expired. Please login again.");
         return { success: false, error: "unauthorized" };
       }
 
+      // ── Bad Request (400) ──
       if (err.response?.status === 400) {
         const errorData = err.response?.data;
         const errorMsg = errorData?.error || "";
 
-        // 1) Website-duplicate -> join popup (MUST come before the generic "already exists" check)
-        if (errorMsg === "company website already exists") {
+        // 1️⃣ CHECK: "multiple users not allowed" (BLOCKED BY ADMIN)
+        if (errorMsg.includes("multiple users not allowed for this company, blocked by admin")) {
           setErrors(prev => ({
             ...prev,
-            website: "This website is already registered with another company."
+            companyName: errorMsg,
+            website: errorMsg
           }));
-          setBackendError("A company with this website already exists.");
-          setPendingCompanyName(errorData.existing_company_name);
+          setBackendError("This company already has an employer registered. Multiple users are not allowed for this company.");
+          window.scrollTo({ top: 100, behavior: "smooth" });
+          return { success: false, error: "blocked_by_admin" };
+        }
+
+        // 2️⃣ CHECK: "You are already linked to a company"
+        if (errorMsg === "You are already linked to a company") {
+          setBackendError("You are already linked to a company. Please contact admin for assistance.");
+          window.scrollTo({ top: 100, behavior: "smooth" });
+          return { success: false, error: "already_linked" };
+        }
+
+        // 3️⃣ CHECK: "company website already exists" (SHOW POPUP)
+        if (errorMsg === "company website already exists") {
+          // Store the existing company info for the popup
+          setPendingCompanyName(errorData.existing_company_name || data.companyName);
           setPendingWebsite(data.website);
           setShowPopup(true);
           window.scrollTo({ top: 100, behavior: "smooth" });
           return { success: false, error: "duplicate_website", pending: true };
         }
 
-        // 2) Blocked by admin (allow_multiple_users = False)
-        if (errorMsg.includes("multiple users not allowed")) {
-          setErrors(prev => ({
-            ...prev,
-            website: errorMsg
-          }));
-          setBackendError(errorMsg);
-          window.scrollTo({ top: 100, behavior: "smooth" });
-          return { success: false, error: "blocked_by_admin" };
-        }
-
-        // 3) Company-name duplicate (generic)
-        if (errorMsg.includes("already exists")) {
-          setBackendError("Company already exists.");
-          setPendingCompanyName(data.companyName);
+        // 4️⃣ CHECK: "company name already exists" (SHOW POPUP)
+        if (errorMsg === "company name already exists") {
+          setPendingCompanyName(errorData.existing_company_name || data.companyName);
           setPendingWebsite(data.website);
           setShowPopup(true);
           return { success: false, error: "duplicate_company", pending: true };
         }
 
-        if (errorMsg === "You are already linked to a company") {
-          navigate("/Job-portal/employer/login");
-          return { success: false, error: "already_linked" };
-        }
-
+        // 5️⃣ Handle other validation errors (field-specific)
         const fieldMapping = {
           company_name: "companyName",
           company_moto: "companyMoto",
@@ -589,15 +600,24 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
         if (Object.keys(newErrors).length > 0) {
           setErrors(prev => ({ ...prev, ...newErrors }));
           window.scrollTo({ top: 100, behavior: "smooth" });
-          return { success: false, error: "oops! something went wrong" };
+          return { success: false, error: "validation_failed" };
         }
 
+        // 6️⃣ Generic error
         setBackendError(errorMsg || "Invalid data provided.");
-        return { success: false, error: "oops! something went wrong" };
+        return { success: false, error: "bad_request" };
       }
 
+      // ── Server Error (500+) ──
+      if (err.response?.status >= 500 && err.response?.status < 600) {
+        setBackendError("Server error. Our team has been notified. Please try again later.");
+        return { success: false, error: "server_error" };
+      }
+
+      // ── Unknown Error ──
       setBackendError(err.response?.data?.error || "Something went wrong. Please try again.");
       return { success: false, error: "failed" };
+
     } finally {
       setIsLoading(false);
     }
@@ -887,20 +907,40 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
   const handleJoinExistingCompany = async () => {
     setShowPopup(false);
-    const result = await linkToExistingCompany(pendingWebsite);
+    setIsLoading(true);
 
-    if (result.success) {
-      setCompanyProfile({
-        ...formData,
-        id: result.data.company_id,
-        companyLogo: result.data.company_logo
-      });
+    try {
+      const result = await linkToExistingCompany(pendingWebsite);
 
-      navigate("/Job-portal/employer/about-your-company/company-verification", {
-        state: { fromSignup: fromSignup, employerEmail: employerEmail, companyName: pendingCompanyName }
-      });
-    } else if (result.error !== "Validation failed") {
-      setBackendError(result.error || "Failed to link to company");
+      if (result.success) {
+        setCompanyProfile({
+          ...formData,
+          id: result.data.company_id,
+          companyLogo: result.data.company_logo,
+          isExisting: true
+        });
+
+        // Navigate to verification with existing company flag
+        navigate("/Job-portal/employer/about-your-company/company-verification", {
+          state: {
+            fromSignup: fromSignup,
+            employerEmail: employerEmail,
+            companyName: result.data.company_name || pendingCompanyName,
+            isExistingCompany: true,
+            profileId: result.data.company_id
+          }
+        });
+      } else if (result.error !== "Validation failed") {
+        setBackendError(result.error || "Failed to link to company. Please try again.");
+        setShowPopup(false);
+      } else {
+        setShowPopup(false);
+      }
+    } catch (err) {
+      console.error("Join company error:", err);
+      setBackendError("Failed to join company. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -908,8 +948,12 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     setShowPopup(false);
     setPendingCompanyName("");
     setPendingWebsite("");
-    setErrors({ companyName: "Please use a another company name" });
-    setErrors({ website: "Please use another company website link " })
+    // Set errors on both fields to show user they need to change them
+    setErrors(prev => ({
+      ...prev,
+      companyName: "Please use a different company name or contact admin to join the existing company.",
+      website: "Please use a different company website."
+    }));
   };
 
   const handleNext = async (e) => {
@@ -1028,20 +1072,45 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
   const PopupModal = () => {
     return (
-      <div className="popup-modal-overlay">
-        <div className="popup-modal-content">
+      <div className="popup-modal-overlay" onClick={() => setShowPopup(false)}>
+        <div className="popup-modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="popup-modal-header">
-            <h3>Company Already Exists</h3>
+            <h3>🏢 Company Already Exists</h3>
           </div>
           <div className="popup-modal-body">
             <p>
               A company with the name <strong>"{pendingCompanyName}"</strong> already exists in our system.
             </p>
-            <p>Do you want to join this existing company instead of creating a new one?</p>
+            <p style={{ color: '#666', fontSize: '14px' }}>
+              You can either:
+            </p>
+            <ul style={{ textAlign: 'left', paddingLeft: '20px', color: '#555' }}>
+              <li><strong>Join</strong> the existing company (if you're an authorized member)</li>
+              <li>Use a <strong>different company name</strong> to create a new profile</li>
+            </ul>
+            {!isLoading && (
+              <p style={{ fontSize: '13px', color: '#888', marginTop: '10px' }}>
+                ⚠️ Joining requires admin approval if multiple users are not enabled.
+              </p>
+            )}
           </div>
           <div className="popup-modal-footer">
-            <button type="button" className="popup-btn-cancel" onClick={handleCancelJoin}>No, Use Different Name</button>
-            <button type="button" className="popup-btn-confirm" onClick={handleJoinExistingCompany}>Yes, Join Existing Company</button>
+            <button
+              type="button"
+              className="popup-btn-cancel"
+              onClick={handleCancelJoin}
+              disabled={isLoading}
+            >
+              Use Different Name
+            </button>
+            <button
+              type="button"
+              className="popup-btn-confirm"
+              onClick={handleJoinExistingCompany}
+              disabled={isLoading}
+            >
+              {isLoading ? "Joining..." : "Join Existing Company"}
+            </button>
           </div>
         </div>
       </div>

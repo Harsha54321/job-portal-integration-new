@@ -12,24 +12,20 @@ import { useLocation } from "react-router-dom";
 import uploadIcon from "../assets/UploadIcon.png";
 
 export const CompanyVerify = () => {
-
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // FIX: Separate loading states for different actions
+  // ── Loading states ──
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isMobileLoading, setIsMobileLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendError, setBackendError] = useState("");
+  const [blockedByAdmin, setBlockedByAdmin] = useState(false);
 
-  const location = useLocation();
   const isFirstTime = location.state?.fromCompanyProfile === true;
   const employerEmail = location.state?.employerEmail || "";
-  console.log("🔍 location.state:", location.state);
-  console.log("🔍 isFirstTime:", isFirstTime);
 
-  const [errors, setErrors] = useState({});
-
-  // OTP STATES
+  // ── OTP STATES ──
   const [showEmailOtp, setShowEmailOtp] = useState(false);
   const [showMobileOtp, setShowMobileOtp] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -38,8 +34,9 @@ export const CompanyVerify = () => {
   const [timer, setTimer] = useState(0);
   const [emailForOtp, setEmailForOtp] = useState("");
   const [mobileForOtp, setMobileForOtp] = useState("");
+  const [errors, setErrors] = useState({});
 
-  // Upload visibility toggles
+  // ── Upload visibility toggles ──
   const [showRegUpload, setShowRegUpload] = useState(false);
   const [showTaxUpload, setShowTaxUpload] = useState(false);
 
@@ -52,10 +49,24 @@ export const CompanyVerify = () => {
     websiteUrl: "",
     officialEmail: "",
     phoneNumber: "",
-    // incorporationCertificate: null,
   });
 
-  // Handle all inputs (including file uploads)
+  // ── Timer logic ──
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => { setTimer((prev) => prev - 1); }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // ── Handle form changes ──
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
@@ -63,6 +74,9 @@ export const CompanyVerify = () => {
       ...prevErrors,
       [name]: ""
     }));
+
+    setBackendError("");
+    setBlockedByAdmin(false);
 
     if (files) {
       const file = files[0];
@@ -123,7 +137,6 @@ export const CompanyVerify = () => {
       }
 
       setFormData({ ...formData, [name]: val });
-      setBackendError("");
     }
   };
 
@@ -133,6 +146,7 @@ export const CompanyVerify = () => {
     if (input) input.value = "";
   };
 
+  // ── Validate form ──
   const validateForm = () => {
     const newErrors = {};
 
@@ -153,17 +167,12 @@ export const CompanyVerify = () => {
       newErrors.registrationNumber = "Please fill out this field.";
     } else if (!regPattern.test(formData.registrationNumber)) {
       newErrors.registrationNumber = "Must start with a letter and contain both letters and numbers (5-21 chars).";
-    }
-    else if (formData.registrationNumber.length < 5) {
+    } else if (formData.registrationNumber.length < 5) {
       newErrors.registrationNumber = "Invalid Registration Number length";
     }
 
-    // Registration file validation
     if (!formData.registrationFile) {
       newErrors.registrationFile = "Please upload the Registration Number document.";
-    }
-    if (!formData.taxFile) {
-      newErrors.taxFile = "Please upload the TIN  / GST document.";
     }
 
     if (!formData.taxId.trim()) {
@@ -172,9 +181,8 @@ export const CompanyVerify = () => {
       newErrors.taxId = "Tax ID must be 8-15 characters and contain both letters and numbers.";
     }
 
-    // Tax file validation
     if (!formData.taxFile) {
-      newErrors.taxFile = "Please upload the TIN  / GST document.";
+      newErrors.taxFile = "Please upload the TIN / GST document.";
     }
 
     if (!formData.websiteUrl.trim()) {
@@ -191,13 +199,12 @@ export const CompanyVerify = () => {
       newErrors.officialEmail = "Please verify your email via OTP";
     }
 
-    if (!isEmailVerified) newErrors.officialEmail = "Please verify official email via OTP";
-    if (!isMobileVerified) newErrors.phoneNumber = "Please verify phone number via OTP";
-
     if (!formData.phoneNumber?.trim()) {
       newErrors.phoneNumber = "Mobile number is required";
     } else if (!mobileRegex.test(formData.phoneNumber)) {
       newErrors.phoneNumber = "Enter valid 10-digit mobile (starts with 6-9)";
+    } else if (!isMobileVerified) {
+      newErrors.phoneNumber = "Please verify phone number via OTP";
     }
 
     // if (!formData.incorporationCertificate) {
@@ -211,53 +218,8 @@ export const CompanyVerify = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // TIMER LOGIC
-  useEffect(() => {
-    let interval;
-    if (timer > 0) {
-      interval = setInterval(() => { setTimer((prev) => prev - 1); }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [timer]);
-
-  // Verification status effect
-  useEffect(() => {
-    if (isFirstTime || employerEmail) {
-      console.log("First time user - skipping verification status check");
-      return;
-    }
-
-    const fetchVerificationStatus = async () => {
-      try {
-        const response = await api.get('/company/verification-status/');
-        console.log("Verification status:", response.data);
-        if (response.data.message) {
-          setBackendError(response.data.message);
-        }
-      } catch (err) {
-        console.error("Error fetching status:", err);
-        if (err.response?.status === 404) {
-          setBackendError("No verification request found. Please submit company verification.");
-        } else if (err.code === 'ERR_NETWORK') {
-          setBackendError("Network error. Please check your connection.");
-        } else {
-          setBackendError("Unable to check verification status. Please try again.");
-        }
-      }
-    };
-
-    fetchVerificationStatus();
-  }, [isFirstTime]);
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // COMPANY EMAIL OTP FUNCTIONS
+  // ── COMPANY EMAIL OTP FUNCTIONS ──
   const sendCompanyEmailOtp = async (event) => {
-    // Stop event propagation at the very beginning
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -280,7 +242,7 @@ export const CompanyVerify = () => {
       return;
     }
 
-    setIsEmailLoading(true);  // Only email loading state
+    setIsEmailLoading(true);
     try {
       const response = await api.post('/company/send-email-otp/', {
         email: email,
@@ -333,7 +295,7 @@ export const CompanyVerify = () => {
     }
   };
 
-  // MOBILE OTP FUNCTIONS
+  // ── MOBILE OTP FUNCTIONS ──
   const sendMobileOtp = async (event) => {
     if (event) {
       event.preventDefault();
@@ -348,9 +310,7 @@ export const CompanyVerify = () => {
 
     setIsMobileLoading(true);
     try {
-      // Simulate network delay for demo
       await new Promise(resolve => setTimeout(resolve, 1000));
-
       alert(`OTP sent to ${phone}`);
       setTimer(180);
       setMobileForOtp(phone);
@@ -389,93 +349,11 @@ export const CompanyVerify = () => {
     } catch (err) {
       alert("Verification failed");
     } finally {
-      setIsMobileLoading(false);  // ✅ loading end
+      setIsMobileLoading(false);
     }
   };
 
-  // Handle Submit with auto-refresh
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    if (!isEmailVerified || !isMobileVerified) {
-      alert("Please verify your Email and Mobile number before proceeding.");
-      return;
-    }
-
-    // if (!formData.incorporationCertificate) {
-    //   alert("Company Incorporation Certificate is required!");
-    //   return;
-    // }
-
-    setIsSubmitting(true);  // Only submitting state
-    setBackendError("");
-
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("legal_name", formData.legalName);
-      formDataToSend.append("registration_number", formData.registrationNumber);
-      formDataToSend.append("tax_id", formData.taxId);
-      formDataToSend.append("website_url", formData.websiteUrl);
-      formDataToSend.append("official_email", formData.officialEmail);
-      formDataToSend.append("phone_number", formData.phoneNumber);
-      // ❌ REMOVED: incorporation_certificate
-      // formDataToSend.append("incorporation_certificate", formData.incorporationCertificate);
-
-      if (formData.registrationFile) {
-        formDataToSend.append("registration_certificate", formData.registrationFile);
-      }
-      if (formData.taxFile) {
-        formDataToSend.append("tax_certificate", formData.taxFile);
-      }
-
-      if (employerEmail) {
-        formDataToSend.append("employer_email", employerEmail);
-      }
-
-      console.log("Submitting verification data...");
-
-      const response = await api.post("/company/verify/", formDataToSend, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("Verification response:", response.data);
-
-      if (response.status === 200 || response.status === 201) {
-        alert("Verification submitted successfully! Admin will review your application.");
-        navigate('/Job-portal/Employer/Dashboard', {
-          replace: true,
-          state: {
-            fromVerify: true,
-            verificationSubmitted: true,
-            justLoggedIn: true
-          }
-        });
-      }
-    } catch (err) {
-      console.error("Verification error:", err);
-      if (err.response?.data?.error) {
-        setBackendError(err.response.data.error);
-        alert(err.response.data.error);
-      } else if (err.code === 'ERR_NETWORK') {
-        setBackendError("Network error. Please check your connection.");
-        alert("Network error. Please check your connection.");
-      } else {
-        setBackendError("Failed to submit verification. Please try again.");
-        alert("Failed to submit. Please try again.");
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Reusable file upload section (appears below input when toggled)
+  // ── File Upload Section Component ──
   const FileUploadSection = ({ fieldName, accept }) => {
     const file = formData[fieldName];
     const error = errors[fieldName];
@@ -528,8 +406,8 @@ export const CompanyVerify = () => {
     );
   };
 
+  // ── OTP Modal Renderer ──
   const renderEmployerOtpModal = (type) => {
-    // ... (unchanged, same as original)
     const isEmail = type === 'email';
     const targetValue = isEmail ? formData.officialEmail : formData.phoneNumber;
     const otpKey = isEmail ? "emailOtp" : "mobileOtp";
@@ -598,16 +476,12 @@ export const CompanyVerify = () => {
                       }
                     }}
                     onKeyDown={(e) => {
-                      // 1. Handle Backspace for easy deletion
                       if (e.key === "Backspace" && !otpValues[otpKey]?.[index] && index > 0) {
                         document.getElementById(`otp-${type}-${index - 1}`).focus();
                       }
-
-                      // 2. Handle Enter key for quick submission
                       if (e.key === "Enter") {
-                        e.preventDefault(); // Prevent any background form submission
-
-                        // Check if the OTP is fully entered (6 digits) before triggering
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (otpValues[otpKey]?.length === 6) {
                           isEmail ? verifyCompanyEmailOtp(e) : verifyMobileOtp(e);
                         } else {
@@ -616,7 +490,7 @@ export const CompanyVerify = () => {
                       }
                     }}
                     autoFocus={index === 0}
-                    disabled={isEmailLoading || isMobileLoading}
+                    disabled={isEmail ? isEmailLoading : isMobileLoading}
                   />
                 ))}
               </div>
@@ -679,9 +553,97 @@ export const CompanyVerify = () => {
     );
   };
 
+  // ── MAIN SUBMIT HANDLER with allow_multiple_users check ──
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!isEmailVerified || !isMobileVerified) {
+      alert("Please verify your Email and Mobile number before proceeding.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setBackendError("");
+    setBlockedByAdmin(false);
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("legal_name", formData.legalName);
+      formDataToSend.append("registration_number", formData.registrationNumber);
+      formDataToSend.append("tax_id", formData.taxId);
+      formDataToSend.append("website_url", formData.websiteUrl);
+      formDataToSend.append("official_email", formData.officialEmail);
+      formDataToSend.append("phone_number", formData.phoneNumber);
+
+      if (formData.registrationFile) {
+        formDataToSend.append("registration_certificate", formData.registrationFile);
+      }
+      if (formData.taxFile) {
+        formDataToSend.append("tax_certificate", formData.taxFile);
+      }
+
+      if (employerEmail) {
+        formDataToSend.append("employer_email", employerEmail);
+      }
+
+      console.log("Submitting verification data...");
+
+      const response = await api.post("/company/verify/", formDataToSend, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("Verification response:", response.data);
+
+      if (response.status === 200 || response.status === 201) {
+        alert("Verification submitted successfully! Admin will review your application.");
+        navigate('/Job-portal/Employer/Dashboard', {
+          replace: true,
+          state: {
+            fromVerify: true,
+            verificationSubmitted: true,
+            justLoggedIn: true
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+
+      // ── Check for "multiple users not allowed" error ──
+      const errorMsg = err.response?.data?.error || "";
+
+      if (errorMsg.includes("multiple users not allowed")) {
+        setBlockedByAdmin(true);
+        setBackendError(
+          "❌ This company is already registered with another employer. " +
+          "Multiple users are not allowed for this company. " +
+          "Please contact admin for assistance."
+        );
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (err.response?.data?.error) {
+        setBackendError(err.response.data.error);
+        alert(err.response.data.error);
+      } else if (err.code === 'ERR_NETWORK') {
+        setBackendError("Network error. Please check your connection.");
+        alert("Network error. Please check your connection.");
+      } else {
+        setBackendError("Failed to submit verification. Please try again.");
+        alert("Failed to submit. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
-      {/* MODALS RENDERED OUTSIDE */}
+      {/* MODALS */}
       {showEmailOtp && renderEmployerOtpModal('email')}
       {showMobileOtp && renderEmployerOtpModal('mobile')}
 
@@ -693,15 +655,21 @@ export const CompanyVerify = () => {
 
           {backendError && (
             <div style={{
-              backgroundColor: "#ffebee", color: "#d32f2f",
-              padding: "10px", borderRadius: "5px", marginBottom: "20px", textAlign: "center"
+              backgroundColor: blockedByAdmin ? '#ffebee' : '#fff3cd',
+              color: blockedByAdmin ? '#d32f2f' : '#856404',
+              padding: "15px",
+              borderRadius: "8px",
+              marginBottom: "20px",
+              textAlign: "center",
+              border: blockedByAdmin ? '2px solid #d32f2f' : '1px solid #ffc107',
+              fontWeight: blockedByAdmin ? '600' : 'normal'
             }}>
               {backendError}
             </div>
           )}
 
           <form className="company-verify-form" onSubmit={handleSubmit}>
-            {/* Legal Name */}
+            {/* ── Legal Name ── */}
             <div className="company-verify-form-group">
               <label>Company Legal Name <span style={{ color: 'red' }}>*</span></label>
               <input
@@ -711,12 +679,12 @@ export const CompanyVerify = () => {
                 placeholder="e.g., Wipro Technologies"
                 value={formData.legalName}
                 onChange={handleChange}
-                disabled={isSubmitting}
+                disabled={isSubmitting || blockedByAdmin}
               />
               {errors.legalName && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.legalName}</span>}
             </div>
 
-            {/* Registration Number with Upload */}
+            {/* ── Registration Number with Upload ── */}
             <div className="company-verify-form-group">
               <label>Registration Number <span style={{ color: 'red' }}>*</span></label>
               <div className="company-verify-input-with-btn">
@@ -727,13 +695,14 @@ export const CompanyVerify = () => {
                   placeholder="e.g., L12345MH2023PTC123456"
                   value={formData.registrationNumber}
                   onChange={handleChange}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || blockedByAdmin}
                 />
                 <button
                   type="button"
                   className="company-small-upload-btn"
                   title="upload certificate"
                   onClick={() => setShowRegUpload(!showRegUpload)}
+                  disabled={blockedByAdmin}
                 >
                   <div className="remove-action-wrapper">
                     <img
@@ -743,8 +712,7 @@ export const CompanyVerify = () => {
                       loading="eager"
                       fetchPriority="high"
                       title="Upload Registration Document"
-                    />{" "}
-                    {/* Upload Certificate{" "} */}
+                    />
                   </div>
                 </button>
               </div>
@@ -759,9 +727,9 @@ export const CompanyVerify = () => {
               )}
             </div>
 
-            {/* Tax ID with Upload */}
+            {/* ── Tax ID with Upload ── */}
             <div className="company-verify-form-group">
-              <label>TIN  / GST <span style={{ color: 'red' }}>*</span></label>
+              <label>TIN / GST <span style={{ color: 'red' }}>*</span></label>
               <div className="company-verify-input-with-btn">
                 <input
                   type="text"
@@ -770,13 +738,14 @@ export const CompanyVerify = () => {
                   placeholder="e.g., 22AAAAA0000A1Z5"
                   value={formData.taxId}
                   onChange={handleChange}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || blockedByAdmin}
                 />
                 <button
                   type="button"
                   className="company-small-upload-btn"
                   title="upload certificate"
                   onClick={() => setShowTaxUpload(!showTaxUpload)}
+                  disabled={blockedByAdmin}
                 >
                   <div className="remove-action-wrapper">
                     <img
@@ -786,8 +755,7 @@ export const CompanyVerify = () => {
                       loading="eager"
                       fetchPriority="high"
                       title="Upload TIN / GST Document"
-                    />{" "}
-                    {/* Upload Certificate{" "} */}
+                    />
                   </div>
                 </button>
               </div>
@@ -800,11 +768,9 @@ export const CompanyVerify = () => {
                   accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
                 />
               )}
-
-
             </div>
 
-            {/* Website URL */}
+            {/* ── Website URL ── */}
             <div className="company-verify-form-group">
               <label>Web Site URL <span style={{ color: 'red' }}>*</span></label>
               <input
@@ -814,12 +780,12 @@ export const CompanyVerify = () => {
                 placeholder="e.g., https://example.com"
                 value={formData.websiteUrl}
                 onChange={handleChange}
-                disabled={isSubmitting}
+                disabled={isSubmitting || blockedByAdmin}
               />
               {errors.websiteUrl && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.websiteUrl}</span>}
             </div>
 
-            {/* Official Email */}
+            {/* ── Official Email ── */}
             <div className="company-verify-form-group">
               <label>Official Company Mail Id <span style={{ color: 'red' }}>*</span></label>
               <div className="company-verify-input-with-btn">
@@ -830,7 +796,7 @@ export const CompanyVerify = () => {
                   placeholder="e.g., hr@example.com"
                   value={formData.officialEmail}
                   onChange={handleChange}
-                  disabled={isSubmitting || isEmailVerified}
+                  disabled={isSubmitting || isEmailVerified || blockedByAdmin}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -838,7 +804,7 @@ export const CompanyVerify = () => {
                     }
                   }}
                 />
-                {!isEmailVerified && formData.officialEmail.length > 0 && (
+                {!isEmailVerified && formData.officialEmail.length > 0 && !blockedByAdmin && (
                   <button
                     type="button"
                     className="company-small-verify-btn"
@@ -847,7 +813,7 @@ export const CompanyVerify = () => {
                       e.stopPropagation();
                       sendCompanyEmailOtp(e);
                     }}
-                    disabled={isEmailLoading || isSubmitting}
+                    disabled={isEmailLoading || isSubmitting || blockedByAdmin}
                   >
                     {isEmailLoading ? "Sending..." : "Verify"}
                   </button>
@@ -857,7 +823,7 @@ export const CompanyVerify = () => {
               {errors.officialEmail && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.officialEmail}</span>}
             </div>
 
-            {/* Phone Number */}
+            {/* ── Phone Number ── */}
             <div className="company-verify-form-group">
               <label>Phone Number <span style={{ color: 'red' }}>*</span></label>
               <div className="company-verify-input-with-btn">
@@ -868,15 +834,15 @@ export const CompanyVerify = () => {
                   placeholder="e.g., 9876543210"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || blockedByAdmin}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && formData.phoneNumber.length === 10) {
+                    if (e.key === 'Enter' && formData.phoneNumber.length === 10 && !blockedByAdmin) {
                       e.preventDefault();
                       sendMobileOtp();
                     }
                   }}
                 />
-                {!isMobileVerified && formData.phoneNumber.length === 10 && (
+                {!isMobileVerified && formData.phoneNumber.length === 10 && !blockedByAdmin && (
                   <button
                     type="button"
                     className="company-small-verify-btn"
@@ -885,7 +851,7 @@ export const CompanyVerify = () => {
                       e.stopPropagation();
                       sendMobileOtp(e);
                     }}
-                    disabled={isMobileLoading || isSubmitting}
+                    disabled={isMobileLoading || isSubmitting || blockedByAdmin}
                   >
                     {isMobileLoading ? "Sending..." : "Verify"}
                   </button>
@@ -934,10 +900,33 @@ export const CompanyVerify = () => {
             </div> */}
 
             <div className="company-verify-btn-wrapper">
-              <button type="submit" className="company-main-verify-btn" disabled={isSubmitting || isEmailLoading || isMobileLoading}>
-                {isSubmitting ? "Submitting..." : "Verify"}
+              <button
+                type="submit"
+                className="company-main-verify-btn"
+                disabled={isSubmitting || isEmailLoading || isMobileLoading || blockedByAdmin}
+                style={{
+                  backgroundColor: blockedByAdmin ? '#ccc' : undefined,
+                  cursor: blockedByAdmin ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {blockedByAdmin ? "Blocked by Admin" : (isSubmitting ? "Submitting..." : "Verify")}
               </button>
             </div>
+
+            {blockedByAdmin && (
+              <div style={{
+                textAlign: 'center',
+                marginTop: '10px',
+                padding: '10px',
+                backgroundColor: '#fff3e0',
+                borderRadius: '6px'
+              }}>
+                <p style={{ color: '#e65100', fontSize: '14px' }}>
+                  ⚠️ You cannot submit verification because multiple users are not allowed for this company.
+                  Please contact admin or use a different company.
+                </p>
+              </div>
+            )}
           </form>
         </div>
 
