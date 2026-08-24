@@ -44,6 +44,8 @@ import { LocationDisplay } from '../Components-Jobseeker/LocationDisplay';
 import RaisedTickets from '../Components-Jobseeker/RaisedTickets'
 import TicketIcon from '../assets/AdminAssets/Tickets.png'
 import CompanyBranding from './CompanyBranding'
+import CompanyBrandingIcon from '../assets/Employer/CompanyBranding.png';
+import CompanyBrandingActIcon from '../assets/Employer/CompanyBranding_Alt.png';
 
 export const EmployerDashboard = () => {
     const { currentEmployer, getJobStats, refreshEmployerData } = useJobs();
@@ -468,9 +470,11 @@ export const EmployerDashboard = () => {
                                     <div className='Enav-item'>My Profile</div>
                                 </div>
 
-                                {/* ✅ Added Company Branding in Expanded Sidebar */}
-                                <div onClick={() => verificationStatus.isVerified && setActiveTab('Company Branding')} className={activetab === 'Company Branding' ? "Active" : 'Navbox'}>
-                                    <span style={{ fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px' }}>🎨</span>
+                                <div onClick={() => verificationStatus.isVerified && setActiveTab('Company Branding')}
+                                    className={activetab === 'Company Branding' ? "Active" : 'Navbox'}>
+                                    {activetab === 'Company Branding'
+                                        ? <img src={CompanyBrandingActIcon} height={15} width={15} alt="Company Branding" />
+                                        : <img src={CompanyBrandingIcon} height={15} width={15} alt="Company Branding" />}
                                     <div className='Enav-item'>Company Branding</div>
                                 </div>
 
@@ -525,9 +529,12 @@ export const EmployerDashboard = () => {
                                     {activetab === 'My Profile' ? <img src={ProfileAct} height={15} width={15} alt="My Profile" /> : <img src={Profile} height={15} width={15} alt="My Profile" />}
                                 </div>
 
-                                {/* ✅ Added Company Branding in Collapsed Sidebar */}
-                                <div onClick={() => verificationStatus.isVerified && setActiveTab('Company Branding')} className={activetab === 'Company Branding' ? "Active1" : 'Navbox1'} title="Company Branding & Announcements">
-                                    <span style={{ fontSize: '15px' }}>🎨</span>
+                                <div onClick={() => verificationStatus.isVerified && setActiveTab('Company Branding')}
+                                    className={activetab === 'Company Branding' ? "Active1" : 'Navbox1'}
+                                    title="Company Branding & Announcements">
+                                    {activetab === 'Company Branding'
+                                        ? <img src={CompanyBrandingActIcon} height={15} width={15} alt="Company Branding" />
+                                        : <img src={CompanyBrandingIcon} height={15} width={15} alt="Company Branding" />}
                                 </div>
 
                                 <div onClick={() => setActiveTab('AccountManager')}

@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import "./CompanyAnnouncements.css";
+import backicon from "../assets/curved-go-back.png";
 
 export default function JobseekerAnnouncements() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("all");
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleBack();
+    }
+  };
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -34,9 +47,40 @@ export default function JobseekerAnnouncements() {
   return (
     <div className="ja-container">
       <div className="ja-wrapper">
-        
+
+        <button
+          className="Fheader-back-btn"
+          onClick={handleBack}
+          onKeyDown={handleKeyDown}
+          aria-label="Go back to previous page"
+          type="button"
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10
+            
+          }}
+
+        >
+          <img
+            src={backicon}
+            alt="Go back"
+            style={{ display: 'block' }}
+            title="Go back to previous page"
+          />
+        </button>
+
         {/* Banner Section */}
         <div className="ja-banner">
+
           <div>
             <span className="ja-badge">Official Company Feeds</span>
             <h1 className="ja-title">Hiring Drives & Recruitment Updates</h1>
@@ -44,6 +88,7 @@ export default function JobseekerAnnouncements() {
               Live notifications regarding off-campus drives, job fairs, and walk-ins.
             </p>
           </div>
+
           <div>
             <input
               type="text"
@@ -54,6 +99,7 @@ export default function JobseekerAnnouncements() {
             />
           </div>
         </div>
+
 
         {/* Filter Bar */}
         <div className="ja-filter-bar">
@@ -68,6 +114,7 @@ export default function JobseekerAnnouncements() {
           ))}
         </div>
 
+
         {/* Card Feed Grid */}
         {loading ? (
           <div className="ja-loading">Loading feeds...</div>
@@ -80,7 +127,7 @@ export default function JobseekerAnnouncements() {
               return (
                 <div key={item.id} className="ja-card">
                   <div className="ja-card-accent" style={{ backgroundColor: brandColor }} />
-                  
+
                   <div className="ja-card-body">
                     <div className="ja-company-row">
                       <div className="ja-company-logo">
@@ -122,6 +169,8 @@ export default function JobseekerAnnouncements() {
         )}
 
       </div>
+
     </div>
+
   );
 }

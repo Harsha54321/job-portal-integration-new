@@ -321,17 +321,17 @@ export const UserManagement = () => {
 
                 <div className="detail-field-row">
                   <label>Current Details :</label>
-                  <input type="text" readOnly value={selectedUser.currentDetails?.currentLocation || "Chennai"} />
+                  <input type="text" readOnly value={selectedUser.currentDetails?.currentLocation || ""} />
                 </div>
 
                 <div className="detail-field-row">
                   <label>Education :</label>
-                  <input type="text" readOnly value={selectedUser.education?.highestQual || "B.E / B.Tech / Graduate"} />
+                  <input type="text" readOnly value={selectedUser.education?.highestQual || ""} />
                 </div>
 
                 <div className="detail-field-row">
                   <label>Skills :</label>
-                  <input type="text" readOnly value={Array.isArray(selectedUser.skills) ? selectedUser.skills.join(", ") : selectedUser.skills || "React, Node.js, JavaScript, CSS"} />
+                  <input type="text" readOnly value={Array.isArray(selectedUser.skills) ? selectedUser.skills.join(", ") : selectedUser.skills || ""} />
                 </div>
               </>
             )}

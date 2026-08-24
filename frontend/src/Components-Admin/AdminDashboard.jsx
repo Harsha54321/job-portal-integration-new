@@ -57,6 +57,8 @@ import { AddManagerContact } from './AddManagerContact'
 import AdminManager from '../assets/Employer/User.png'
 
 import AdminAnnouncementModeration from './AdminAnnouncementModeration'
+import CompanyBrandingIcon from '../assets/Employer/CompanyBranding.png';
+import CompanyBrandingActIcon from '../assets/Employer/CompanyBranding_Alt.png';
 
 export const AdminDashboard = () => {
     const { jobs, Alluser, currentEmployer } = useJobs();
@@ -339,7 +341,8 @@ export const AdminDashboard = () => {
                             {/* Announcements Tab in Loading Sidebar */}
                             <div onClick={() => setActiveTab("Announcements")} className={activetab === "Announcements" ? "Admin-Active" : 'Admin-Navbar'}>
                                 <div className='Admin-Navbox'>
-                                    <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px' }}>📢</span>
+                                    {activetab === "Announcements" ? <img src={CompanyBrandingActIcon} width={15} height={15} alt="Announcements" />
+                                        : <img src={CompanyBrandingIcon} width={15} height={15} alt="Announcements" />}
                                     <div className='Enav-item'>Announcements</div>
                                 </div>
                             </div>
@@ -479,8 +482,9 @@ export const AdminDashboard = () => {
 
                         {/* Announcements Tab in Main Sidebar */}
                         <div onClick={() => setActiveTab("Announcements")} className={activetab === "Announcements" ? "Admin-Active" : 'Admin-Navbar'}>
-                            <div className='Admin-Navbox'>
-                                <span style={{ fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px' }}>📢</span>
+                             <div className='Admin-Navbox'>
+                                {activetab === "Announcements" ? <img src={CompanyBrandingActIcon} width={15} height={15} alt="Announcements" />
+                                    : <img src={CompanyBrandingIcon} width={15} height={15} alt="Announcements" />}
                                 <div className='Enav-item'>Announcements</div>
                             </div>
                         </div>
