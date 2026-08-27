@@ -606,8 +606,8 @@ export const AdminDashboard = () => {
                                     </div>
                                     <div style={{ display: "flex", flexDirection: "column", padding: "15px" }}>
                                         {jobAds.slice(0, 4).map((job, index) => {
-                                            // Get the approved date - use approved_at if available
-                                            const approvedDate = job.approved_at || job.posted || job.created_at;
+                                            const isApproved = job.isApproved || job.approved_at;
+                                            const postedDate = job.posted || job.created_at;
 
                                             return (
                                                 <div className="Admin-job-card" key={job.id || index}>
@@ -617,8 +617,23 @@ export const AdminDashboard = () => {
                                                     <div className="Admin-job-right">
                                                         <div className="Ads-Count-Cont">
                                                             <span className="Ads-Count">Approved On</span>
-                                                            <p style={{ margin: "0", fontSize: "11px", color: "rgb(95, 94, 94)", fontWeight: "600" }}>
-                                                                {approvedDate ? formatDate(approvedDate) : 'N/A'}
+                                                            <p style={{
+                                                                margin: "0",
+                                                                fontSize: "11px",
+                                                                color: isApproved ? "rgb(95, 94, 94)" : "#f59e0b",
+                                                                fontWeight: isApproved ? "600" : "500"
+                                                            }}>
+                                                                {isApproved ? formatDate(job.approved_at) : 'Pending Approval'}
+                                                                {!isApproved && (
+                                                                    <span style={{
+                                                                        display: 'block',
+                                                                        fontSize: '9px',
+                                                                        color: '#94a3b8',
+                                                                        fontWeight: '400'
+                                                                    }}>
+                                                                        Posted: {postedDate ? formatDate(postedDate) : 'N/A'}
+                                                                    </span>
+                                                                )}
                                                             </p>
                                                         </div>
                                                         <div className="Ads-Count-Cont">
@@ -739,7 +754,7 @@ export const AdminDashboard = () => {
                         <ActivityMonitor currentTab={subTab} onTabChange={setSubTab} />
                     )}
                     {activetab === 'User Management' && (<UserManagement />)}
-                    
+
                     {/* Render Announcements Moderation Component */}
                     {activetab === 'Announcements' && <AdminAnnouncementModeration />}
 
