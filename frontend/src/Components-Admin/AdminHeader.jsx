@@ -191,6 +191,18 @@ export const AdminHeader = ({ onLogoutClick }) => {
     // sidebar/logo navigation already relies on (see AdminDashboard's
     // 'adminActiveTab' / 'adminSubTab' init and handleLogoClick below).
     const handleNotificationNavigate = (notification) => {
+        if (
+        notification.event_type === 'announcement_pending' ||
+        notification.event_type === 'announcement_approved' ||
+        notification.event_type === 'announcement_rejected'
+    ) {
+        sessionStorage.setItem('adminActiveTab', 'Announcements');
+        setShowNotification(false);
+        navigate('/Job-portal/admin/Dashboard');
+        window.location.reload();
+        return;
+    }
+
         const target = resolveAdminNotificationTarget(notification)
 
         sessionStorage.setItem('adminActiveTab', target.tab)

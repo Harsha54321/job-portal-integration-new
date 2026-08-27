@@ -1,12 +1,14 @@
-Donapati Harshavardhan for Postjobform dropdown css,
-please update the css with this entire file .jobpost-page-title {
+.jobpost-page-title {
     /* background-color: #FAFCFF; */
     min-height: 100vh;
     font-family: 'Inter', sans-serif;
+    
 }
 
 .jobpost-form-header {
     text-align: center;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
     /* padding: 110px 0 0 60px; */
 }
 
@@ -699,4 +701,9 @@ please update the css with this entire file .jobpost-page-title {
 .skills-suggestions-list li:hover {
     background-color: #F3F4F6;
     color: #007bff;
+}
+/* Reduce space between Header and "Post a Job" */
+.jobpost-page-title {
+    padding-top: 20px !important;
+    margin-top: 0 !important;
 }

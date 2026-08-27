@@ -73,7 +73,7 @@ import { Acreatepassword } from './Components-Admin/Acreatepassword'
 import React, { useEffect } from 'react'
 import { requestAndRegisterNotificationPermission, listenForForegroundMessages } from "./firebaseTokenHandler";
 import RoleSignupLanding from './Components-LandingPage/RoleSignupLanding';
-import  WeeklySummary  from './Components-Employer/WeeklySummary';
+import WeeklySummary from './Components-Employer/WeeklySummary';
 import RaisedTickets from './Components-Jobseeker/RaisedTickets';
 import CompanyBranding from './Components-Employer/CompanyBranding';
 import JobseekerAnnouncements from './Components-Jobseeker/CompanyAnnouncements';
@@ -111,6 +111,17 @@ const router = createBrowserRouter([
 
     children: [
       { path: '/', element: <Landingpage /> },
+
+      // ============ PUBLIC BLOG ROUTES (Before Login) ============
+      {
+        path: '/Job-portal/Blogs',
+        children: [
+          { path: '', element: <BlogPage /> },
+          { path: 'BlogDatas/:title', element: <BlogDatas /> },
+          { path: 'view-all/:category', element: <ViewAllBlogs /> },
+        ]
+      },
+
       {
         path: '/Job-portal/role-selection',
         element: <RoleLanding />,
@@ -132,7 +143,6 @@ const router = createBrowserRouter([
           { path: 'ReportAJob/:id', element: <ReportAJob /> },
           { path: 'myjobs', element: <MyJobs /> },
           { path: 'jobs', element: <JobsTab /> },
-          { path: 'companies', element: <CompaniesTab />},
           { path: 'companies', element: <CompaniesTab /> },
           { path: 'companies/:companyId', element: <JobsThroughCompany /> },
           { path: 'myprofile', element: <MyProfile /> },
@@ -153,7 +163,8 @@ const router = createBrowserRouter([
               { path: '', element: <BlogPage /> },
               { path: 'Category', element: <BlogCategory /> },
               { path: 'Technology', element: <TechnologyBlog /> },
-              { path: 'BlogDatas/:title', element: <BlogDatas /> },
+              // REMOVED: BlogDatas route - now public at /Job-portal/Blogs/BlogDatas/:title
+              // { path: 'BlogDatas/:title', element: <BlogDatas /> },
               { path: 'view-all/:category', element: <ViewAllBlogs /> },
             ]
           },
@@ -269,7 +280,7 @@ const router = createBrowserRouter([
 
           {
             path: 'WeeklySummary',
-            element: <WeeklySummary/>
+            element: <WeeklySummary />
           },
           {
             path: 'CompanyBranding',

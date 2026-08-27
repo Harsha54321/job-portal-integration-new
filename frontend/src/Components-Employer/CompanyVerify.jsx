@@ -86,9 +86,7 @@ export const CompanyVerify = () => {
         "application/pdf",
         "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
         "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       ];
 
       // if (file && !allowedTypes.includes(file.type)) {
@@ -108,7 +106,7 @@ export const CompanyVerify = () => {
       // }
 
       if (!allowedTypes.includes(file.type)) {
-        setErrors(prev => ({ ...prev, [name]: "Unsupported file format. Allowed: PDF, JPG, PNG, GIF, WEBP, DOC, DOCX, XLS, XLSX." }));
+        setErrors(prev => ({ ...prev, [name]: "Unsupported file format. Allowed: PDF, JPG, PNG, GIF, WEBP, DOC, DOCX." }));
         return;
       }
 
@@ -173,16 +171,20 @@ export const CompanyVerify = () => {
 
     if (!formData.registrationFile) {
       newErrors.registrationFile = "Please upload the Registration Number document.";
+      setShowRegUpload(true); // Auto-open the box to show the error
     }
 
+    // Tax ID Text Validation
     if (!formData.taxId.trim()) {
       newErrors.taxId = "Please fill out this field.";
     } else if (!smartTaxRegex.test(formData.taxId)) {
       newErrors.taxId = "Tax ID must be 8-15 characters and contain both letters and numbers.";
     }
 
+    // Tax file validation
     if (!formData.taxFile) {
       newErrors.taxFile = "Please upload the TIN / GST document.";
+      setShowTaxUpload(true); // Auto-open the box to show the error
     }
 
     if (!formData.websiteUrl.trim()) {
@@ -374,7 +376,7 @@ export const CompanyVerify = () => {
         {!file ? (
           <label htmlFor={inputId} className="company-verify-upload-placeholder">
             <p>Click to upload document</p>
-            <small style={{ display: 'block', color: '#888' }}>PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (Max 5MB)</small>
+            <small style={{ display: 'block', color: '#888' }}>PDF, JPG, PNG, DOC, DOCX (Max 5MB)</small>
           </label>
         ) : (
           <div className="company-verify-file-preview" title="Remove file and re-upload">
@@ -717,12 +719,11 @@ export const CompanyVerify = () => {
                 </button>
               </div>
               {errors.registrationNumber && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.registrationNumber}</span>}
-              {errors.registrationFile && <span className="error-msg">{errors.registrationFile}</span>}
               {showRegUpload && (
                 <FileUploadSection
                   fieldName="registrationFile"
                   label="Registration Document"
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
                 />
               )}
             </div>
@@ -760,12 +761,11 @@ export const CompanyVerify = () => {
                 </button>
               </div>
               {errors.taxId && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.taxId}</span>}
-              {errors.taxFile && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.taxFile}</span>}
               {showTaxUpload && (
                 <FileUploadSection
                   fieldName="taxFile"
                   label="Tax Document"
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
                 />
               )}
             </div>

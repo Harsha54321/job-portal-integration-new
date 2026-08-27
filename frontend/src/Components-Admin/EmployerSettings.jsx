@@ -28,11 +28,12 @@ export const EmployerSettings = () => {
       companyWebsite: false,
     },
     preferences: {
-      multipleCompany: false,
+      // multipleCompany: false,
       multipleUsers: false,
       companyReviews: false,
       companyBranding: false,
       featuredEmployer: false,
+      jobseekerContactVisibility: true,
     },
     notifications: {
       email: false,
@@ -124,11 +125,12 @@ export const EmployerSettings = () => {
             companyWebsite: data.requiredDocs?.companyWebsite ?? false,
           },
           preferences: {
-            multipleCompany: data.preferences?.multipleCompany ?? false,
+            // multipleCompany: data.preferences?.multipleCompany ?? false,
             multipleUsers: data.preferences?.multipleUsers ?? false,
             companyReviews: data.preferences?.companyReviews ?? false,
             companyBranding: data.preferences?.companyBranding ?? false,
             featuredEmployer: data.preferences?.featuredEmployer ?? false,
+            jobseekerContactVisibility: data.preferences?.jobseekerContactVisibility ?? true,
           },
           notifications: {
             email: data.notifications?.email ?? false,
@@ -225,11 +227,12 @@ export const EmployerSettings = () => {
           companyWebsite: settings.requiredDocs.companyWebsite,
         },
         preferences: {
-          multipleCompany: settings.preferences.multipleCompany,
+          // multipleCompany: settings.preferences.multipleCompany,
           multipleUsers: settings.preferences.multipleUsers,
           companyReviews: settings.preferences.companyReviews,
           companyBranding: settings.preferences.companyBranding,
           featuredEmployer: settings.preferences.featuredEmployer,
+          jobseekerContactVisibility: settings.preferences.jobseekerContactVisibility,
         },
         notifications: {
           email: settings.notifications.email,
@@ -265,11 +268,12 @@ export const EmployerSettings = () => {
             companyWebsite: data.requiredDocs?.companyWebsite ?? settings.requiredDocs.companyWebsite,
           },
           preferences: {
-            multipleCompany: data.preferences?.multipleCompany ?? settings.preferences.multipleCompany,
+            // multipleCompany: data.preferences?.multipleCompany ?? settings.preferences.multipleCompany,
             multipleUsers: data.preferences?.multipleUsers ?? settings.preferences.multipleUsers,
             companyReviews: data.preferences?.companyReviews ?? settings.preferences.companyReviews,
             companyBranding: data.preferences?.companyBranding ?? settings.preferences.companyBranding,
             featuredEmployer: data.preferences?.featuredEmployer ?? settings.preferences.featuredEmployer,
+            jobseekerContactVisibility: data.preferences?.jobseekerContactVisibility ?? settings.preferences.jobseekerContactVisibility,
           },
           notifications: {
             email: data.notifications?.email ?? settings.notifications.email,
@@ -593,11 +597,12 @@ export const EmployerSettings = () => {
           </h2>
 
           {[
-            { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: true },
+            // { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: true },
             { label: 'Allow Multiple Users', id: 'multipleUsers', disabled: false },
             { label: 'Show Company Reviews', id: 'companyReviews', disabled: true },
             { label: 'Enable Company Branding', id: 'companyBranding', disabled: true },
             { label: 'Allow Job Highlighting', id: 'featuredEmployer', disabled: false },
+            { label: 'Allow Jobseeker Contact Visibility', id: 'jobseekerContactVisibility', disabled: false },
           ].map(pref => (
             <div className="Jobseeker-Set-checkbox-item" key={pref.id}>
               <input

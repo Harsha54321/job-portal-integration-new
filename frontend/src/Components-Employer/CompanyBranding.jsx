@@ -31,7 +31,7 @@ export default function CompanyBranding() {
     announcement_type: "hiring",
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
-    status: "published",
+    status: "draft",
   });
 
   useEffect(() => {

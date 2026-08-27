@@ -4305,6 +4305,20 @@ class CompanyAnnouncementListCreateView(APIView):
         )
         if serializer.is_valid():
             announcement = serializer.save()
+            admins = User.objects.filter(user_type='admin')
+        for admin in admins:
+            NotificationService.create_notification(
+                recipient=admin,
+                title="New Announcement Pending Approval",
+                message=(
+                    f"'{announcement.title}' from "
+                    f"{announcement.company.company_name} needs your review."
+                ),
+                category="alert",
+                event_type="announcement_pending",
+                notification_type="system",
+                related_object_id=announcement.id,
+            )
             return Response(
                 CompanyAnnouncementSerializer(announcement, context={'request': request}).data,
                 status=status.HTTP_201_CREATED
@@ -4353,6 +4367,31 @@ class AdminAnnouncementApproveView(APIView):
         announcement = get_object_or_404(CompanyAnnouncement, id=pk)
         announcement.status = "published"
         announcement.save(update_fields=['status', 'updated_at'])
+        employer = announcement.company.created_by
+        if employer:
+            NotificationService.create_notification(
+                recipient=employer,
+                title="Announcement Approved",
+                message=(
+                    f"Your announcement '{announcement.title}' "
+                    f"has been approved and is now live."
+                ),
+                category="alert",
+                event_type="announcement_approved",
+                notification_type="system",
+                related_object_id=announcement.id,
+            )
+        jobseekers = User.objects.filter(user_type='jobseeker')
+        for jobseeker in jobseekers:
+               NotificationService.create_notification(
+                    recipient=jobseeker,
+                    title="New Announcement from " + announcement.company.company_name,
+                    message=f"{announcement.company.company_name} posted: {announcement.title}",
+                    category="announcement",
+                    event_type="announcement_published",
+                    notification_type="system",
+                    related_object_id=announcement.id,
+                )
         return Response(
             {"message": "Announcement approved and published successfully.", "status": "published"},
             status=status.HTTP_200_OK
@@ -4366,6 +4405,20 @@ class AdminAnnouncementRejectView(APIView):
         announcement = get_object_or_404(CompanyAnnouncement, id=pk)
         announcement.status = "draft"
         announcement.save(update_fields=['status', 'updated_at'])
+        employer = announcement.company.created_by
+        if employer:
+            NotificationService.create_notification(
+                recipient=employer,
+                title="Announcement Rejected",
+                message=(
+                    f"Your announcement '{announcement.title}' "
+                    f"was rejected. Please revise and resubmit."
+                ),
+                category="alert",
+                event_type="announcement_rejected",
+                notification_type="system",
+                related_object_id=announcement.id,
+            )
         return Response(
             {"message": "Announcement rejected and moved to draft.", "status": "draft"},
             status=status.HTTP_200_OK

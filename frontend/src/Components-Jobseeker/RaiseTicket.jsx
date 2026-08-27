@@ -41,6 +41,12 @@ export const RaiseTicket = () => {
     const [submittedTickets, setSubmittedTickets] = useState([]);
     const SUBMISSION_COOLDOWN = 30000; // 30 seconds cooldown threshold[cite: 6]
 
+    // Jobseeker platform settings state
+    const [jobseekerSettings, setJobseekerSettings] = useState({
+        domainRest: false,
+        allowedDomains: []
+    });
+
     const subjects = [
         "Broken 'Apply' Button/Application Failure",
         "File Upload/Resume Parsing Errors",
@@ -79,14 +85,33 @@ export const RaiseTicket = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Load historical matching ticket strings from sessionStorage[cite: 6]
+    //  Fetch Jobseeker Platform Settings
+    useEffect(() => {
+        const fetchJobseekerSettings = async () => {
+            try {
+                const response = await api.get('/jobseeker/settings/');
+                setJobseekerSettings({
+                    domainRest: response.data.domainRest || false,
+                    allowedDomains: response.data.allowedDomains || []
+                });
+            } catch (error) {
+                console.error('Failed to fetch jobseeker settings:', error);
+                setJobseekerSettings({
+                    domainRest: false,
+                    allowedDomains: []
+                });
+            }
+        };
+        fetchJobseekerSettings();
+    }, []);
+
     useEffect(() => {
         try {
             const saved = sessionStorage.getItem('ticket_submissions');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 const now = Date.now();
-                // Retain historical records from the last 24 hours only[cite: 6]
+                // Retain historical records from the last 24 hours only
                 const filtered = parsed.filter(sub => now - sub.timestamp < 86400000);
                 setSubmittedTickets(filtered);
                 if (filtered.length !== parsed.length) {
@@ -98,14 +123,14 @@ export const RaiseTicket = () => {
         }
     }, []);
 
-    // Sync state collections down to local storage contexts[cite: 6]
+    // Sync state collections down to local storage contexts
     useEffect(() => {
         if (submittedTickets.length > 0) {
             sessionStorage.setItem('ticket_submissions', JSON.stringify(submittedTickets));
         }
     }, [submittedTickets]);
 
-    // Profile retrieval execution flow based on ContactUs logic[cite: 6]
+    // Profile retrieval execution flow based on ContactUs logic
     useEffect(() => {
         const fetchUserData = async () => {
             const token = sessionStorage.getItem('access');
@@ -134,6 +159,46 @@ export const RaiseTicket = () => {
         };
         fetchUserData();
     }, []);
+
+    // Domain & Format Helper Functions (Matching Jsignup.jsx)
+    const isValidEmailFormat = (email) => {
+        if (!email.includes('@') || !email.includes('.')) {
+            return false;
+        }
+        const parts = email.split('@');
+        if (parts.length !== 2) {
+            return false;
+        }
+        const localPart = parts[0];
+        const domain = parts[1];
+        if (!/[a-zA-Z]/.test(localPart)) {
+            return false;
+        }
+        if (localPart.length === 0) {
+            return false;
+        }
+        if (domain.length === 0 || !domain.includes('.')) {
+            return false;
+        }
+        return true;
+    };
+
+    const isEmailDomainAllowed = (email) => {
+        if (!jobseekerSettings.domainRest) {
+            return true;
+        }
+        if (jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length === 0) {
+            return true;
+        }
+        const emailParts = email.split('@');
+        if (emailParts.length !== 2) {
+            return false;
+        }
+        const domain = emailParts[1].toLowerCase().trim();
+        return jobseekerSettings.allowedDomains.some(allowedDomain =>
+            allowedDomain.toLowerCase().trim() === domain
+        );
+    };
 
     const validateFile = (file) => {
         if (!file) return true;
@@ -177,10 +242,14 @@ export const RaiseTicket = () => {
             errors.name = "Name should contain only letters";
         }
 
+        //  Email Validation using Jsignup Domain Logic
         if (!formData.email.trim()) {
             errors.email = "Email is required";
-        } else if (!/^[a-zA-Z][a-zA-Z0-9.]*@(gmail|yahoo|outlook|hotmail|thestackly)\.[a-zA-Z]{2,}$/.test(formData.email)) {
-            errors.email = "Enter valid email (gmail, yahoo, outlook, hotmail, thestackly)";
+        } else if (!isValidEmailFormat(formData.email)) {
+            errors.email = "Please enter a valid email address (e.g., name@domain.com)";
+        } else if (!isEmailDomainAllowed(formData.email)) {
+            const allowedDomainsList = jobseekerSettings.allowedDomains.join(', ');
+            errors.email = `Email domain not allowed. Please use an email from: ${allowedDomainsList}`;
         }
 
         if (!formData.phone.trim()) {
@@ -198,7 +267,7 @@ export const RaiseTicket = () => {
         return errors;
     };
 
-    // Duplicate submission assessment checker logic[cite: 6]
+    // Duplicate submission assessment checker logic
     const isDuplicateSubmission = () => {
         const normalizedMsg = formData.message.trim().toLowerCase();
         const normalizedEmail = formData.email.trim().toLowerCase();
@@ -495,6 +564,11 @@ export const RaiseTicket = () => {
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 />
                                 {errors.email && <span className='form-group-err'>{errors.email}</span>}
+                                {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
+                                    <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                                        Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
+                                    </span>
+                                )}
                             </div>
 
                             <div className="Raiseticket-form-group">

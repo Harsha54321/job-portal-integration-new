@@ -14,6 +14,49 @@
     font-size: 13px;
 }
 
+.um-search-container {
+    margin-bottom: 24px;
+}
+
+.search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.search-icon img {
+    width: 18px;
+    height: 18px;
+    opacity: 0.6;
+}
+
+.um-search-container input {
+    width: 100%;
+    padding: 12px 12px 12px 48px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-color: #e3e7ec;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.um-search-container input:focus {
+    background-color: #ffffff;
+    border-color: #407bff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
 .SubOrders-search-wrapper, .AdminSubs-search-wrapper {
     display: flex;
     align-items: center;

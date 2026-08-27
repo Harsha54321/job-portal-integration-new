@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './MembershipHub.css'
 import api from '../api/axios'
+import Searchicon from '../assets/icon_search.png'
 
 // Single combined view of Orders (payments) + Subscriptions (access), so
 // admin doesn't have to cross-check two separate screens. One row = one
@@ -62,18 +63,60 @@ export const MembershipBilling = () => {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    const filteredRecords = records.filter((item) => {
-        const term = search.toLowerCase();
-        return (
-            String(item.id).includes(term) ||
-            (item.user_email || "").toLowerCase().includes(term) ||
-            (item.employer_name || "").toLowerCase().includes(term) ||
-            (item.company_name || "").toLowerCase().includes(term) ||
-            (item.plan_name || "").toLowerCase().includes(term) ||
-            (item.status || "").toLowerCase().includes(term) ||
-            (item.subscription_status || "").toLowerCase().includes(term)
-        );
-    });
+   
+
+//     const filteredRecords = records.filter((item) => {
+//     const term = search.toLowerCase().trim();
+//     if (term === "") return true;
+
+//     return (
+//         String(item.id).toLowerCase() === term ||
+//         `#${item.id}`.toLowerCase() === term ||
+//         String(item.employer_id ?? "").toLowerCase() === term ||
+//         (item.user_email || "").toLowerCase() === term ||
+//         (item.employer_name || "").toLowerCase() === term ||
+//         (item.company_name || "").toLowerCase() === term ||
+//         (item.plan_name || "").toLowerCase() === term ||
+//         (item.status || "").toLowerCase() === term ||
+//         (item.subscription_status || "").toLowerCase() === term
+//     );
+// });
+
+        const term = search.toLowerCase().trim();
+    const tokens = term.split(/\s+/).filter(Boolean);
+
+    const filteredRecords = records
+        .filter((item) => {
+            if (term === "") return true;
+
+            const haystack = [
+                String(item.id),
+                `#${item.id}`,
+                String(item.employer_id ?? ""),
+                item.user_email || "",
+                item.employer_name || "",
+                item.company_name || "",
+                item.plan_name || "",
+                item.status || "",
+                item.subscription_status || "",
+            ].join(" | ").toLowerCase();
+
+            return tokens.every((token) => haystack.includes(token));
+        })
+        .sort((a, b) => {
+            if (term === "") return 0;
+
+            // Rank: exact id match > id starts-with > everything else.
+            // Lower rank number = shown first.
+            const rank = (item) => {
+                const idStr = String(item.id).toLowerCase();
+                if (idStr === term) return 0;
+                if (idStr.startsWith(term)) return 1;
+                return 2;
+            };
+
+            return rank(a) - rank(b);
+        });
 
     const indexOfLast = currentPage * recordsPerPage;
     const indexOfFirst = indexOfLast - recordsPerPage;
@@ -192,13 +235,16 @@ export const MembershipBilling = () => {
                 <p>Every plan purchase, with payment status and access status shown together</p>
             </div>
 
-            <div className="SubOrders-search-wrapper">
-                <input
-                    type="text"
-                    placeholder="Search by order ID, employer, company, plan or status"
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                />
+            <div className="um-search-container">
+                <div className="search-wrapper">
+                    <span className="search-icon"><img src={Searchicon} alt="Search" /></span>
+                    <input
+                        type="text"
+                        placeholder="Search by order ID, employer Id, employer name, company, plan, payment/access status  "
+                        value={search}
+                        onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                    />
+                </div>
             </div>
 
             <div className="SubOrders-table-wrapper">

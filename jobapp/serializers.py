@@ -480,7 +480,50 @@ class JobSeekerProfileReadSerializer(serializers.ModelSerializer):
         ):
 
             return data
-
+        # EMPLOYER CONTACT VISIBILITY (plan-based)
+        if (
+            request
+            and
+            request.user.is_authenticated
+            and
+            getattr(request.user, "user_type", None) == "employer"
+        ):
+ 
+            subscription = (
+                Subscription.objects
+                .filter(user=request.user, status="active")
+                .select_related("plan")
+                .order_by("-start_date")
+                .first()
+            )
+ 
+            contact_visible = True
+ 
+            if subscription:
+ 
+                platform = (
+                    EmployerPlatformSettings.objects
+                    .filter(
+                        plan=subscription.plan,
+                        account_status=request.user.status
+                    )
+                    .first()
+                    or
+                    EmployerPlatformSettings.objects
+                    .filter(plan=subscription.plan)
+                    .first()
+                )
+ 
+                if platform:
+                    contact_visible = platform.allow_jobseeker_contact_visibility
+ 
+            if not contact_visible:
+                data["email"] = None
+                data["phone"] = None
+                data["contact_visibility_locked"] = True
+            else:
+                data["contact_visibility_locked"] = False
+ 
     
 
         platform = (
@@ -3727,6 +3770,7 @@ class EmployerPlatformSettingsSerializer(
         return {
  
             "multipleCompany": obj.allow_multiple_company,
+            "jobseekerContactVisibility": obj.allow_jobseeker_contact_visibility,
  
             "multipleUsers": obj.allow_multiple_users,
  
@@ -3836,6 +3880,14 @@ class EmployerPlatformSettingsSerializer(
 
             instance.allow_multiple_company
 
+        )
+        
+        instance.allow_jobseeker_contact_visibility = preferences.get(
+ 
+            "jobseekerContactVisibility",
+ 
+            instance.allow_jobseeker_contact_visibility
+ 
         )
  
         instance.allow_multiple_users = preferences.get(

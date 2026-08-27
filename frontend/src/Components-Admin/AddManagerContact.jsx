@@ -273,6 +273,23 @@ export const AddManagerContact = () => {
       return;
     }
 
+    // setLoading(true);
+    // try {
+    //   if (editingId) {
+    //     await api.put(`/admin/account-managers/${editingId}/`, formData);
+    //     triggerSuccess('Manager updated successfully!');
+    //   } else {
+    //     await api.post('/admin/account-managers/', formData);
+    //     triggerSuccess('Account manager created successfully!');
+    //   }
+    //   await fetchData(currentPage);
+    //   resetForm();
+    // } catch (err) {
+    //   setError(err.response?.data?.message || 'Failed to save configuration details.');
+    // } finally {
+    //   setLoading(false);
+    // }
+
     setLoading(true);
     try {
       if (editingId) {
@@ -282,10 +299,20 @@ export const AddManagerContact = () => {
         await api.post('/admin/account-managers/', formData);
         triggerSuccess('Account manager created successfully!');
       }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to save configuration details.');
+      setLoading(false);
+      return;
+    }
+
+    // Save already succeeded above — a failure here is just a refresh problem,
+    // never show "Failed to save" for it.
+    try {
       await fetchData(currentPage);
       resetForm();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save configuration details.');
+      console.error('Save succeeded but refreshing the manager list failed:', err);
+      resetForm();
     } finally {
       setLoading(false);
     }

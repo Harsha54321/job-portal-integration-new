@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./MyProfile.css";
 import { Link } from "react-router-dom";
 import addPhoto from "../assets/AddPhoto.png";
@@ -8,7 +8,6 @@ import deleteIcon from "../assets/DeleteIcon.png";
 import resumeIcon from "../assets/resume_icon.png";
 import { Header } from "../Components-LandingPage/Header";
 import welcomeImg from "../assets/welcome.png";
-import { useEffect } from "react";
 import api from "../api/axios";
 import EducationDegreeDropdown, { degreeOptions } from "./EducationDegreeDropdown";
 
@@ -640,6 +639,7 @@ const Profile = ({
         setVideoFile(null);
         setIsRecordingMode(false);
     };
+
     useEffect(() => {
         if (data.profile_photo && !photoPreview) {
             if (typeof data.profile_photo === 'string') {
@@ -852,7 +852,7 @@ const Profile = ({
                                     src={photoPreview}
                                     alt="Profile"
                                     loading="eager"
-                                    fetchpriority="high"
+                                    fetchPriority="high"
                                     style={{
                                         width: "100%",
                                         height: "100%",
@@ -1054,7 +1054,7 @@ const Profile = ({
                             min={minString}
                             max={maxString}
                             onChange={handleChange}
-                            className={errors.dob ? "input-error" : "", "cursor-as-pointer"}
+                            className={`${errors.dob ? "input-error" : ""} cursor-as-pointer`}
                         />
                         {errors.dob && <span className="error-message">{errors.dob}</span>}
                     </div>
@@ -1512,9 +1512,12 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
     );
 };
 
-const ContactDetails = ({ data, onChange, onReset, onNext }) => {
+// --- CONTACT DETAILS SECTION (WITH ALLOWED DOMAIN LOGIC) ---
+const ContactDetails = ({ data, onChange, onReset, onNext, jobseekerSettings }) => {
     const [errors, setErrors] = useState({});
+
     const handleChange = (e) => {
+        const { name, value } = e.target;
         if (name === "address" && value.length > 100) return;
         if (name === "street" && value.length > 25) return;
         if (name === "city" && value.length > 25) return;
@@ -1522,11 +1525,34 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
         onChange(e);
         if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: "" });
     };
+
     const mobileRegex = /^[6-9]\d{9}$/;
     const Pincode = /^[1-9][0-9]{5}$/;
-    const gmailAlphaRegex = /^[a-zA-Z][a-zA-Z0-9.]*@(gmail|yahoo|outlook|hotmail|thestackly)\.[a-zA-Z]{2,}$/;
     const addressRegex = /^(?=.*[A-Za-z])[A-Za-z0-9\s,./#-]+$/;
 
+    //  Dynamic Email validation using jobseeker platform allowed domains (matching Jsignup)
+    const isValidEmailFormat = (email) => {
+        if (!email.includes('@') || !email.includes('.')) return false;
+        const parts = email.split('@');
+        if (parts.length !== 2) return false;
+        const localPart = parts[0];
+        const domain = parts[1];
+        if (!/[a-zA-Z]/.test(localPart)) return false;
+        if (localPart.length === 0) return false;
+        if (domain.length === 0 || !domain.includes('.')) return false;
+        return true;
+    };
+
+    const isEmailDomainAllowed = (email) => {
+        if (!jobseekerSettings?.domainRest) return true;
+        if (jobseekerSettings?.domainRest && jobseekerSettings?.allowedDomains?.length === 0) return true;
+        const emailParts = email.split('@');
+        if (emailParts.length !== 2) return false;
+        const domain = emailParts[1].toLowerCase().trim();
+        return jobseekerSettings.allowedDomains.some(allowedDomain =>
+            allowedDomain.toLowerCase().trim() === domain
+        );
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -1541,16 +1567,23 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
         else if (data.mobile.length > 0 && data.mobile === data.altMobile)
             newErrors.altMobile = "*Alternate number cannot be the same as primary";
 
+        //  Primary Email Validation
         if (!data.email) {
             newErrors.email = "*Email ID is required";
-        } else if (!gmailAlphaRegex.test(data.email)) {
-            newErrors.email = "*Please enter a valid Email (must start with a letter)";
+        } else if (!isValidEmailFormat(data.email)) {
+            newErrors.email = "*Please enter a valid Email address (e.g. name@domain.com)";
+        } else if (!isEmailDomainAllowed(data.email)) {
+            const allowedDomainsList = jobseekerSettings?.allowedDomains?.join(', ') || "";
+            newErrors.email = `*Email domain not allowed. Allowed: ${allowedDomainsList}`;
         }
 
-        // Alternate Email
+        //  Alternate Email Validation
         if (data.altEmail) {
-            if (!gmailAlphaRegex.test(data.altEmail)) {
+            if (!isValidEmailFormat(data.altEmail)) {
                 newErrors.altEmail = "*Invalid alternate email format";
+            } else if (!isEmailDomainAllowed(data.altEmail)) {
+                const allowedDomainsList = jobseekerSettings?.allowedDomains?.join(', ') || "";
+                newErrors.altEmail = `*Alternate email domain not allowed. Allowed: ${allowedDomainsList}`;
             } else if (data.email.toLowerCase() === data.altEmail.toLowerCase()) {
                 newErrors.altEmail = "*Alternate email cannot be the same as primary";
             }
@@ -1650,6 +1683,12 @@ const ContactDetails = ({ data, onChange, onReset, onNext }) => {
                         placeholder="Enter email address"
                     />
                     {errors.email && <span className="error-msg">{errors.email}</span>}
+                    {/* Allowed Domains Hint under Email */}
+                    {jobseekerSettings?.domainRest && jobseekerSettings?.allowedDomains?.length > 0 && (
+                        <span style={{ fontSize: '11px', color: '#666', marginTop: '4px', display: 'block' }}>
+                            Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
+                        </span>
+                    )}
                 </div>
 
                 <div className="form-group">
@@ -2357,6 +2396,7 @@ const EducationDetails = ({
     const isDegreeRecognized = (degreeName) => {
         return resolveDegreeKey(degreeName) !== null;
     };
+
     const getGradLabel = (index, total, highestQual) => {
         if (total === 1) return "Graduation";
         if (index === 0) return "Under-Graduation";
@@ -3711,6 +3751,7 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
         setCurrentSkill("");
         setIsModalOpen(true);
     };
+
     const openEdit = (index) => {
         setEditIndex(index);
         setCurrentSkill(skills[index]);
@@ -3733,6 +3774,7 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
             setError("Enter a valid skill name (must contain at least one letter; numbers or symbols alone are invalid)");
             return;
         }
+
         const isDuplicate = skills.some((skill, index) =>
             skill.toLowerCase() === currentSkill.toLowerCase() && index !== editIndex
         );
@@ -3908,6 +3950,7 @@ const LanguagesKnown = ({
         setCurrentLang({ name: "", proficiency: "Select" });
         setIsModalOpen(true);
     };
+
     const openEdit = (index) => {
         setEditIndex(index);
         setCurrentLang(languages[index]);
@@ -4578,6 +4621,33 @@ export const MyProfile = () => {
     const [videoFile, setVideoFile] = useState(null);
     const [removeVideoFlag, setRemoveVideoFlag] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    //  Jobseeker platform settings state for allowed domains
+    const [jobseekerSettings, setJobseekerSettings] = useState({
+        domainRest: false,
+        allowedDomains: []
+    });
+
+    //  Fetch Jobseeker Platform Settings
+    useEffect(() => {
+        const fetchJobseekerSettings = async () => {
+            try {
+                const response = await api.get('/jobseeker/settings/');
+                setJobseekerSettings({
+                    domainRest: response.data.domainRest || false,
+                    allowedDomains: response.data.allowedDomains || []
+                });
+            } catch (error) {
+                console.error('Failed to fetch jobseeker settings:', error);
+                setJobseekerSettings({
+                    domainRest: false,
+                    allowedDomains: []
+                });
+            }
+        };
+        fetchJobseekerSettings();
+    }, []);
+
     const fetchProfile = async () => {
         try {
             const token = sessionStorage.getItem("access");
@@ -5009,6 +5079,7 @@ export const MyProfile = () => {
             },
         }));
     };
+
     const handleExpUpdateEntry = (id, e) => {
         const { name, value } = e.target;
         setAllData((prev) => ({
@@ -5241,6 +5312,7 @@ export const MyProfile = () => {
                 backendHighestQual = allData.education.highestQual;
             }
         }
+
         const payload = {
             full_name: allData.profile.fullName,
             gender: allData.profile.gender,
@@ -5545,6 +5617,8 @@ export const MyProfile = () => {
                     current_location: { field: "Current Location", section: "Current Details" },
                     preferred_locations: { field: "Preferred Locations", section: "Current Details" },
                     phone: { field: "Mobile Number", section: "Contact Details" },
+                    email: { field: "Email ID", section: "Contact Details" },
+                    alternate_email: { field: "Alternate Email", section: "Contact Details" },
                     full_address: { field: "Address", section: "Contact Details" },
                     city: { field: "City", section: "Contact Details" },
                     state: { field: "State", section: "Contact Details" },
@@ -5701,6 +5775,7 @@ export const MyProfile = () => {
 
     const handleDropdownClick = (title) =>
         setOpenDropdown(openDropdown === title ? null : title);
+
     const handleItemClick = (title, parent = null) => {
         setActiveItem(title);
         if (parent) setOpenDropdown(parent);
@@ -5754,6 +5829,7 @@ export const MyProfile = () => {
                         onChange={(e) => handleUpdate("contact", e)}
                         onReset={() => handleReset("contact")}
                         onNext={handleNextStep}
+                        jobseekerSettings={jobseekerSettings}
                     />
                 );
             case "Resume":

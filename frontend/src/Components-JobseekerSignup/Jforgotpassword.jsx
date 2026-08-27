@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link,useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import './Jforgotpassword.css'
 import forgot from "../assets/Forgot.png"
 import api from '../api/axios'
@@ -12,6 +12,33 @@ export const Jforgotpassword = () => {
   const [apiError, setApiError] = useState("")
   const navigate = useNavigate();
 
+  //  Jobseeker platform settings state for allowed domains
+  const [jobseekerSettings, setJobseekerSettings] = useState({
+    domainRest: false,
+    allowedDomains: []
+  });
+
+  //  Fetch Jobseeker Platform Settings
+  useEffect(() => {
+    const fetchJobseekerSettings = async () => {
+      try {
+        const response = await api.get('/jobseeker/settings/');
+        setJobseekerSettings({
+          domainRest: response.data.domainRest || false,
+          allowedDomains: response.data.allowedDomains || []
+        });
+      } catch (error) {
+        console.error('Failed to fetch jobseeker settings:', error);
+        setJobseekerSettings({
+          domainRest: false,
+          allowedDomains: []
+        });
+      }
+    };
+
+    fetchJobseekerSettings();
+  }, []);
+
   const handleForm = (e) => {
     const { name, value } = e.target
     setFormValues({ ...formValues, [name]: value })
@@ -19,15 +46,56 @@ export const Jforgotpassword = () => {
     setApiError("")
   }
 
+  //  Email Format & Allowed Domain Checkers (matching Jsignup.jsx)
+  const isValidEmailFormat = (email) => {
+    if (!email.includes('@') || !email.includes('.')) {
+      return false;
+    }
+    const parts = email.split('@');
+    if (parts.length !== 2) {
+      return false;
+    }
+    const localPart = parts[0];
+    const domain = parts[1];
+    if (!/[a-zA-Z]/.test(localPart)) {
+      return false;
+    }
+    if (localPart.length === 0) {
+      return false;
+    }
+    if (domain.length === 0 || !domain.includes('.')) {
+      return false;
+    }
+    return true;
+  };
+
+  const isEmailDomainAllowed = (email) => {
+    if (!jobseekerSettings.domainRest) {
+      return true;
+    }
+    if (jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length === 0) {
+      return true;
+    }
+    const emailParts = email.split('@');
+    if (emailParts.length !== 2) {
+      return false;
+    }
+    const domain = emailParts[1].toLowerCase().trim();
+    return jobseekerSettings.allowedDomains.some(allowedDomain =>
+      allowedDomain.toLowerCase().trim() === domain
+    );
+  };
+
   const validateForm = () => {
     const newErrors = {}
 
-    const regexOfMail = /^[a-zA-Z][a-zA-Z0-9.]*@(gmail|yahoo|outlook|hotmail|thestackly)\.[a-zA-Z]{2,}$/;
-
     if (!formValues.email.trim()) {
       newErrors.email = "Email is required"
-    } else if (!regexOfMail.test(formValues.email)) {
-      newErrors.email = "Invalid email format"
+    } else if (!isValidEmailFormat(formValues.email)) {
+      newErrors.email = "Please enter a valid email address (e.g., name@domain.com)"
+    } else if (!isEmailDomainAllowed(formValues.email)) {
+      const allowedDomainsList = jobseekerSettings.allowedDomains.join(', ');
+      newErrors.email = `Email domain not allowed. Please use an email from: ${allowedDomainsList}`
     }
 
     setErrors(newErrors)
@@ -82,12 +150,12 @@ export const Jforgotpassword = () => {
           <img src={forgot} alt="Forgot password Illustration" />
         </div>
         <button
-              type="button"
-              className="back-to-login"
-              onClick={() => navigate(-1)}
-            >
-              ← Back
-            </button>
+          type="button"
+          className="back-to-login"
+          onClick={() => navigate(-1)}
+        >
+          ← Back
+        </button>
         <form onSubmit={handleSubmit} className="forgot-password-form">
           <h2>Forgot Your Password?</h2>
 
@@ -102,6 +170,13 @@ export const Jforgotpassword = () => {
           />
           {errors.email && <p className="error-text">{errors.email}</p>}
           {apiError && <p className="error-text">{apiError}</p>}
+
+          {/* Allowed Domains Hint */}
+          {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
+            <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', marginBottom: '8px', display: 'block' }}>
+              Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
+            </span>
+          )}
 
           <button
             className="j-send-link-btn"

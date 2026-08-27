@@ -1410,7 +1410,7 @@ class CompanyAnnouncement(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="published"
+        default="draft"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -2365,6 +2365,10 @@ class EmployerPlatformSettings(models.Model):
  
     allow_multiple_company = models.BooleanField(
         default=False
+    )
+
+    allow_jobseeker_contact_visibility = models.BooleanField(
+        default=True
     )
  
     allow_multiple_users = models.BooleanField(

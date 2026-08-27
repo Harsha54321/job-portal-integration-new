@@ -1,3 +1,4 @@
+/* Reuse AdminTickets styles where possible, plus custom overrides */
 .aam-container {
   min-height: 100vh;
   background-color: #f1f5f9;
@@ -11,6 +12,7 @@
   margin: 0 auto;
 }
 
+/* --- Header --- */
 .aam-header {
   background: #ffffff;
   padding: 20px 24px;
@@ -36,21 +38,61 @@
   margin: 0;
 }
 
-.aam-controls {
-  display: flex;
-  gap: 8px;
+/* --- Search (from AdminTickets) --- */
+.um-search-container {
+  margin-bottom: 24px;
 }
 
-.aam-search,
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.search-icon img {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+}
+
+.aam-search-input {
+  width: 100%;
+  padding: 12px 12px 12px 48px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background-color: #e3e7ec;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.aam-search-input:focus {
+  background-color: #ffffff;
+  border-color: #407bff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
 .aam-select {
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
   border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
   font-size: 12px;
   outline: none;
-  background: #f8fafc;
 }
 
+/* --- Table --- */
 .aam-table-card {
   background: #ffffff;
   border-radius: 12px;
@@ -148,12 +190,6 @@
   color: #92400e;
 }
 
-.aam-btn-group {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
 .aam-btn {
   border: none;
   padding: 5px 10px;
@@ -176,4 +212,98 @@
 .aam-delete {
   background: #fef2f2;
   color: #991b1b;
+}
+
+/* --- Detail view (reuses AdminTickets classes) --- */
+.detail-section-card {
+  margin-bottom: 30px;
+}
+
+.detail-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111111;
+  margin-bottom: 20px;
+}
+
+.detail-report-textbox {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 120px;
+  color: #4a5568;
+  background-color: #ffffff;
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.detail-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+/* Back button style */
+.Adm-tic-btn-back {
+  background: #1E88E5;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.Adm-tic-btn-back:hover {
+  background: #0d6eb8;
+}
+
+/* Meta info rows (from AdminTickets) */
+.Adm-tic-meta-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-top: 12px;
+}
+
+.Adm-tic-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.Adm-tic-meta-label {
+  color: #888888;
+  width: auto;
+  font-weight: 500;
+}
+
+.Adm-tic-title-block h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.Adm-tic-id {
+  font-weight: bold;
+  color: #0084ff;
+  margin: 4px 0;
+}
+
+.Adm-tic-date-created {
+  color: #888888;
+  font-size: 13px;
+  margin: 0;
+}
+
+.aam-status-select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 13px;
 }

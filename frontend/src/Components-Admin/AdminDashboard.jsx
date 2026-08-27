@@ -204,6 +204,7 @@ export const AdminDashboard = () => {
             sessionStorage.removeItem("adminMembershipTab");
             sessionStorage.removeItem("umIsDetailView");
             sessionStorage.removeItem("umSelectedUser");
+            sessionStorage.removeItem("adminAnnouncementsTab");
             sessionStorage.clear();
 
             navigate("/Job-portal/role-selection");
@@ -482,7 +483,7 @@ export const AdminDashboard = () => {
 
                         {/* Announcements Tab in Main Sidebar */}
                         <div onClick={() => setActiveTab("Announcements")} className={activetab === "Announcements" ? "Admin-Active" : 'Admin-Navbar'}>
-                             <div className='Admin-Navbox'>
+                            <div className='Admin-Navbox'>
                                 {activetab === "Announcements" ? <img src={CompanyBrandingActIcon} width={15} height={15} alt="Announcements" />
                                     : <img src={CompanyBrandingIcon} width={15} height={15} alt="Announcements" />}
                                 <div className='Enav-item'>Announcements</div>

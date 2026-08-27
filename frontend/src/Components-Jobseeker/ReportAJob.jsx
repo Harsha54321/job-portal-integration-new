@@ -12,7 +12,7 @@ export const ReportAJob = () => {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
-    
+
     const initialValues = {
         job_id: "",
         firstName: "",
@@ -27,6 +27,32 @@ export const ReportAJob = () => {
     const [errors, setErrors] = useState({});
     const { id } = useParams();
     const EXPLANATION_MAX_LENGTH = 100;
+
+    // Jobseeker platform settings state
+    const [jobseekerSettings, setJobseekerSettings] = useState({
+        domainRest: false,
+        allowedDomains: []
+    });
+
+    // Fetch Jobseeker Platform Settings
+    useEffect(() => {
+        const fetchJobseekerSettings = async () => {
+            try {
+                const response = await api.get('/jobseeker/settings/');
+                setJobseekerSettings({
+                    domainRest: response.data.domainRest || false,
+                    allowedDomains: response.data.allowedDomains || []
+                });
+            } catch (error) {
+                console.error('Failed to fetch jobseeker settings:', error);
+                setJobseekerSettings({
+                    domainRest: false,
+                    allowedDomains: []
+                });
+            }
+        };
+        fetchJobseekerSettings();
+    }, []);
 
     useEffect(() => {
         if (id) {
@@ -51,14 +77,57 @@ export const ReportAJob = () => {
         return textRegex.test(text);
     };
 
+    // Email Format & Allowed Domain Checkers (Matching Jsignup.jsx)
+    const isValidEmailFormat = (email) => {
+        if (!email.includes('@') || !email.includes('.')) {
+            return false;
+        }
+        const parts = email.split('@');
+        if (parts.length !== 2) {
+            return false;
+        }
+        const localPart = parts[0];
+        const domain = parts[1];
+        if (!/[a-zA-Z]/.test(localPart)) {
+            return false;
+        }
+        if (localPart.length === 0) {
+            return false;
+        }
+        if (domain.length === 0 || !domain.includes('.')) {
+            return false;
+        }
+        return true;
+    };
+
+    const isEmailDomainAllowed = (email) => {
+        if (!jobseekerSettings.domainRest) {
+            return true;
+        }
+        if (jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length === 0) {
+            return true;
+        }
+        const emailParts = email.split('@');
+        if (emailParts.length !== 2) {
+            return false;
+        }
+        const domain = emailParts[1].toLowerCase().trim();
+        return jobseekerSettings.allowedDomains.some(allowedDomain =>
+            allowedDomain.toLowerCase().trim() === domain
+        );
+    };
+
     const validate = () => {
         let newErrors = {};
 
-        const emailRegex = /^[a-zA-Z][a-zA-Z0-9.]*@(gmail|yahoo|outlook|hotmail|thestackly)\.[a-zA-Z]{2,}$/;
+        // Email Validation using Dynamic Allowed Domains
         if (!formValues.email) {
             newErrors.email = "Email is required";
-        } else if (!emailRegex.test(formValues.email)) {
-            newErrors.email = "Invalid email format";
+        } else if (!isValidEmailFormat(formValues.email)) {
+            newErrors.email = "Please enter a valid email address (e.g., name@domain.com)";
+        } else if (!isEmailDomainAllowed(formValues.email)) {
+            const allowedDomainsList = jobseekerSettings.allowedDomains.join(', ');
+            newErrors.email = `Email domain not allowed. Please use an email from: ${allowedDomainsList}`;
         } else if (formValues.email.length > 100) {
             newErrors.email = "Email cannot exceed 100 characters";
         }
@@ -113,25 +182,12 @@ export const ReportAJob = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        // Handle First Name - Only alphabets, max 15 characters
-        if (name === "firstName") {
-            // Remove any non-alphabetic characters
+        if (name === "firstName" || name === "lastName") {
             const onlyAlpha = value.replace(/[^A-Za-z]/g, "");
             // Limit to 15 characters
             const limitedValue = onlyAlpha.slice(0, 15);
             setFormValues({ ...formValues, [name]: limitedValue });
-        }
-        // Handle Last Name - Only alphabets, max 15 characters
-        else if (name === "lastName") {
-            // Remove any non-alphabetic characters
-            const onlyAlpha = value.replace(/[^A-Za-z]/g, "");
-            // Limit to 15 characters
-            const limitedValue = onlyAlpha.slice(0, 15);
-            setFormValues({ ...formValues, [name]: limitedValue });
-        }
-        // Handle Reason - Only alphabets and spaces
-        else if (name === "reason") {
-            // Remove numbers and special characters, keep alphabets and spaces
+        } else if (name === "reason") {
             const onlyAlphaAndSpace = value.replace(/[^A-Za-z\s]/g, "");
             // Limit to 100 characters
             const limitedValue = onlyAlphaAndSpace.slice(0, 100);
@@ -180,7 +236,7 @@ export const ReportAJob = () => {
                     reason: formValues.reason,
                     explanation: formValues.explanation
                 });
-                
+
                 console.log("Response:", responseData);
                 
                 // Show success state
@@ -244,7 +300,7 @@ export const ReportAJob = () => {
             <Header />
             <div className="report-container">
                 {showSuccess && <SuccessOverlay />}
-                
+
                 <h2 className="report-title">Complaint Form</h2>
                 <form className="report-card" onSubmit={handleSubmit}>
                     <div className="report-row">
@@ -317,6 +373,11 @@ export const ReportAJob = () => {
                                 className={errors.email ? "error-field" : ""}
                             />
                             {errors.email && <span className="error-text">{errors.email}</span>}
+                            {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
+                                <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                                    Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -361,16 +422,16 @@ export const ReportAJob = () => {
                     </div>
 
                     <div className="report-actions">
-                        <button 
-                            type="button" 
-                            className="btn-cancel" 
+                        <button
+                            type="button"
+                            className="btn-cancel"
                             onClick={() => navigate(-1)}
                             disabled={isSubmitting}
                         >
                             Cancel
                         </button>
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             className="btn-submit"
                             disabled={isSubmitting}
                         >

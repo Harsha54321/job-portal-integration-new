@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Footer } from "../Components-LandingPage/Footer";
 import FormEditIcon from "../assets/form_edit.png";
 import deleteIcon from "../assets/DeleteIcon.png";
@@ -21,8 +21,14 @@ export const JobApplication = () => {
   const [loading, setLoading] = useState(true);
   const [easyApplyEnabled, setEasyApplyEnabled] = useState(false);
   const { setAppliedJobs } = useJobs();
-  const [isSubmitting, setIsSubmitting] = useState(false); // New state for submission status
-  const [showSuccess, setShowSuccess] = useState(false); // New state for success message
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  //  Jobseeker platform settings state for allowed domains
+  const [jobseekerSettings, setJobseekerSettings] = useState({
+    domainRest: false,
+    allowedDomains: []
+  });
 
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -43,6 +49,26 @@ export const JobApplication = () => {
     coverLetter: "",
     resume: null,
   });
+
+  //  Fetch Jobseeker Platform Settings
+  useEffect(() => {
+    const fetchJobseekerSettings = async () => {
+      try {
+        const response = await api.get('/jobseeker/settings/');
+        setJobseekerSettings({
+          domainRest: response.data.domainRest || false,
+          allowedDomains: response.data.allowedDomains || []
+        });
+      } catch (error) {
+        console.error('Failed to fetch jobseeker settings:', error);
+        setJobseekerSettings({
+          domainRest: false,
+          allowedDomains: []
+        });
+      }
+    };
+    fetchJobseekerSettings();
+  }, []);
 
   // Fetch Easy Apply status and profile data on component load
   useEffect(() => {
@@ -119,6 +145,46 @@ export const JobApplication = () => {
 
   const [errors, setErrors] = useState({});
 
+  //  Domain & Email Helper Functions (matching Jsignup.jsx)
+  const isValidEmailFormat = (email) => {
+    if (!email.includes('@') || !email.includes('.')) {
+      return false;
+    }
+    const parts = email.split('@');
+    if (parts.length !== 2) {
+      return false;
+    }
+    const localPart = parts[0];
+    const domain = parts[1];
+    if (!/[a-zA-Z]/.test(localPart)) {
+      return false;
+    }
+    if (localPart.length === 0) {
+      return false;
+    }
+    if (domain.length === 0 || !domain.includes('.')) {
+      return false;
+    }
+    return true;
+  };
+
+  const isEmailDomainAllowed = (email) => {
+    if (!jobseekerSettings.domainRest) {
+      return true;
+    }
+    if (jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length === 0) {
+      return true;
+    }
+    const emailParts = email.split('@');
+    if (emailParts.length !== 2) {
+      return false;
+    }
+    const domain = emailParts[1].toLowerCase().trim();
+    return jobseekerSettings.allowedDomains.some(allowedDomain =>
+      allowedDomain.toLowerCase().trim() === domain
+    );
+  };
+
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
@@ -130,9 +196,14 @@ export const JobApplication = () => {
         else if (/[^a-zA-Z\s]/.test(value)) error = "Alphabets only";
         break;
       case "email":
-        const emailRegex = /^[a-zA-Z][a-zA-Z0-9.]*@(gmail|yahoo|outlook|hotmail|thestackly)\.[a-zA-Z]{2,}$/;
-        if (!value) error = "Email is Required";
-        else if (!emailRegex.test(value)) error = "Format: name@domain.com";
+        if (!value) {
+          error = "Email is Required";
+        } else if (!isValidEmailFormat(value)) {
+          error = "Please enter a valid email address (e.g., name@domain.com)";
+        } else if (!isEmailDomainAllowed(value)) {
+          const allowedDomainsList = jobseekerSettings.allowedDomains.join(', ');
+          error = `Email domain not allowed. Allowed: ${allowedDomainsList}`;
+        }
         break;
       case "mobile":
         if (!value) error = "Mobile Number is Required";
@@ -342,7 +413,7 @@ export const JobApplication = () => {
       // Reset submitting state on error
       setIsSubmitting(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -434,7 +505,7 @@ export const JobApplication = () => {
                 />
                 {errors.name && <small className="error-text">{errors.name}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("name")} title="Click to edit name"  >
+              <div className="apply-form-edit" onClick={() => setEditableField("name")} title="Click to edit name">
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -453,7 +524,7 @@ export const JobApplication = () => {
                 />
                 {errors.dob && <small className="error-text">{errors.dob}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("dob")} title="Click to edit date of birth"  >
+              <div className="apply-form-edit" onClick={() => setEditableField("dob")} title="Click to edit date of birth" >
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -474,7 +545,7 @@ export const JobApplication = () => {
                 </select>
                 {errors.marital && <small className="error-text">{errors.marital}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("marital")} title="Click to edit marital status"  >
+              <div className="apply-form-edit" onClick={() => setEditableField("marital")} title="Click to edit marital status">
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -492,7 +563,7 @@ export const JobApplication = () => {
                 />
                 {errors.mobile && <small className="error-text">{errors.mobile}</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("mobile")} title="Click to edit mobile number"  >
+              <div className="apply-form-edit" onClick={() => setEditableField("mobile")} title="Click to edit mobile number">
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -509,8 +580,13 @@ export const JobApplication = () => {
                   onChange={handleInputChange}
                 />
                 {errors.email && <small className="error-text">{errors.email}</small>}
+                {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
+                  <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                    Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
+                  </span>
+                )}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("email")} title="Click to edit email"  >
+              <div className="apply-form-edit" onClick={() => setEditableField("email")} title="Click to edit email">
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -537,7 +613,7 @@ export const JobApplication = () => {
                 )}
                 {(errors.city || errors.zip) && <small className="error-text">Address details required</small>}
               </div>
-              <div className="apply-form-edit" onClick={() => setEditableField("address")} title="Click to edit address"  >
+              <div className="apply-form-edit" onClick={() => setEditableField("address")} title="Click to edit address">
                 <img src={FormEditIcon} alt="edit" />
               </div>
             </div>
@@ -622,4 +698,4 @@ export const JobApplication = () => {
       <Footer />
     </>
   );
-}
+};

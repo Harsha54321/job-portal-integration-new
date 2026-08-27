@@ -249,6 +249,9 @@ export const EmployerDashboard = () => {
             if (targetTab === 'MyTickets') {
                 setPendingTargetTicketId(targetTicketId ?? null);
             }
+            if (targetTab === 'Company Branding') {
+                setActiveTab('Company Branding');
+            }
         }
 
         navigate(location.pathname, { replace: true, state: {} });

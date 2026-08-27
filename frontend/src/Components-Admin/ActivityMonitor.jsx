@@ -474,7 +474,7 @@ export const ActivityMonitor = ({ currentTab, onTabChange }) => {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px" }}>
                           <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
                             <img src={GreenProfile} width={20} height={20} alt="" />
-                            <p style={{ margin: "0px 5px" }}>Job Postings</p>
+                            <p style={{ margin: "0px 5px" }}>All Jobs</p>
                           </div>
                           <span className="admin-stat-number">
                             {s('platform_activity_overview', 'employer_activity', 'job_postings')}
@@ -602,7 +602,7 @@ export const ActivityMonitor = ({ currentTab, onTabChange }) => {
                     <span className="search-icon"><img src={Searchicon} alt="Search" /></span>
                     <input
                       type="text"
-                      placeholder="Search by company name, profile username or status"
+                      placeholder="Search by company name, submitted by or status"
                       value={search}
                       onChange={(e) => {
                         setSearch(e.target.value);

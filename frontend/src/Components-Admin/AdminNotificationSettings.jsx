@@ -386,15 +386,17 @@ export const AdminNotificationSettings = () => {
             </div>
           </div>
 
-          {/* Quiet Hours panel */}
+          {/* ── QUIET HOURS PANEL - FIXED ────────────────── */}
           <div className="Adm-Not-panel Adm-Not-quiet-hours-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
+            {/* Header with title and toggle */}
+            <div className="Adm-Not-quiet-header">
+              <div className="Adm-Not-quiet-header-text">
                 <h2 className="Adm-Not-panel-title">Quiet Hours</h2>
-                <p className="Adm-Not-panel-subtitle">Set quiet hours to avoid notification at certain times(only for admin) </p>
-            </div>
-
-              <label className="Adm-Not-switch">
+                <p className="Adm-Not-panel-subtitle">
+                  Set quiet hours to avoid notification at certain times (only for admin)
+                </p>
+              </div>
+              <label className="Adm-Not-switch Adm-Not-quiet-toggle">
                 <input
                   type="checkbox"
                   checked={quietHoursEnabled}
@@ -404,9 +406,10 @@ export const AdminNotificationSettings = () => {
               </label>
             </div>
 
+            {/* Time inputs */}
             <div
               className="Adm-Not-time-inputs"
-              style={{ opacity: quietHoursEnabled ? 1 : 0.5 }}
+              style={{ opacity: quietHoursEnabled ? 1 : 0.5, pointerEvents: quietHoursEnabled ? 'auto' : 'none' }}
             >
               <div className="Adm-Not-time-group">
                 <label>Start time</label>
@@ -424,7 +427,7 @@ export const AdminNotificationSettings = () => {
               <div className="Adm-Not-time-group">
                 <label>End time</label>
                 <div className="Adm-Not-time-select-wrapper">
-                  <img src={Clock} width={25} alt="" className="Adm-Not-input-icon icon-clock" />
+                  <img src={Clock} alt="" className="Adm-Not-input-icon icon-clock" />
                   <input
                     className="Adm-Not-time-select"
                     type="time"
@@ -436,14 +439,15 @@ export const AdminNotificationSettings = () => {
               </div>
             </div>
 
+            {/* Day picker */}
             <div
               className="Adm-Not-day-picker"
-              style={{ opacity: quietHoursEnabled ? 1 : 0.5 }}
+              style={{ opacity: quietHoursEnabled ? 1 : 0.5, pointerEvents: quietHoursEnabled ? 'auto' : 'none' }}
             >
               {daysOfWeek.map(day => (
                 <button
                   key={day}
-                  className={activeDays.includes(day) ? "day-btn active" : "day-btn"}
+                  className={`day-btn ${activeDays.includes(day) ? 'active' : ''}`}
                   onClick={() => toggleDay(day)}
                   disabled={!quietHoursEnabled}
                 >
@@ -452,9 +456,10 @@ export const AdminNotificationSettings = () => {
               ))}
             </div>
 
+            {/* Timezone select */}
             <div
               className="Adm-Not-timezone-select-wrapper"
-              style={{ opacity: quietHoursEnabled ? 1 : 0.5 }}
+              style={{ opacity: quietHoursEnabled ? 1 : 0.5, pointerEvents: quietHoursEnabled ? 'auto' : 'none' }}
             >
               <select
                 className="Adm-Not-timezone-select"

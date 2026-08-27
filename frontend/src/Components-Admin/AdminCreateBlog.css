@@ -444,3 +444,103 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Add these styles to your AdminCreateBlog.css file */
+
+/* Points display section - word wrapping fixes */
+.Admin-Blog-Cr-points-display {
+  margin-top: 20px;
+  border: 1px solid #eee;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.Admin-Blog-Cr-points-display .point-item {
+  margin-bottom: 25px;
+  position: relative;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.Admin-Blog-Cr-points-display .point-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  margin: 0 0 10px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 90%; /* Leave space for delete button */
+  line-height: 1.4;
+}
+
+.Admin-Blog-Cr-points-display .point-content-list {
+  padding-left: 20px;
+  margin: 0;
+  list-style-type: disc;
+}
+
+.Admin-Blog-Cr-points-display .point-content-list li {
+  color: #555;
+  margin-bottom: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Modal styles - word wrapping */
+.modal-points-form input,
+.modal-points-form textarea {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.modal-points-form input {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.modal-points-form textarea {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap; /* Preserve wrapping */
+}
+
+/* Ensure modal content doesn't overflow */
+.modal-content-wrapper {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* For the points display in the modal after saving */
+.display-point-title {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.display-point-description {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
+}

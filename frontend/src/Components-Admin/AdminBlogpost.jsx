@@ -114,7 +114,50 @@ export const AdminBlogPost = () => {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
+    // HELPER 3: Check for duplicate blog (exclude current blog being edited) - including points
+    const checkDuplicateBlog = (title, category, description, points, currentBlogId) => {
+        // Flatten all blogs from all categories
+        const allBlogs = Object.values(publishedBlogs || {}).flat();
+
+        return allBlogs.some(blog => {
+            // Skip current blog
+            if (blog.id === currentBlogId) return false;
+
+            // Check title, category, description
+            const isSameBasicInfo =
+                blog.title?.toLowerCase().trim() === title.toLowerCase().trim() &&
+                blog.categoryName?.toLowerCase().trim() === category.toLowerCase().trim() &&
+                blog.desc?.toLowerCase().trim() === description.toLowerCase().trim();
+
+            if (!isSameBasicInfo) return false;
+
+            // Check points
+            const blogPoints = Array.isArray(blog.points) ? blog.points : [];
+            const currentPoints = points || [];
+
+            if (blogPoints.length !== currentPoints.length) return false;
+
+            return blogPoints.every((bp, idx) => {
+                const cp = currentPoints[idx] || {};
+                const bpTitle = (bp.title || '').toLowerCase().trim();
+                const cpTitle = (cp.title || '').toLowerCase().trim();
+
+                if (bpTitle !== cpTitle) return false;
+
+                const bpContent = (bp.content || []).map(c => (typeof c === 'object' ? c.text : c || '').toLowerCase().trim());
+                const cpContent = (cp.content || []).map(c => (typeof c === 'object' ? c.text : c || '').toLowerCase().trim());
+
+                if (bpContent.length !== cpContent.length) return false;
+
+                return bpContent.every((bc, ci) => bc === cpContent[ci]);
+            });
+        });
+    };
+
     const handlePointTitleChange = (pointIndex, value) => {
+        // Limit to 100 characters
+        if (value.length > 100) return;
+
         const errorKey = `pointTitle_${pointIndex}`;
         if (editErrors[errorKey]) {
             setEditErrors(prev => ({ ...prev, [errorKey]: '' }));
@@ -125,6 +168,9 @@ export const AdminBlogPost = () => {
     };
 
     const handleContentTextChange = (pointIndex, contentIndex, value) => {
+        // Limit to 500 characters
+        if (value.length > 500) return;
+
         const errorKey = `pointContent_${pointIndex}_${contentIndex}`;
         if (editErrors[errorKey]) {
             setEditErrors(prev => ({ ...prev, [errorKey]: '' }));
@@ -277,6 +323,18 @@ export const AdminBlogPost = () => {
 
         if (isCompromised) {
             setEditErrors(caughtErrors);
+            return;
+        }
+
+        // 4. Check for duplicate blog (exclude current blog) - including points
+        if (checkDuplicateBlog(
+            editedBlogData.title,
+            editedBlogData.categoryName,
+            editedBlogData.desc,
+            editedBlogData.points || [],
+            selectedBlog.id
+        )) {
+            alert("A blog with the exact same title, category, description, and points already exists. Please make some changes to create a unique post.");
             return;
         }
 
@@ -810,15 +868,23 @@ export const AdminBlogPost = () => {
                                             <div className="nested-point-header">
                                                 <span className="point-number-badge">Point #{pIndex + 1}</span>
                                                 <div style={{ flex: 1 }}>
-                                                    <input
-                                                        type="text"
-                                                        value={point.title}
-                                                        placeholder="Point Title (e.g., Hook readers instantly)"
-                                                        onChange={(e) => handlePointTitleChange(pIndex, e.target.value)}
-                                                        readOnly={!isEditMode}
-                                                        className={`point-title-input ${!isEditMode ? "readonly-input" : ""}`}
-                                                        style={{ width: '100%', borderColor: editErrors[`pointTitle_${pIndex}`] ? '#dc3545' : '' }}
-                                                    />
+                                                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                                        <input
+                                                            type="text"
+                                                            value={point.title}
+                                                            placeholder="Point Title (e.g., Hook readers instantly)"
+                                                            onChange={(e) => handlePointTitleChange(pIndex, e.target.value)}
+                                                            readOnly={!isEditMode}
+                                                            maxLength="100"
+                                                            className={`point-title-input ${!isEditMode ? "readonly-input" : ""}`}
+                                                            style={{ width: '100%', borderColor: editErrors[`pointTitle_${pIndex}`] ? '#dc3545' : '' }}
+                                                        />
+                                                        {isEditMode && (
+                                                            <div style={{ textAlign: 'right', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                                                                {(point.title || '').length}/100
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     {editErrors[`pointTitle_${pIndex}`] && <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px', fontWeight: '500' }}>{editErrors[`pointTitle_${pIndex}`]}</div>}
                                                 </div>
                                                 {isEditMode && editedBlogData.points.length > 1 && (
@@ -833,15 +899,23 @@ export const AdminBlogPost = () => {
                                                     <div key={cIndex} style={{ width: '100%' }}>
                                                         <div className="subcontent-item-row">
                                                             <span className="bullet-dot">•</span>
-                                                            <textarea
-                                                                value={typeof text === 'object' ? text.text : text}
-                                                                placeholder="Content detail line..."
-                                                                onChange={(e) => handleContentTextChange(pIndex, cIndex, e.target.value)}
-                                                                readOnly={!isEditMode}
-                                                                rows="2"
-                                                                className={`subcontent-textarea ${!isEditMode ? "readonly-input" : ""}`}
-                                                                style={{ borderColor: editErrors[`pointContent_${pIndex}_${cIndex}`] ? '#dc3545' : '' }}
-                                                            />
+                                                            <div style={{ flex: 1 }}>
+                                                                <textarea
+                                                                    value={typeof text === 'object' ? text.text : text}
+                                                                    placeholder="Content detail line..."
+                                                                    onChange={(e) => handleContentTextChange(pIndex, cIndex, e.target.value)}
+                                                                    readOnly={!isEditMode}
+                                                                    maxLength="500"
+                                                                    rows="2"
+                                                                    className={`subcontent-textarea ${!isEditMode ? "readonly-input" : ""}`}
+                                                                    style={{ borderColor: editErrors[`pointContent_${pIndex}_${cIndex}`] ? '#dc3545' : '' }}
+                                                                />
+                                                                {isEditMode && (
+                                                                    <div style={{ textAlign: 'right', fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                                                                        {(typeof text === 'object' ? text.text : text || '').length}/500
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             {isEditMode && point.content.length > 1 && (
                                                                 <button type="button" className="remove-sub-btn" onClick={() => handleRemoveSubContent(pIndex, cIndex)}>
                                                                     ✕

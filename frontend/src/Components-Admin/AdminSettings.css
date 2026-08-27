@@ -385,3 +385,139 @@ select{
   background-position: right 10px center;
   background-size: 10px;
 }
+
+/* Quiet Hours Header - Fix alignment */
+.Adm-Not-quiet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.Adm-Not-quiet-header-text {
+  flex: 1;
+}
+
+.Adm-Not-quiet-toggle {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* Ensure proper alignment for time inputs */
+.Adm-Not-time-inputs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.Adm-Not-time-group {
+  flex: 1;
+}
+
+.Adm-Not-time-group label {
+  display: block;
+  font-size: 0.75rem;
+  color: #757575;
+  margin-bottom: 4px;
+}
+
+.Adm-Not-time-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.Adm-Not-input-icon {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.Adm-Not-time-select {
+  width: 100%;
+  padding: 10px 12px 10px 32px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.Adm-Not-time-select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* Day buttons - ensure consistent styling */
+.day-btn {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 10px;
+  border: none;
+  background: #f4f3f3;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  color: #333;
+}
+
+.day-btn.active {
+  background-color: #624bff;
+  color: #ffffff;
+}
+
+.day-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.day-btn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.day-btn.active:hover:not(:disabled) {
+  background-color: #5239e0;
+}
+
+/* Timezone select */
+.Adm-Not-timezone-select-wrapper {
+  width: 100%;
+}
+
+.Adm-Not-timezone-select {
+  width: 100%;
+  padding: 10px 30px 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #616161;
+  background-color: white;
+  appearance: none;
+  background-image: url(../assets/UpArrow.png);
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px;
+}
+
+.Adm-Not-timezone-select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* Fix for the old styles that might conflict */
+.Adm-Not-quiet-hours-panel .Adm-Not-panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.Adm-Not-quiet-hours-panel .Adm-Not-panel-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: #757575;
+}

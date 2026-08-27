@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import UserIcon from "../assets/Employer/User.png";
 import { useJobs } from "../JobContext";
 import api from "../api/axios";
 import "./ViewApplicants.css";
 
-export const ViewApplicants = ({ job, onBack ,targetApplicationId}) => {
+// Global tracker to ensure we only auto-open once per notification click
+const processedNavKeys = new Set();
+
+export const ViewApplicants = ({ job, onBack, targetApplicationId }) => {
+  const location = useLocation();
   const {
     updateApplicantStatus,
     addChatToSidebar,
@@ -64,13 +68,22 @@ export const ViewApplicants = ({ job, onBack ,targetApplicationId}) => {
 
   // ✅ REMOVED fetchFullApplicationDetails - not needed since we have all data
 
-    useEffect(() => {
+  useEffect(() => {
     if (!targetApplicationId || loading || applications.length === 0) return;
+
+    // Create a unique key using React Router's internal navigation key
+    const currentNavKey = location.key || "no-key";
+    const uniqueProcessId = `${targetApplicationId}-${currentNavKey}`;
+
+    // If we already auto-opened this profile during this exact visit, stop!
+    if (processedNavKeys.has(uniqueProcessId)) return;
+
     const match = applications.find(app => app.id === targetApplicationId);
     if (match) {
       handleViewDetails(match);
+      processedNavKeys.add(uniqueProcessId); // Mark as opened so it won't trigger again on 'Back'
     }
-  }, [targetApplicationId, loading, applications]);
+  }, [targetApplicationId, loading, applications, location.key]);
 
   const statusOptions = [
     "applied",
@@ -92,7 +105,7 @@ export const ViewApplicants = ({ job, onBack ,targetApplicationId}) => {
     "offered": "Offered",
     "rejected": "Rejected",
     "hired": "Hired",
-    "withdrawn" : "Application withdrawn"
+    "withdrawn": "Application withdrawn"
   };
 
   const calculateJobStats = () => {

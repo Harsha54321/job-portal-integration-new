@@ -41,6 +41,45 @@ export const AdminCreateBlog = ({ setmode }) => {
   // Helper: Checks if a non-empty string contains at least one letter
   const hasAtLeastOneLetter = (str) => /[a-zA-Z]/.test(str);
 
+  // Helper: Check for duplicate blog (same title, category, description, and points)
+  const checkDuplicateBlog = (title, category, description, points) => {
+    // Flatten all blogs from all categories
+    const allBlogs = Object.values(publishedBlogs || {}).flat();
+
+    return allBlogs.some(blog => {
+      // Check title, category, description
+      const isSameBasicInfo =
+        blog.title?.toLowerCase().trim() === title.toLowerCase().trim() &&
+        blog.categoryName?.toLowerCase().trim() === category.toLowerCase().trim() &&
+        blog.desc?.toLowerCase().trim() === description.toLowerCase().trim();
+
+      if (!isSameBasicInfo) return false;
+
+      // Check points (compare each point's title and content)
+      const blogPoints = Array.isArray(blog.points) ? blog.points : [];
+      const currentPoints = points || [];
+
+      if (blogPoints.length !== currentPoints.length) return false;
+
+      // Compare each point
+      return blogPoints.every((bp, idx) => {
+        const cp = currentPoints[idx] || {};
+        const bpTitle = (bp.title || '').toLowerCase().trim();
+        const cpTitle = (cp.title || '').toLowerCase().trim();
+
+        if (bpTitle !== cpTitle) return false;
+
+        // Compare content arrays
+        const bpContent = (bp.content || []).map(c => (typeof c === 'object' ? c.text : c || '').toLowerCase().trim());
+        const cpContent = (cp.content || []).map(c => (typeof c === 'object' ? c.text : c || '').toLowerCase().trim());
+
+        if (bpContent.length !== cpContent.length) return false;
+
+        return bpContent.every((bc, ci) => bc === cpContent[ci]);
+      });
+    });
+  };
+
   // 100% Free Typing. Typing instantly clears any red error on that specific field.
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -130,15 +169,25 @@ export const AdminCreateBlog = ({ setmode }) => {
       if (match) {
         await api.delete(`blog-categories/${match.id}/`);
       }
+
+      // Update the categories list first
       setCategories(prev => prev.filter(c => c.id !== categoryId));
+
+      // Update published blogs
       setPublishedBlogs(prev => {
         const updated = { ...prev };
         delete updated[categoryLabel];
         return updated;
       });
+
+      // Clear selected category if it was this one
       if (formData.selectedCategory === categoryId) {
         setFormData(prev => ({ ...prev, selectedCategory: '' }));
       }
+      setTimeout(() => {
+        alert(`"${categoryLabel}" category deleted successfully!`);
+      }, 100);
+
     } catch (err) {
       console.error('Category delete failed:', err);
       alert('Failed to delete category.');
@@ -235,6 +284,13 @@ export const AdminCreateBlog = ({ setmode }) => {
 
     const selectedCategoryObj = categories.find(cat => cat.id === selectedCategory);
     const fullCategoryName = selectedCategoryObj ? selectedCategoryObj.label : 'Unknown';
+
+    // TIER 3: Check for duplicate blog (including points)
+    if (checkDuplicateBlog(blogTitle, fullCategoryName, blogDescription, pointsList)) {
+      alert("A blog with the exact same title, category, description, and points already exists. Please make some changes to create a unique post.");
+      return;
+    }
+
     const options = { month: 'short', day: '2-digit', year: 'numeric' };
     const formattedDate = new Date().toLocaleDateString('en-US', options).replace(/,/g, '');
     const now = new Date();
@@ -317,6 +373,13 @@ export const AdminCreateBlog = ({ setmode }) => {
 
     const selectedCategoryObj = categories.find(cat => cat.id === selectedCategory);
     const fullCategoryName = selectedCategoryObj ? selectedCategoryObj.label : 'Unknown';
+
+    // Check for duplicate draft (including points)
+    if (blogTitle.trim() && checkDuplicateBlog(blogTitle, fullCategoryName, blogDescription, pointsList)) {
+      alert("A blog with the exact same title, category, description, and points already exists. Please make some changes to create a unique post.");
+      return;
+    }
+
     const options = { month: 'short', day: '2-digit', year: 'numeric' };
     const formattedDate = new Date().toLocaleDateString('en-US', options).replace(/,/g, '');
     const now = new Date();
@@ -428,18 +491,36 @@ export const AdminCreateBlog = ({ setmode }) => {
               </button>
 
               {pointsList.length > 0 && (
-                <div className="Admin-Blog-Cr-points-display" style={{ marginTop: '20px', border: '1px solid #eee', padding: '15px', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+                <div className="Admin-Blog-Cr-points-display">
                   {pointsList.map((item, index) => (
-                    <div key={index} style={{ marginBottom: '25px', position: 'relative' }}>
-                      <button type="button" onClick={() => handleDeletePoint(index)} style={{ position: 'absolute', right: '0', top: '0', backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
-                        Delete Section
-                      </button>
-                      <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#000', margin: '0 0 10px 0' }}>
-                        {index + 1}. {item.title}
+                    <div key={index} className="point-item" style={{ position: 'relative', marginBottom: '25px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePoint(index)}
+                          className="delete-point-btn"
+                          style={{
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            padding: '5px 10px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Delete Section
+                        </button>
+                      </div>
+                      <h3 className="point-title" style={{ margin: '0 0 10px 0' }}>
+                        <span style={{ display: 'inline', marginRight: '4px' }}>{index + 1}.</span>
+                        <span style={{ display: 'inline' }}>{item.title}</span>
                       </h3>
-                      <ul style={{ paddingLeft: '20px', margin: '0', listStyleType: 'disc' }}>
+                      <ul className="point-content-list" style={{ paddingLeft: '20px', margin: '0' }}>
                         {item.content.map((subPoint, subIndex) => (
-                          <li key={subIndex} style={{ color: '#555', marginBottom: '6px', fontSize: '14px', lineHeight: '1.5' }}>{subPoint}</li>
+                          <li key={subIndex} style={{ marginBottom: '6px', fontSize: '14px', lineHeight: '1.5' }}>
+                            {subPoint}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -453,50 +534,121 @@ export const AdminCreateBlog = ({ setmode }) => {
 
               {/* MODAL */}
               {isModalOpen && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                  <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', width: '500px', maxWidth: '90%', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  zIndex: 1000
+                }}>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '25px',
+                    borderRadius: '8px',
+                    width: '500px',
+                    maxWidth: '90%',
+                    maxHeight: '90vh',
+                    overflow: 'auto',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                  }}>
                     <h2 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>Add New Section</h2>
 
-                    {/* Notice: NO 'noValidate' tag here. Browser demands filled fields first! */}
                     <form onSubmit={handleSavePoints}>
                       <div style={{ marginBottom: '15px' }}>
-                        <label htmlFor="modalHeading" style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Heading</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                          <label htmlFor="modalHeading" style={{ display: 'block', fontWeight: '500' }}>Heading</label>
+                          <span style={{ fontSize: '12px', color: '#64748b' }}>{formData.modalHeading.length}/100</span>
+                        </div>
                         <input
                           type="text"
                           id="modalHeading"
                           placeholder="e.g., Hook readers instantly"
                           value={formData.modalHeading}
                           onChange={handleInputChange}
+                          maxLength="100"
                           required
-                          style={{ width: '100%', padding: '10px', boxSizing: 'border-box', border: '1px solid', borderColor: formErrors.modalHeading ? '#dc3545' : '#ccc', borderRadius: '4px' }}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            boxSizing: 'border-box',
+                            border: '1px solid',
+                            borderColor: formErrors.modalHeading ? '#dc3545' : '#ccc',
+                            borderRadius: '4px'
+                          }}
                         />
                         {formErrors.modalHeading && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', fontWeight: '500' }}>{formErrors.modalHeading}</div>
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', fontWeight: '500' }}>
+                            {formErrors.modalHeading}
+                          </div>
                         )}
                       </div>
 
                       <div style={{ marginBottom: '20px' }}>
-                        <label htmlFor="modalDescription" style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Description</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                          <label htmlFor="modalDescription" style={{ display: 'block', fontWeight: '500' }}>Description</label>
+                          <span style={{ fontSize: '12px', color: '#64748b' }}>{formData.modalDescription.length}/500</span>
+                        </div>
                         <textarea
                           id="modalDescription"
                           rows="6"
+                          maxLength="500"
                           placeholder="Start strong...&#10;Use formulas...&#10;Deliver intent..."
                           value={formData.modalDescription}
                           onChange={handleInputChange}
                           required
-                          style={{ width: '100%', padding: '10px', boxSizing: 'border-box', border: '1px solid', borderColor: formErrors.modalDescription ? '#dc3545' : '#ccc', borderRadius: '4px', resize: 'vertical', fontFamily: 'inherit' }}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            boxSizing: 'border-box',
+                            border: '1px solid',
+                            borderColor: formErrors.modalDescription ? '#dc3545' : '#ccc',
+                            borderRadius: '4px',
+                            resize: 'vertical',
+                            fontFamily: 'inherit'
+                          }}
                         />
                         {formErrors.modalDescription && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', fontWeight: '500' }}>{formErrors.modalDescription}</div>
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', fontWeight: '500' }}>
+                            {formErrors.modalDescription}
+                          </div>
                         )}
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button type="button" onClick={closeModal} style={{ padding: '8px 15px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-                        <button type="submit" style={{ padding: '8px 15px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Save Points</button>
+                        <button
+                          type="button"
+                          onClick={closeModal}
+                          style={{
+                            padding: '8px 15px',
+                            backgroundColor: '#6c757d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          style={{
+                            padding: '8px 15px',
+                            backgroundColor: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Save Points
+                        </button>
                       </div>
                     </form>
-
                   </div>
                 </div>
               )}

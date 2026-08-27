@@ -37,6 +37,40 @@ export const PostedJobs = ({ onViewApplicants, onEditJob, allowEditAfterApproval
 
     fetchApplications();
   }, []);
+  // NEW: Close dropdown when clicking outside
+
+  useEffect(() => {
+
+    const handleClickOutside = (event) => {
+
+      // If the click is NOT inside the menu wrapper, close the menu
+
+      if (!event.target.closest('.postedjobs-menu-wrapper')) {
+
+        setActiveMenu(null);
+
+      }
+
+    };
+ 
+    // Only attach the event listener if a menu is currently open
+
+    if (activeMenu !== null) {
+
+      document.addEventListener('mousedown', handleClickOutside);
+
+    }
+ 
+    // Cleanup the event listener when the component unmounts or activeMenu changes
+
+    return () => {
+
+      document.removeEventListener('mousedown', handleClickOutside);
+
+    };
+
+  }, [activeMenu]);
+ 
 
   // Calculate stats for each job using actual application data
   const getJobApplicationStats = (jobId) => {

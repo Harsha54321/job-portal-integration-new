@@ -42,9 +42,14 @@ export const ProfileCard = ({ user, showActions = false }) => {
   }
 
   // Extract contact information
+  // const email = user.email || user.user?.email || user.profile?.user?.email || "Not provided";
+  // const phone = user.phone || user.user?.phone || user.profile?.user?.phone || "Not provided";
+  
+    // Extract contact information
+  const contactLocked = user.contact_visibility_locked === true;
   const email = user.email || user.user?.email || user.profile?.user?.email || "Not provided";
   const phone = user.phone || user.user?.phone || user.profile?.user?.phone || "Not provided";
-  
+
   // Extract location
   const location = user.current_location || user.profile?.current_location || "";
   const city = user.city || user.profile?.city || "";
@@ -98,16 +103,28 @@ export const ProfileCard = ({ user, showActions = false }) => {
         </div>
       </div>
 
-      <div className="FindTalent-contact-info-container">
+            <div className="FindTalent-contact-info-container">
         
         <div className="FindTalent-contact-item">
           <img src={Mail} alt="Email" className="FindTalent-info-icon" />
-          <span>{email}</span> 
+          {contactLocked ? (
+            <span className="FindTalent-contact-locked" title="Upgrade your plan to view contact details">
+               Hidden
+            </span>
+          ) : (
+            <span>{email}</span>
+          )}
         </div>
         
         <div className="FindTalent-contact-item">
           <img src={call} alt="Phone" className="FindTalent-info-icon" /> 
-          <span>{phone}</span> 
+          {contactLocked ? (
+            <span className="FindTalent-contact-locked" title="Upgrade your plan to view contact details">
+               Hidden
+            </span>
+          ) : (
+            <span>{phone}</span>
+          )}
         </div>
         
         <div className="FindTalent-contact-item">

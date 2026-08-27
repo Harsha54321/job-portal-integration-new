@@ -438,7 +438,7 @@ export const UserManagement = () => {
           <span className="search-icon"><img src={Searchicon} alt="Search" /></span>
           <input
             type="text"
-            placeholder="Search by name, email or Role"
+            placeholder="Search by username, email or role"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
