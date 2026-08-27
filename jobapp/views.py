@@ -14,6 +14,7 @@ from django.db import IntegrityError
 from django.db.models import Q, Count
 from datetime import timedelta
 from math import ceil
+from django.core.mail import send_mail
 import random
 import logging
 from django.db.models.functions import Coalesce
@@ -3657,6 +3658,41 @@ class ContactMessageCreateAPIView(APIView):
                     related_object_id=contact_message.id
                 )
                 #--
+                                
+                       # NOTIFY THE SUBMITTER (mirrors RaiseTicket's confirmation notice)
+            if user:
+                NotificationService.create_notification(
+                    recipient=user,
+                    title="Contact Message Received",
+                    message=(
+                        "We've received your message and "
+                        "will get back to you soon."
+                    ),
+                    category="system",
+                    event_type="contact_message_submitted",
+                    notification_type="system",
+                    related_object_id=contact_message.id
+                )
+            else:
+                # Guest (not logged in) — no User account to attach an
+                # in-app notification to, so email the address they typed
+                # in the form directly.
+                try:
+                    send_mail(
+                        subject="Contact Message Received",
+                        message=(
+                            "We've received your message and "
+                            "will get back to you soon."
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[contact_message.email],
+                        fail_silently=False
+                    )
+                except Exception as exc:
+                    logger.exception(
+                        "GUEST CONTACT EMAIL FAILED | email=%s | %s",
+                        contact_message.email, exc
+                    )
                
             return Response(
                 {
@@ -3746,6 +3782,28 @@ class ContactMessageStatusUpdateAPIView(APIView):
  
         message.status = status_value
         message.save()
+
+        # NOTIFY THE MESSAGE SENDER OF THE STATUS CHANGE
+        recipient = message.user
+        if not recipient:
+            recipient = User.objects.filter(email=message.email).first()
+
+        if recipient:
+            NotificationService.create_notification(
+                recipient=recipient,
+                title="Contact Message Status Updated",
+                message=(
+                    f"Your contact message status "
+                    f"has been updated to "
+                    f"'{status_value}'."
+                ),
+                category="system",
+                event_type="contact_message_status_updated",
+                notification_type="system",
+                related_object_id=message.id
+            )
+
+       
  
         serializer = ContactMessageSerializer(message)
  
@@ -6354,6 +6412,11 @@ class DashboardView(APIView):
                 filter=Q(approval_status="approved")
 
             ),
+
+             posted=Count(
+                'id',
+                filter=Q(approval_status="pending")
+            ),
  
             highlighted=Count('id', filter=Q(is_highlighted=True)),
  
@@ -6431,7 +6494,7 @@ class DashboardView(APIView):
             },
             "job_communication": {
                 "job_tracking": {
-                    "job_posted": job_stats["total"],
+                    "job_posted": job_stats["posted"],
                     "job_approved": job_stats["approved"],
                     "expired_jobs": expired_jobs,
                 },
