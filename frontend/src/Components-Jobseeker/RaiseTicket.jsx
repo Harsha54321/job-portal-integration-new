@@ -184,12 +184,20 @@ export const RaiseTicket = () => {
     };
 
     const isEmailDomainAllowed = (email) => {
+        //  If Category is NOT Jobseeker (e.g. Employer), bypass restriction
+        if (formData.category !== "Jobseeker") {
+            return true;
+        }
+
+        //  If domain restriction is disabled or list is empty in settings, allow all
         if (!jobseekerSettings.domainRest) {
             return true;
         }
         if (jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length === 0) {
             return true;
         }
+
+        // Validate against allowed domains for Jobseekers
         const emailParts = email.split('@');
         if (emailParts.length !== 2) {
             return false;
@@ -247,7 +255,7 @@ export const RaiseTicket = () => {
             errors.email = "Email is required";
         } else if (!isValidEmailFormat(formData.email)) {
             errors.email = "Please enter a valid email address (e.g., name@domain.com)";
-        } else if (!isEmailDomainAllowed(formData.email)) {
+        } else if (formData.category === "Jobseeker" && !isEmailDomainAllowed(formData.email)) {
             const allowedDomainsList = jobseekerSettings.allowedDomains.join(', ');
             errors.email = `Email domain not allowed. Please use an email from: ${allowedDomainsList}`;
         }
@@ -564,7 +572,7 @@ export const RaiseTicket = () => {
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 />
                                 {errors.email && <span className='form-group-err'>{errors.email}</span>}
-                                {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
+                                {formData.category === "Jobseeker" && jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
                                     <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
                                         Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
                                     </span>

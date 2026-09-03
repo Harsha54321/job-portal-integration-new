@@ -217,6 +217,8 @@
 .notification-message {
   color: #032240;
   font-size: 0.92rem;
+  word-break: break-word; /* Add this so long links wrap naturally */
+  line-height: 1.4;       /* Add this for better multi-line readability */
 }
 
 .activity-meta {
@@ -241,6 +243,7 @@
   background: transparent;
   flex-shrink: 0;
   transition: background 0.15s;
+  margin-top: 0.45rem;
 }
 
 .unread-dot.unread {
@@ -486,3 +489,12 @@
     font-size: 1.5rem;
   }
 }
+
+.recent-notifications-section .activity-info {
+
+  flex-wrap: nowrap;
+
+  align-items: flex-start;
+
+}
+ 

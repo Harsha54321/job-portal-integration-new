@@ -109,49 +109,80 @@ export const SearchResults = () => {
         }, {});
     };
 
+    // ============================================================
+    // UPDATED: Enhanced parseExperience with isFresherWithYears flag
+    // ============================================================
     const parseExperience = (expStr) => {
-        if (!expStr) return { min: 0, max: 0 };
+        if (!expStr) return { min: 0, max: 0, isFresherWithYears: false };
 
         const str = expStr.toString().toLowerCase().trim();
 
+        // --- Handle "Fresher" with years (e.g., "Fresher,2years", "Fresher - 3 years") ---
         if (str.includes('fresher')) {
-            return { min: 0, max: 0 };
+            const yearMatch = str.match(/(\d+)\s*(?:years?|yrs?|yr)/i);
+            if (yearMatch) {
+                const years = parseInt(yearMatch[1]);
+                // Check if it's a range like "2-4 years"
+                const rangeMatch = str.match(/(\d+)\s*-\s*(\d+)\s*(?:years?|yrs?|yr)/i);
+                if (rangeMatch) {
+                    return {
+                        min: parseInt(rangeMatch[1]),
+                        max: parseInt(rangeMatch[2]),
+                        isFresherWithYears: true
+                    };
+                }
+                return { 
+                    min: years, 
+                    max: years, 
+                    isFresherWithYears: true  // Flag to indicate this job should show for both Fresher and experience filters
+                };
+            }
+            // Pure fresher without years
+            return { min: 0, max: 0, isFresherWithYears: false };
         }
 
+        // --- Handle month patterns ---
         const monthMatch = str.match(/(\d+)\s*months?/i);
         if (monthMatch) {
             const months = parseInt(monthMatch[1]);
-            if (months < 6) {
-                return { min: 0, max: 0 };
-            }
             const years = months / 12;
-            return { min: years, max: years };
+            return { min: years, max: years, isFresherWithYears: false };
         }
+
+        // --- Handle ranges like "1-3 Years" ---
         const rangeMatch = str.match(/(\d+)\s*-\s*(\d+)/);
         if (rangeMatch) {
             return {
                 min: parseInt(rangeMatch[1]),
-                max: parseInt(rangeMatch[2])
+                max: parseInt(rangeMatch[2]),
+                isFresherWithYears: false
             };
         }
+
+        // --- Handle "5+ Years" ---
         const plusMatch = str.match(/(\d+)\s*\+/);
         if (plusMatch) {
             return {
                 min: parseInt(plusMatch[1]),
-                max: 30
+                max: 30,
+                isFresherWithYears: false
             };
         }
+
+        // --- Handle single number like "2 years" ---
         const singleMatch = str.match(/(\d+)/);
         if (singleMatch) {
             const val = parseInt(singleMatch[1]);
             if (str.includes('month')) {
                 const years = val / 12;
-                return { min: years, max: years };
+                return { min: years, max: years, isFresherWithYears: false };
             }
-            return { min: val, max: val };
+            return { min: val, max: val, isFresherWithYears: false };
         }
-        return { min: 0, max: 0 };
+
+        return { min: 0, max: 0, isFresherWithYears: false };
     };
+
     const locationCounts = countPropertyOccurrences(
         jobs.flatMap((item) =>
             Array.isArray(item.location)
@@ -237,39 +268,6 @@ export const SearchResults = () => {
         }
     }, [jobs]);
 
-    // useEffect(() => {
-    //     const saved = sessionStorage.getItem("filters");
-
-    //     if (saved && jobs.length > 0) {
-    //         const data = JSON.parse(saved);
-
-    //         setSelectedLocations(data.selectedLocations || []);
-    //         setselectedWorkType(data.selectedWorkType || []);
-    //         setSelectedCompany(data.SelectedCompany || []);
-    //         setSelectedEducation(data.SelectedEducation || []);
-    //         setSelectedPostDate(data.SelectedPostDate || []);
-    //         setSelectedIndustryType(data.SelectedIndustryType || []);
-
-    //         setMinVal(data.minVal || 0);
-    //         setMaxVal(data.maxVal || MAX_SALARY_LPA);
-    //         setMinExp(data.minExp || 0);
-    //         setMaxExp(data.maxExp || 30);
-
-    //         setAppliedSidebarFilters({
-    //             locations: data.selectedLocations || [],
-    //             workType: data.selectedWorkType || [],
-    //             company: data.SelectedCompany || [],
-    //             education: data.SelectedEducation || [],
-    //             postedDate: data.SelectedPostDate || [],
-    //             industryType: data.SelectedIndustryType || [],
-    //             minSalary: data.minVal || 0,
-    //             maxSalary: data.maxVal || MAX_SALARY_LPA,
-    //             minExp: data.minExp || 0,
-    //             maxExp: data.maxExp || 30
-    //         });
-    //     }
-    // }, [jobs]);
-
     // --- Convert searchExp to min/max and apply filter ---
     useEffect(() => {
         if (searchExp) {
@@ -301,6 +299,15 @@ export const SearchResults = () => {
             setAppliedFilters(prev => ({
                 ...prev,
                 experience: searchExp
+            }));
+        } else {
+            // When searchExp is cleared, reset to default
+            setMinExp(0);
+            setMaxExp(30);
+            setAppliedSidebarFilters(prev => ({
+                ...prev,
+                minExp: 0,
+                maxExp: 30
             }));
         }
     }, [searchExp]);
@@ -356,6 +363,10 @@ export const SearchResults = () => {
         } else if (searchExp === "5+") {
             min = 5;
             max = 30;
+        } else {
+            // If no experience filter selected, show all
+            min = 0;
+            max = 30;
         }
 
         setMinExp(min);
@@ -409,25 +420,11 @@ export const SearchResults = () => {
             location: "",
             experience: ""
         }));
-        // sessionStorage.setItem("filters", JSON.stringify({
-        //     selectedLocations,
-        //     selectedWorkType,
-        //     SelectedCompany,
-        //     SelectedEducation,
-        //     SelectedPostDate,
-        //     SelectedIndustryType,
-        //     minVal,
-        //     maxVal,
-        //     minExp,
-        //     maxExp
-        // }));
         setShowFilters(false);
     };
 
     // --- Clear Filters Handler ---
     const HandleClear = () => {
-        // sessionStorage.removeItem("filters");
-
         setSearchQuery("");
         setSearchLocation("");
         setSearchExp("");
@@ -465,6 +462,7 @@ export const SearchResults = () => {
         setSortBy("recommended");
         setOpenSort(false);
         setHasSearched(false);
+        setShowFilters(false);
     };
 
     // --- Sort Handlers ---
@@ -520,6 +518,9 @@ export const SearchResults = () => {
         setSelectedIndustryType(prev => event.target.checked ? [...prev, val] : prev.filter(item => item !== val));
     };
 
+    // ============================================================
+    // UPDATED: Filtered Jobs with enhanced experience logic
+    // ============================================================
     const filteredJobs = useMemo(() => {
         return jobs.filter((job) => {
             const sf = appliedSidebarFilters;
@@ -533,10 +534,29 @@ export const SearchResults = () => {
                 job.keySkills?.some(skill => skill.toLowerCase().includes(af.query.toLowerCase()));
 
             // ============================================================
-            // ✅ FIXED EXPERIENCE FILTER - Using parseExperience function
+            // FIXED EXPERIENCE FILTER - Handles "Fresher,2years" properly
             // ============================================================
             const expRange = parseExperience(job.experience);
-            const matchesExperience = expRange.max >= sf.minExp && expRange.min <= sf.maxExp;
+            let matchesExperience = false;
+
+            // If job has "Fresher" with years (e.g., "Fresher,2years")
+            if (expRange.isFresherWithYears) {
+                // Check if filter is Fresher (0-0)
+                if (sf.minExp === 0 && sf.maxExp === 0) {
+                    matchesExperience = true; // Show for Fresher filter
+                } 
+                // Check if filter matches the actual years
+                else if (expRange.min >= sf.minExp && expRange.max <= sf.maxExp) {
+                    matchesExperience = true; // Show for experience filter
+                }
+                // For other ranges that don't match, don't show
+                else {
+                    matchesExperience = false;
+                }
+            } else {
+                // Normal experience check for jobs without "Fresher" prefix
+                matchesExperience = expRange.max >= sf.minExp && expRange.min <= sf.maxExp;
+            }
 
             // --- Location Filter ---
             const jobLocations = Array.isArray(job.location)
@@ -654,7 +674,6 @@ export const SearchResults = () => {
                             ✕
                         </button>
                     </div>
-
 
                     <div className='Search-Worktype-Container'>
                         <h4>Work Type</h4>
@@ -877,7 +896,6 @@ export const SearchResults = () => {
 
                 <div className='maincontent'>
                     <div className="results-header">
-
                         <h2 className='NoofJobsCont'>
                             Showing {sortedJobs.length} Jobs
                         </h2>
@@ -893,7 +911,6 @@ export const SearchResults = () => {
                                 </button>
                             )}
 
-
                             {openSort && (
                                 <div className="sort-dropdown">
                                     <p onClick={() => handleSort("recommended")}>Recommended</p>
@@ -907,7 +924,6 @@ export const SearchResults = () => {
 
                         {/* Mobile */}
                         <div className="mobile-toolbar">
-
                             <button
                                 className="mobile-filter-btn"
                                 onClick={() => setShowFilters(true)}
@@ -921,9 +937,7 @@ export const SearchResults = () => {
                             >
                                 Sort
                             </button>
-
                         </div>
-
                     </div>
 
                     {sortedJobs.map((jb, index) =>

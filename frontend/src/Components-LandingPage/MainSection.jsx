@@ -68,6 +68,14 @@ export const MainSection = () => {
     }
   };
 
+  //  ENTER KEY HANDLER – triggers search
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
   // Helper function to match experience values dynamically
   const matchesExperience = (jobExp, expFilter) => {
     if (!expFilter) return true;
@@ -211,6 +219,7 @@ export const MainSection = () => {
               placeholder="Search by Skills, company or job title"
               value={searchQuery}
               onChange={handleQueryChange}
+              onKeyDown={handleKeyDown} 
             />
           </div>
 
@@ -225,6 +234,7 @@ export const MainSection = () => {
               placeholder="Enter Location"
               value={searchLocation}
               onChange={handleLocationChange}
+              onKeyDown={handleKeyDown}  
             />
           </div>
 
@@ -237,6 +247,7 @@ export const MainSection = () => {
             <select
               value={searchExperience}
               onChange={handleExperienceChange}
+              onKeyDown={handleKeyDown}   
             >
               <option value="" disabled hidden>Enter Experience</option>
               <option value="fresher">Fresher</option>

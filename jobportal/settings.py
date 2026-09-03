@@ -35,8 +35,6 @@ ALLOWED_HOSTS = [
     "jobportal.stacklycloud.com",
 ]
  
- 
- 
 INSTALLED_APPS = [
     'daphne',
     'django.contrib.admin',
@@ -55,8 +53,6 @@ INSTALLED_APPS = [
     'django_celery_beat',
 ]
  
-
- 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -65,7 +61,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ),
 }
- 
  
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -81,11 +76,8 @@ MIDDLEWARE = [
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
  
 CELERY_ACCEPT_CONTENT = ['json']
- 
 CELERY_TASK_SERIALIZER = 'json'
- 
 CELERY_RESULT_SERIALIZER = 'json'
- 
 CELERY_TIMEZONE = 'Asia/Kolkata'
 
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
@@ -110,9 +102,9 @@ CELERY_BEAT_SCHEDULE = {
         # 'schedule': timedelta(seconds=60),
 
         'schedule': crontab(
-            hour=9,
+            hour=10,
             minute=0,
-            # day_of_week='monday'
+            day_of_week='monday'
         ),
     },
  
@@ -166,28 +158,23 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
- 
-
 # GeoIP DB path (project currently keeps mmdb under jobapp/geoip)
 GEOIP_PATH = BASE_DIR / "jobapp" / "geoip"
 GEOIP_CITY = "GeoLite2-City.mmdb"
  
 CORS_ALLOW_ALL_ORIGINS = False
- 
 CORS_ALLOW_CREDENTIALS = True
  
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://127.0.0.:8000",
     "http://localhost:5173",
     "http://localhost:5174",
     "https://112m0g3c-5173.inc1.devtunnels.ms",
     "http://54.183.89.14",
     "https://jobportal.stacklycloud.com"
-   
 ]
-
- 
  
 ROOT_URLCONF = 'jobportal.urls'
  
@@ -213,97 +200,73 @@ WSGI_APPLICATION = 'jobportal.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
  
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',  
-#     }
-# }
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'jobportal_dev',
-        'USER': 'jobportal_user',
-        'PASSWORD': 'Jobportal@01',
-        'HOST': '54.183.89.14',
-        'PORT': '3306',
-        'CONN_MAX_AGE':60,
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',  
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'jobportal_dev',
+#         'USER': 'jobportal_user',
+#         'PASSWORD': 'Jobportal@01',
+#         'HOST': '54.183.89.14',
+#         'PORT': '3306',
+#         'CONN_MAX_AGE':60,
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#         }
+#     }
+# }
  
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
 EMAIL_HOST = 'smtp.gmail.com'
-
 EMAIL_PORT = 587
-
 EMAIL_USE_TLS = True
-
 EMAIL_USE_SSL = False
-
 EMAIL_TIMEOUT = 60
-
 EMAIL_HOST_USER = 'adminjobportal1@gmail.com'
-
 EMAIL_HOST_PASSWORD = 'zhxy xkmq nvun nrvp'
-
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
- 
- 
  
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
  
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
- 
  
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
  
 LANGUAGE_CODE = 'en-us'
- 
 TIME_ZONE = 'Asia/Kolkata'
- 
 USE_I18N = True
- 
 USE_TZ = False
  
  
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
  
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
- 
+# MEDIA_ROOT = '/app/media'
  
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
  
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'jobapp.User'
- 
-from datetime import timedelta
  
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -315,7 +278,7 @@ SIMPLE_JWT = {
  
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'  
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
     }
 }
  

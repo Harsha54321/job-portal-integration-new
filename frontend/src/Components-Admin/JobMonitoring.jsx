@@ -424,7 +424,7 @@ export const JobMonitoring = () => {
                         <button
                             className="page-nav-btn"
                             disabled={currentPage === 1}
-                            onClick={() => paginate(currentPage - 1)}
+                            onClick={() => paginate(currentPage - 1)} title='prev'
                         > &lt; </button>
 
                         {[...Array(totalPages)].map((_, index) => (
@@ -440,7 +440,7 @@ export const JobMonitoring = () => {
                         <button
                             className="page-nav-btn"
                             disabled={currentPage === totalPages}
-                            onClick={() => paginate(currentPage + 1)}
+                            onClick={() => paginate(currentPage + 1)} title='next'
                         > &gt; </button>
                     </div>
                 )}

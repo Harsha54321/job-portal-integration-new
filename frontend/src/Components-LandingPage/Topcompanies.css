@@ -188,7 +188,7 @@
  
 .custom-arrow {
   position: absolute;
-  top: 45%;
+  top: 48%;
   transform: translateY(-50%);
   z-index: 2;
   cursor: pointer;
@@ -196,18 +196,34 @@
  
 .custom-arrow img {
   border-radius: 50%;
-  padding: 10px;
+  padding: 8px;
+  width: 120px;        
+  height: 120px;
+  background-color: transparent;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.custom-arrow:hover img {
+  background-color: #1e88e5;   
+  transform: scale(1.05);    
+  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.4);
+}
+ 
+.custom-arrow.next img {
   width: 60px;
   height: 60px;
+  padding: 10px;
 }
- 
-.custom-arrow.next {
-  right: 18px;
+
+.custom-arrow.prev img {
+  width: 60px;   
+  height: 60px;
 }
- 
-.custom-arrow.prev {
-  left: 20px;
+#companies-section {
+  scroll-margin-top: 60px;   
 }
+
+
  
 .login-popup-overlay {
   position: fixed;
@@ -292,7 +308,7 @@
 /* --- Mobile Responsive: Top Companies Carousel --- */
 @media screen and (max-width: 768px) {
   .carousel-wrapper {
-    margin-top: 20px;
+    margin-top: 120px;
     padding-bottom: 20px;
   }
  

@@ -266,7 +266,7 @@ export default function CompanyBranding() {
                   />
                 </div>
                 <div className="cb-field">
-                  <label className="cb-label">LinkedIn URL</label>
+                  <label className="cb-label">LinkedIn URL (Optional)</label>
                   <input
                     type="url"
                     value={branding.linkedin_url}

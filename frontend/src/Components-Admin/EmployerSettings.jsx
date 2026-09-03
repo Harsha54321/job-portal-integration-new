@@ -591,7 +591,7 @@ export const EmployerSettings = () => {
         <div className="Jobseeker-Set-preferences-column">
           <h2>Other Preferences
             <span style={{ marginLeft: '8px', cursor: 'help', fontSize: '12px', color: '#ff9800' }}
-              title="Multiple Company, Multiple Users, Company Reviews, Company Branding are under implementation">
+              title="Company Reviews is under implementation">
               ⓘ
             </span>
           </h2>
@@ -600,21 +600,36 @@ export const EmployerSettings = () => {
             // { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: true },
             { label: 'Allow Multiple Users', id: 'multipleUsers', disabled: false },
             { label: 'Show Company Reviews', id: 'companyReviews', disabled: true },
-            { label: 'Enable Company Branding', id: 'companyBranding', disabled: true },
+            { label: 'Enable Company Branding', id: 'companyBranding', disabled: false },
             { label: 'Allow Job Highlighting', id: 'featuredEmployer', disabled: false },
             { label: 'Allow Jobseeker Contact Visibility', id: 'jobseekerContactVisibility', disabled: false },
           ].map(pref => (
-            <div className="Jobseeker-Set-checkbox-item" key={pref.id}>
+            <div
+              className={`Jobseeker-Set-checkbox-item ${pref.disabled ? 'Jobseeker-Set-disabled-item' : ''}`}
+              key={pref.id}
+            >
               <input
                 type="checkbox"
                 id={`pref-${pref.id}`}
                 checked={settings.preferences[pref.id]}
                 onChange={(e) => handleChange('preferences', pref.id, e.target.checked, true)}
-
-
+                disabled={pref.disabled}
               />
-              <label htmlFor={`pref-${pref.id}`} style={{ cursor: 'pointer' }}>
+              <label htmlFor={`pref-${pref.id}`} style={{ cursor: pref.disabled ? 'not-allowed' : 'pointer' }}>
                 {pref.label}
+                {pref.disabled && (
+                  <span
+                    style={{
+                      marginLeft: '8px',
+                      cursor: 'help',
+                      fontSize: '12px',
+                      color: '#ff9800'
+                    }}
+                    title="Under Implementation"
+                  >
+                    ⓘ
+                  </span>
+                )}
               </label>
             </div>
           ))}

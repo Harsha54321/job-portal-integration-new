@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import UsermanageSet from '../assets/AdminAssets/UserManageSetting.png'
 import JobManageSetting from '../assets/AdminAssets/JobManageSetting.png'
 import ApplicationSet from '../assets/AdminAssets/ApplicationSet.png'
@@ -11,6 +11,275 @@ import SmsNotify from '../assets/AdminAssets/SmsNotify.png'
 import PushNotify from '../assets/AdminAssets/PushNotify.png'
 import Clock from '../assets/AdminAssets/Clock.png'
 import api from '../api/axios/'
+
+// ─── Exact UI Matched Auto-Flipping Pop-up TimePicker Component ───────────
+const TimePicker = ({ value, onChange, disabled, className,title }) => {
+  const to12Hour = (time24) => {
+    if (!time24) return { hour: 12, minute: '00', ampm: 'AM' }
+    const [h, m] = time24.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour12 = h % 12 || 12
+    return { hour: hour12, minute: String(m).padStart(2, '0'), ampm }
+  }
+
+  const to24Hour = (hour12, minute, ampm) => {
+    let h = Number(hour12) % 12
+    if (ampm === 'PM') h += 12
+    return `${String(h).padStart(2, '0')}:${minute}`
+  }
+
+  const current = to12Hour(value)
+  const [isOpen, setIsOpen] = useState(false)
+  const [openUpwards, setOpenUpwards] = useState(false)
+  const [tempHour, setTempHour] = useState(current.hour)
+  const [tempMinute, setTempMinute] = useState(current.minute)
+  const [tempAmpm, setTempAmpm] = useState(current.ampm)
+
+  const popoverRef = useRef(null)
+  const buttonRef = useRef(null)
+
+  useEffect(() => {
+    const cur = to12Hour(value)
+    setTempHour(cur.hour)
+    setTempMinute(cur.minute)
+    setTempAmpm(cur.ampm)
+  }, [value])
+
+  // Determine top/bottom flex positioning based on viewport space
+  const handleToggle = () => {
+    if (disabled) return
+
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      const popupHeight = 230
+      const spaceBelow = window.innerHeight - rect.bottom
+
+      if (spaceBelow < popupHeight && rect.top > popupHeight) {
+        setOpenUpwards(true)
+      } else {
+        setOpenUpwards(false)
+      }
+    }
+    setIsOpen((prev) => !prev)
+  }
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen])
+
+  const handleApply = () => {
+    const time24 = to24Hour(tempHour, tempMinute, tempAmpm)
+    onChange(time24)
+    setIsOpen(false)
+  }
+
+  const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1)
+  const minuteOptions = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
+
+  return (
+    <div 
+      ref={popoverRef}
+      className={`Adm-Not-time-select-wrapper ${className || ''}`} 
+      style={{ position: 'relative', width: '100%' }}
+    >
+      {/* Input Display Box (Matches image style) */}
+      <button
+        ref={buttonRef}
+        type="button"
+        disabled={disabled}
+        title={disabled ? "Enable Quiet Hours to modify time" : (title || "Click to change time")}
+        onClick={handleToggle}
+        style={{
+          width: '100%',
+          height: '42px',
+          padding: '0 12px 0 36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          gap: '6px',
+          background: disabled ? '#f8fafc' : '#ffffff',
+          border: '1.5px solid #e2e8f0',
+          borderRadius: '10px',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          outline: 'none',
+          boxSizing: 'border-box',
+          position: 'relative',
+          transition: 'border-color 0.2s, box-shadow 0.2s'
+        }}
+      >
+        <img 
+          src={Clock} 
+          alt="" 
+          className="Adm-Not-input-icon icon-clock" 
+          style={{ 
+            position: 'absolute', 
+            left: '12px', 
+            top: '50%', 
+            transform: 'translateY(-50%)', 
+            width: '17px', 
+            height: '17px', 
+            pointerEvents: 'none',
+            opacity: 0.65
+          }} 
+        />
+
+        <span style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>
+          {String(current.hour).padStart(2, '0')}
+        </span>
+        <span style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', margin: '0 1px' }}>
+          :{current.minute}
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: '#624bff', marginLeft: 'auto' }}>
+          {current.ampm}
+        </span>
+      </button>
+
+      {/* Auto-Flipping Single Pop-up Modal */}
+      {isOpen && (
+        <div
+           style={{
+            position: 'absolute',
+            ...(openUpwards
+              ? { bottom: 'calc(100% + 8px)', top: 'auto' }
+              : { top: 'calc(100% + 8px)', bottom: 'auto' }),
+            left: '50%',
+            transform: 'translateX(-50%)', // Centers the popup horizontally with the button
+            zIndex: 1000,
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            boxShadow: openUpwards
+              ? '0 -10px 25px -5px rgba(0, 0, 0, 0.15)'
+              : '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
+            padding: '12px',
+            width: '216px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}
+        >
+          {/* Columns Container */}
+          <div style={{ display: 'flex', gap: '8px', height: '145px' }}>
+            {/* Hours */}
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px', padding: '3px' }}>
+              <div style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', fontWeight: 700, padding: '2px 0' }}>HR</div>
+              {hourOptions.map((h) => (
+                <div
+                  key={h}
+                  onClick={() => setTempHour(h)}
+                  style={{
+                    padding: '5px 0',
+                    textAlign: 'center',
+                    fontSize: '12px',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    background: tempHour === h ? '#624bff' : 'transparent',
+                    color: tempHour === h ? '#ffffff' : '#1e293b',
+                    fontWeight: tempHour === h ? 600 : 400
+                  }}
+                >
+                  {String(h).padStart(2, '0')}
+                </div>
+              ))}
+            </div>
+
+            {/* Minutes */}
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px', padding: '3px' }}>
+              <div style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', fontWeight: 700, padding: '2px 0' }}>MIN</div>
+              {minuteOptions.map((m) => (
+                <div
+                  key={m}
+                  onClick={() => setTempMinute(m)}
+                  style={{
+                    padding: '5px 0',
+                    textAlign: 'center',
+                    fontSize: '12px',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    background: tempMinute === m ? '#624bff' : 'transparent',
+                    color: tempMinute === m ? '#ffffff' : '#1e293b',
+                    fontWeight: tempMinute === m ? 600 : 400
+                  }}
+                >
+                  {m}
+                </div>
+              ))}
+            </div>
+
+            {/* AM / PM Toggle buttons */}
+            <div style={{ width: '48px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', fontWeight: 700, padding: '2px 0' }}>AM/PM</div>
+              {['AM', 'PM'].map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setTempAmpm(a)}
+                  style={{
+                    padding: '10px 0',
+                    textAlign: 'center',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    border: tempAmpm === a ? '1px solid #624bff' : '1px solid #e2e8f0',
+                    background: tempAmpm === a ? '#624bff' : '#f8fafc',
+                    color: tempAmpm === a ? '#ffffff' : '#475569'
+                  }}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '4px 8px'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleApply}
+              style={{
+                background: '#624bff',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: 600,
+                borderRadius: '6px',
+                cursor: 'pointer',
+                padding: '4px 12px'
+              }}
+            >
+              Set
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export const AdminNotificationSettings = () => {
 
@@ -157,16 +426,14 @@ export const AdminNotificationSettings = () => {
     );
   };
 
-  // ── NEW: Handle Quick Channel Change (Master Switch) ──
+  // ── Handle Quick Channel Change (Master Switch) ──
   const handleQuickChange = (channelId) => {
-    // Disable SMS toggle (Under Implementation)
     if (channelId === 'sms_notif') {
       return;
     }
 
     const newValue = !quickSetup[channelId];
 
-    // Find the channel name mapping
     const channelMap = {
       'email_notif': 'Email',
       'inapp_notif': 'In-App',
@@ -176,15 +443,11 @@ export const AdminNotificationSettings = () => {
 
     const channelName = channelMap[channelId];
 
-    // Update quick setup state
     setQuickSetup(prev => ({
       ...prev,
       [channelId]: newValue
     }));
 
-    // Update all table preferences for this channel
-    // If master switch is turned OFF, disable all rows for this channel
-    // If master switch is turned ON, enable all rows for this channel (only if they were previously off)
     setTablePreferences(prev => {
       const updated = { ...prev };
       notificationTypes.forEach(type => {
@@ -199,43 +462,41 @@ export const AdminNotificationSettings = () => {
 
   // ── Handle Table Change (Individual Row Toggle) ──
   const handleTableChange = (typeId, channelName) => {
-    // Disable SMS (Under Implementation)
     if (channelName === 'SMS') {
       return;
     }
 
-    // Update table preferences ONLY (No master channel side-effects)
-    setTablePreferences(prev => ({
-      ...prev,
-      [typeId]: {
-        ...prev[typeId],
-        [channelName]: !prev[typeId]?.[channelName]
-      }
-    }));
-
-    // Check if all rows for this channel are now ON
-    // If all are ON, turn ON the master switch
-    // If any is OFF, turn OFF the master switch
-    const allRowsForChannel = notificationTypes.every(
-      type => type.id === typeId ? newValue : tablePreferences[type.id]?.[channelName]
-    );
-
-    // Find the corresponding quick channel ID
-    const channelMapReverse = {
-      'Email': 'email_notif',
-      'In-App': 'inapp_notif',
-      'SMS': 'sms_notif',
-      'Push': 'push_notif'
-    };
-
-    const quickChannelId = channelMapReverse[channelName];
-
-    if (quickChannelId && quickChannelId !== 'sms_notif') {
-      setQuickSetup(prev => ({
+    setTablePreferences(prev => {
+      const updated = {
         ...prev,
-        [quickChannelId]: allRowsForChannel
-      }));
-    }
+        [typeId]: {
+          ...prev[typeId],
+          [channelName]: !prev[typeId]?.[channelName]
+        }
+      };
+
+      const allRowsForChannel = notificationTypes.every(
+        type => updated[type.id]?.[channelName] ?? false
+      );
+
+      const channelMapReverse = {
+        'Email': 'email_notif',
+        'In-App': 'inapp_notif',
+        'SMS': 'sms_notif',
+        'Push': 'push_notif'
+      };
+
+      const quickChannelId = channelMapReverse[channelName];
+
+      if (quickChannelId && quickChannelId !== 'sms_notif') {
+        setQuickSetup(prevQuick => ({
+          ...prevQuick,
+          [quickChannelId]: allRowsForChannel
+        }));
+      }
+
+      return updated;
+    });
   };
 
   // ── Timezone display helper ───────────────────────────────
@@ -259,7 +520,6 @@ export const AdminNotificationSettings = () => {
     return quickSetup[quickId] ?? false;
   };
 
-  // ── Render ────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="Adm-Not-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
@@ -386,7 +646,7 @@ export const AdminNotificationSettings = () => {
             </div>
           </div>
 
-          {/* ── QUIET HOURS PANEL - FIXED ────────────────── */}
+          {/* ── QUIET HOURS PANEL ────────────────── */}
           <div className="Adm-Not-panel Adm-Not-quiet-hours-panel">
             {/* Header with title and toggle */}
             <div className="Adm-Not-quiet-header">
@@ -406,43 +666,43 @@ export const AdminNotificationSettings = () => {
               </label>
             </div>
 
-            {/* Time inputs */}
+            {/* Time inputs matching screenshot */}
             <div
               className="Adm-Not-time-inputs"
-              style={{ opacity: quietHoursEnabled ? 1 : 0.5, pointerEvents: quietHoursEnabled ? 'auto' : 'none' }}
+              style={{
+                display: 'flex',
+                gap: '12px',
+                width: '100%',
+                boxSizing: 'border-box',
+                opacity: quietHoursEnabled ? 1 : 0.5,
+                pointerEvents: quietHoursEnabled ? 'auto' : 'none',
+                overflow: 'visible'
+              }}
             >
-              <div className="Adm-Not-time-group">
-                <label>Start time</label>
-                <div className="Adm-Not-time-select-wrapper">
-                  <img src={Clock} alt="" className="Adm-Not-input-icon icon-clock" />
-                  <input
-                    className="Adm-Not-time-select"
-                    type="time"
-                    onChange={(e) => setStartTime(e.target.value)}
-                    value={startTime}
-                    disabled={!quietHoursEnabled}
-                  />
-                </div>
+              <div className="Adm-Not-time-group" style={{ flex: '1 1 0%', minWidth: 0, position: 'relative' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', color: '#64748b' }}>Start time</label>
+                <TimePicker
+                  value={startTime}
+                  onChange={setStartTime}
+                  disabled={!quietHoursEnabled}
+                  title="Click to change quiet hours start time"
+                />
               </div>
-              <div className="Adm-Not-time-group">
-                <label>End time</label>
-                <div className="Adm-Not-time-select-wrapper">
-                  <img src={Clock} alt="" className="Adm-Not-input-icon icon-clock" />
-                  <input
-                    className="Adm-Not-time-select"
-                    type="time"
-                    onChange={(e) => setEndTime(e.target.value)}
-                    value={endTime}
-                    disabled={!quietHoursEnabled}
-                  />
-                </div>
+              <div className="Adm-Not-time-group" style={{ flex: '1 1 0%', minWidth: 0, position: 'relative' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', color: '#64748b' }}>End time</label>
+                <TimePicker
+                  value={endTime}
+                  onChange={setEndTime}
+                  disabled={!quietHoursEnabled}
+                  title="Click to change quiet hours end time"
+                />
               </div>
             </div>
 
             {/* Day picker */}
             <div
               className="Adm-Not-day-picker"
-              style={{ opacity: quietHoursEnabled ? 1 : 0.5, pointerEvents: quietHoursEnabled ? 'auto' : 'none' }}
+              style={{ opacity: quietHoursEnabled ? 1 : 0.5, pointerEvents: quietHoursEnabled ? 'auto' : 'none', marginTop: '16px' }}
             >
               {daysOfWeek.map(day => (
                 <button
@@ -450,6 +710,7 @@ export const AdminNotificationSettings = () => {
                   className={`day-btn ${activeDays.includes(day) ? 'active' : ''}`}
                   onClick={() => toggleDay(day)}
                   disabled={!quietHoursEnabled}
+                  title={quietHoursEnabled ? `select to change enabled ${day} or disable ${day}` : "Enable Quiet Hours to modify days"}
                 >
                   {day}
                 </button>

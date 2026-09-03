@@ -3782,12 +3782,12 @@ class ContactMessageStatusUpdateAPIView(APIView):
  
         message.status = status_value
         message.save()
-
+ 
         # NOTIFY THE MESSAGE SENDER OF THE STATUS CHANGE
         recipient = message.user
         if not recipient:
             recipient = User.objects.filter(email=message.email).first()
-
+ 
         if recipient:
             NotificationService.create_notification(
                 recipient=recipient,
@@ -3802,7 +3802,28 @@ class ContactMessageStatusUpdateAPIView(APIView):
                 notification_type="system",
                 related_object_id=message.id
             )
-
+ 
+        else:
+            # Guest (no account) — email the address they submitted
+            # with directly, same as the submit-confirmation fallback.
+            try:
+                send_mail(
+                    subject="Contact Message Status Updated",
+                    message=(
+                        f"Your contact message status "
+                        f"has been updated to "
+                        f"'{status_value}'."
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[message.email],
+                    fail_silently=False
+                )
+            except Exception as exc:
+                logger.exception(
+                    "GUEST STATUS-UPDATE EMAIL FAILED | email=%s | %s",
+                    message.email, exc
+                )
+ 
        
  
         serializer = ContactMessageSerializer(message)
@@ -11985,7 +12006,7 @@ class AdminAccountManagerListView(ListCreateAPIView):
     permission_classes = [IsAdminUser]
     queryset = AccountManager.objects.all()
     serializer_class = AccountManagerSerializer
-
+ 
     def perform_create(self, serializer):
         account_manager = serializer.save(created_by=self.request.user)
          # newly added
@@ -11994,24 +12015,24 @@ class AdminAccountManagerListView(ListCreateAPIView):
         ).exclude(
             id=self.request.user.id
         ):
-
+ 
             NotificationService.create_notification(
-
+ 
                 recipient=admin,
-
+ 
                 title="New Account Manager Created",
-
+ 
                 message=(
                     f"Account manager "
-                    f"'{account_manager.name}' "
+                    f"'{account_manager.full_name}' "
                     f"was created by "
                     f"{self.request.user.email}."
                 ),
-
+ 
                 event_type="account_manager_created",
-
+ 
                 notification_type="system",
-
+ 
                 related_object_id=account_manager.id
             )
             #--

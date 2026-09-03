@@ -1416,7 +1416,9 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                                 value={data.experience || ""}
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    if (val === "" || /^\d{0,2}(\.\d{0,1})?$/.test(val)) handleChange(e);
+                                    if (val === "" || (/^(?!^0(?:\.0?)?$)\d{0,2}(\.\d{0,1})?$/.test(val) && val !== "00")) {
+                                        handleChange(e);
+                                    }
                                 }}
                                 className={errors.experience ? "input-error" : ""}
                             />
@@ -2639,12 +2641,38 @@ const EducationDetails = ({
         return trimmed;
     };
 
+    // const handleBlur = (e, type, id = null) => {
+    //     const { name, value } = e.target;
+
+    //     if (name === "percentage" && value !== "" && !isNaN(value)) {
+    //         // Convert to float and fix to 2 decimal places
+    //         const formatted = parseFloat(value).toFixed(2);
+
+    //         // Create a synthetic event to update the parent
+    //         const syntheticEvent = { target: { name, value: formatted } };
+
+    //         if (type === 'sslc') onUpdateSSLC(syntheticEvent);
+    //         else if (type === 'hsc') onUpdateHSC(syntheticEvent);
+    //         else if (type === 'grad') onUpdateGrad(id, syntheticEvent);
+    //     }
+    // };
     const handleBlur = (e, type, id = null) => {
         const { name, value } = e.target;
 
         if (name === "percentage" && value !== "" && !isNaN(value)) {
+            const num = parseFloat(value);
+
+            // Reject 0, 0.0, 0.00, or negative numbers
+            if (num <= 0) {
+                const syntheticEvent = { target: { name, value: "" } };
+                if (type === 'sslc') onUpdateSSLC(syntheticEvent);
+                else if (type === 'hsc') onUpdateHSC(syntheticEvent);
+                else if (type === 'grad') onUpdateGrad(id, syntheticEvent);
+                return;
+            }
+
             // Convert to float and fix to 2 decimal places
-            const formatted = parseFloat(value).toFixed(2);
+            const formatted = num.toFixed(2);
 
             // Create a synthetic event to update the parent
             const syntheticEvent = { target: { name, value: formatted } };
@@ -2677,9 +2705,11 @@ const EducationDetails = ({
         } else if (!isValidInstitution(data.sslc.institution)) {
             newErrors.sslcinstitution = "*Invalid institution name";
         }
-        if (!data.sslc.percentage) newErrors.sslcpercentage = "*Percentage is required";
-        else if (!percentageReg.test(data.sslc.percentage))
+        if (!data.sslc.percentage || parseFloat(data.sslc.percentage) <= 0) {
+            newErrors.sslcpercentage = "*Percentage must be greater than 0";
+        } else if (!percentageReg.test(data.sslc.percentage)) {
             newErrors.sslcpercentage = "should not be greater than 100";
+        }
         if (!data.sslc.location?.trim()) newErrors.sslclocation = "*Location is required";
         if (!data.sslc.year) newErrors.sslcyear = "*Year of completion is required";
         else if (new Date(data.sslc.year) > today) {
@@ -2694,9 +2724,11 @@ const EducationDetails = ({
         } else if (!isValidInstitution(data.hsc.institution)) {
             newErrors.hscinstitution = "*Invalid institution name";
         }
-        if (!data.hsc.percentage) newErrors.hscpercentage = "*Percentage is required";
-        else if (!percentageReg.test(data.hsc.percentage))
+        if (!data.hsc.percentage || parseFloat(data.hsc.percentage) <= 0) {
+            newErrors.hscpercentage = "*Percentage must be greater than 0";
+        } else if (!percentageReg.test(data.hsc.percentage)) {
             newErrors.hscpercentage = "should not be greater than 100";
+        }
 
         if (!data.hsc.location?.trim()) newErrors.hsclocation = "*Location is required";
         // if (!data.hsc.year) newErrors.hscyear = "*Year of completion is required";
@@ -2780,13 +2812,18 @@ const EducationDetails = ({
             } else if (!isValidInstitution(grad.college)) {
                 newErrors[`gradcollege${grad.id}`] = "Invalid institution name";
             }
-            if (!grad.percentage || grad.percentage.trim() === "") {
-                newErrors[`gradpercentage${grad.id}`] = "Percentage is required";
+            // if (!grad.percentage || grad.percentage.trim() === "") {
+            //     newErrors[`gradpercentage${grad.id}`] = "Percentage is required";
+            // } else if (!percentageReg.test(grad.percentage)) {
+            //     newErrors[`gradpercentage${grad.id}`] = "Invalid (e.g. 85.50)";
+            // }
+            // else if (Number(grad.percentage) > 100) {
+            //     newErrors[`gradpercentage${grad.id}`] = "Percentage cannot exceed 100";
+            // }
+            if (!grad.percentage || parseFloat(grad.percentage) <= 0) {
+                newErrors[`gradpercentage${grad.id}`] = "Percentage must be greater than 0";
             } else if (!percentageReg.test(grad.percentage)) {
                 newErrors[`gradpercentage${grad.id}`] = "Invalid (e.g. 85.50)";
-            }
-            else if (Number(grad.percentage) > 100) {
-                newErrors[`gradpercentage${grad.id}`] = "Percentage cannot exceed 100";
             }
             // Year Logic
             const today = new Date();

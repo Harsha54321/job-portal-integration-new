@@ -641,10 +641,10 @@ export const Escalation = () => {
                     <p>Page {currentPage} of {nPages}</p>
                     <div className="pagination-btns">
                         <button onClick={prevPage} disabled={currentPage === 1}>
-                            <img src={leftArrow} alt="prev" className="nav-arrow" />
+                            <img src={leftArrow} alt="prev" className="nav-arrow" title='prev' />
                         </button>
                         <button onClick={nextPage} disabled={currentPage === nPages}>
-                            <img src={rightArrow} alt="next" className="nav-arrow" />
+                            <img src={rightArrow} alt="next" className="nav-arrow" title='next' />
                         </button>
                     </div>
                 </div>

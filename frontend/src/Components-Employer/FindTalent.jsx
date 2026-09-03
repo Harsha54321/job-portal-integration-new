@@ -979,23 +979,14 @@ export const FindTalent = ({ onUpgradeClick }) => {
             <div className="FindTalent-no-results">
               <h3>No job seekers found</h3>
               <p>Try adjusting your filters or search term</p>
-              <button className="FindTalent-clear-filters-btn" onClick={clearFilters}>
-                Clear all filters
-              </button>
-              <button
-                onClick={refreshData}
-                style={{
-                  marginTop: '10px',
-                  padding: '8px 20px',
-                  background: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Refresh Data
-              </button>
+              <div className="FindTalent-no-results-actions">
+                <button className="FindTalent-clear-filters-btn" onClick={clearFilters}>
+                  Clear all filters
+                </button>
+                <button className="FindTalent-refresh-btn" onClick={refreshData}>
+                  Refresh Data
+                </button>
+              </div>
             </div>
           )}
 
