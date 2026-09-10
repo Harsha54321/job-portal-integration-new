@@ -17,6 +17,7 @@ from math import ceil
 from django.core.mail import send_mail
 import random
 import logging
+import threading
 from django.db.models.functions import Coalesce
 from datetime import timedelta
  
@@ -4269,6 +4270,25 @@ class CompanyProfileCreateView(APIView):
 from .models import CompanyAnnouncement
 from .serializers import CompanyAnnouncementSerializer
 
+def _notify_jobseekers_of_announcement(announcement_id, company_name, title):
+    """Runs off the request thread so approving an announcement doesn't
+    block on emailing/pushing every jobseeker."""
+    from django.db import connection
+    try:
+        jobseekers = User.objects.filter(user_type='jobseeker')
+        for jobseeker in jobseekers:
+            NotificationService.create_notification(
+                recipient=jobseeker,
+                title="New Announcement from " + company_name,
+                message=f"{company_name} posted: {title}",
+                category="announcement",
+                event_type="announcement_published",
+                notification_type="system",
+                related_object_id=announcement_id,
+            )
+    finally:
+        connection.close()
+
 class CompanyAnnouncementListCreateView(APIView):
     """
     GET  /api/announcements/ -> Returns announcements:
@@ -4326,20 +4346,22 @@ class CompanyAnnouncementListCreateView(APIView):
         )
         if serializer.is_valid():
             announcement = serializer.save()
+            
+            # =============================================
+            # FIX: Send notification to ALL admins
+            # =============================================
             admins = User.objects.filter(user_type='admin')
-        for admin in admins:
-            NotificationService.create_notification(
-                recipient=admin,
-                title="New Announcement Pending Approval",
-                message=(
-                    f"'{announcement.title}' from "
-                    f"{announcement.company.company_name} needs your review."
-                ),
-                category="alert",
-                event_type="announcement_pending",
-                notification_type="system",
-                related_object_id=announcement.id,
-            )
+            for admin in admins:
+                NotificationService.create_notification(
+                    recipient=admin,
+                    title="New Announcement Pending Approval",
+                    message=f"'{announcement.title}' from {announcement.company.company_name} needs your review.",
+                    category="alert",
+                    event_type="announcement_pending",
+                    notification_type="system",
+                    related_object_id=announcement.id,
+                )
+            
             return Response(
                 CompanyAnnouncementSerializer(announcement, context={'request': request}).data,
                 status=status.HTTP_201_CREATED
@@ -4388,7 +4410,24 @@ class AdminAnnouncementApproveView(APIView):
         announcement = get_object_or_404(CompanyAnnouncement, id=pk)
         announcement.status = "published"
         announcement.save(update_fields=['status', 'updated_at'])
-        employer = announcement.company.created_by
+
+        # =====================================================
+        # FIX: Resolve the ACTUAL employer.
+        # Never use company.created_by — it's often None or an admin.
+        # =====================================================
+        employer = announcement.created_by
+
+        if not employer or employer.user_type != "employer":
+            employer = (
+                User.objects
+                .filter(
+                    user_type="employer",
+                    employer_profile__company=announcement.company
+                )
+                .first()
+            )
+
+        # ---------- Notify employer ----------
         if employer:
             NotificationService.create_notification(
                 recipient=employer,
@@ -4402,19 +4441,61 @@ class AdminAnnouncementApproveView(APIView):
                 notification_type="system",
                 related_object_id=announcement.id,
             )
-        jobseekers = User.objects.filter(user_type='jobseeker')
-        for jobseeker in jobseekers:
-               NotificationService.create_notification(
-                    recipient=jobseeker,
-                    title="New Announcement from " + announcement.company.company_name,
-                    message=f"{announcement.company.company_name} posted: {announcement.title}",
-                    category="announcement",
-                    event_type="announcement_published",
-                    notification_type="system",
-                    related_object_id=announcement.id,
-                )
+        else:
+            logger.warning(
+                "ANNOUNCEMENT APPROVED but no employer found | "
+                "announcement_id=%s | company=%s",
+                announcement.id,
+                announcement.company.company_name,
+            )
+
+        # ---------- Notify all admins ----------
+        admins = User.objects.filter(user_type="admin")
+        approver_name = request.user.email
+
+        for admin in admins:
+            existing = Notification.objects.filter(
+                user=admin,
+                event_type='announcement_pending',
+                related_object_id=announcement.id
+            ).first()
+
+            if existing:
+                existing.is_read = True
+                existing.save()
+
+            NotificationService.create_notification(
+                recipient=admin,
+                title=(
+                    "Announcement Approved"
+                    if admin.id == request.user.id
+                    else f"Announcement Approved by {approver_name}"
+                ),
+                message=(
+                    f"'{announcement.title}' from "
+                    f"{announcement.company.company_name} "
+                    f"has been approved and is now live."
+                ),
+                category="alert",
+                event_type="announcement_approved",
+                notification_type="system",
+                related_object_id=announcement.id,
+            )
+
+        # ---------- Notify jobseekers (background) ----------
+        threading.Thread(
+            target=_notify_jobseekers_of_announcement,
+            args=(
+                announcement.id,
+                announcement.company.company_name,
+                announcement.title
+            ),
+            daemon=True,
+        ).start()
+
         return Response(
-            {"message": "Announcement approved and published successfully.", "status": "published"},
+            {"message": "Announcement approved and published successfully.",
+             "status": "published"},
             status=status.HTTP_200_OK
         )
 
@@ -4426,7 +4507,20 @@ class AdminAnnouncementRejectView(APIView):
         announcement = get_object_or_404(CompanyAnnouncement, id=pk)
         announcement.status = "draft"
         announcement.save(update_fields=['status', 'updated_at'])
-        employer = announcement.company.created_by
+
+        # Same employer-resolution fix as approve
+        employer = announcement.created_by
+
+        if not employer or employer.user_type != "employer":
+            employer = (
+                User.objects
+                .filter(
+                    user_type="employer",
+                    employer_profile__company=announcement.company
+                )
+                .first()
+            )
+
         if employer:
             NotificationService.create_notification(
                 recipient=employer,
@@ -4440,8 +4534,17 @@ class AdminAnnouncementRejectView(APIView):
                 notification_type="system",
                 related_object_id=announcement.id,
             )
+        else:
+            logger.warning(
+                "ANNOUNCEMENT REJECTED but no employer found | "
+                "announcement_id=%s | company=%s",
+                announcement.id,
+                announcement.company.company_name,
+            )
+
         return Response(
-            {"message": "Announcement rejected and moved to draft.", "status": "draft"},
+            {"message": "Announcement rejected and moved to draft.",
+             "status": "draft"},
             status=status.HTTP_200_OK
         )
  
@@ -11214,6 +11317,13 @@ class AdminDashboardOverviewNewView(APIView):
                     status=JobApplication.Status.APPLIED
                 )
             ),
+
+            resume_screening=Count(
+                'id',
+                filter=Q(
+                    status=JobApplication.Status.RESUME_SCREENING
+                )
+            ),
  
             recommended=Count(
                 'id',
@@ -11235,6 +11345,13 @@ class AdminDashboardOverviewNewView(APIView):
                     status=JobApplication.Status.INTERVIEW_CALLED
                 )
             ),
+
+            offered=Count(
+                'id',
+                filter=Q(
+                    status=JobApplication.Status.OFFERED
+                )
+            ),
  
             rejected=Count(
                 'id',
@@ -11247,6 +11364,13 @@ class AdminDashboardOverviewNewView(APIView):
                 'id',
                 filter=Q(
                     status=JobApplication.Status.HIRED
+                )
+            ),
+
+            withdrawn=Count(
+                'id',
+                filter=Q(
+                    status=JobApplication.Status.WITHDRAWN
                 )
             ),
         )

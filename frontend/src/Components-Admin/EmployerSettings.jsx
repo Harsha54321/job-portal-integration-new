@@ -591,7 +591,7 @@ export const EmployerSettings = () => {
         <div className="Jobseeker-Set-preferences-column">
           <h2>Other Preferences
             <span style={{ marginLeft: '8px', cursor: 'help', fontSize: '12px', color: '#ff9800' }}
-              title="Company Reviews is under implementation">
+              title="Company Reviews & Company Branding is under implementation">
               ⓘ
             </span>
           </h2>
@@ -600,7 +600,7 @@ export const EmployerSettings = () => {
             // { label: 'Allow Multiple Company', id: 'multipleCompany', disabled: true },
             { label: 'Allow Multiple Users', id: 'multipleUsers', disabled: false },
             { label: 'Show Company Reviews', id: 'companyReviews', disabled: true },
-            { label: 'Enable Company Branding', id: 'companyBranding', disabled: false },
+            { label: 'Enable Company Branding', id: 'companyBranding', disabled: true },
             { label: 'Allow Job Highlighting', id: 'featuredEmployer', disabled: false },
             { label: 'Allow Jobseeker Contact Visibility', id: 'jobseekerContactVisibility', disabled: false },
           ].map(pref => (

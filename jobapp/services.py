@@ -1,5 +1,5 @@
 from zoneinfo import ZoneInfo
-
+import threading
 import razorpay
 from django.conf import settings
 from rest_framework_simplejwt.tokens import AccessToken
@@ -1426,61 +1426,57 @@ class NotificationService:
         # =================================================
         # EMAIL
         # =================================================
-
         if allow_email:
-
-            try:
-
-                if event_type == "weekly_report":
-                    _send_weekly_report_email(
+            # Check if email is actually enabled in channel settings
+            if channel_settings and channel_settings.email_notif:
+                try:
+                    if event_type == "weekly_report":
+                        _send_weekly_report_email(
+                            recipient=recipient,
+                            subject=title,
+                        )
+                    else:
+                        # Send email in background thread - don't block
+                        def send_email_async():
+                            try:
+                                send_mail(
+                                    subject=title,
+                                    message=message,
+                                    from_email=settings.DEFAULT_FROM_EMAIL,
+                                    recipient_list=[recipient.email],
+                                    fail_silently=True
+                                )
+                            except Exception as e:
+                                logger.error(f"Background email failed for {recipient.id}: {e}")
+                        
+                        thread = threading.Thread(target=send_email_async)
+                        thread.daemon = True
+                        thread.start()
+                        logger.info(f"Email queued in background for {recipient.id}")
+                    
+                    NotificationService._log_delivery(
+                        notification=notification,
                         recipient=recipient,
-                        subject=title,
+                        channel='email',
+                        status_value='queued'
                     )
-                else:
-                    send_mail(
-                        subject=title,
-                        message=message,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[recipient.email],
-                        fail_silently=False
+                except Exception as exc:
+                    logger.error(f"Email queue failed for {recipient.id}: {exc}")
+                    NotificationService._log_delivery(
+                        notification=notification,
+                        recipient=recipient,
+                        channel='email',
+                        status_value='failed',
+                        reason=str(exc)
                     )
-
+            else:
                 NotificationService._log_delivery(
                     notification=notification,
                     recipient=recipient,
                     channel='email',
-                    status_value='sent'
+                    status_value='skipped',
+                    reason='Email notifications disabled in channel settings'
                 )
-
-                logger.info(
-                    "EMAIL SENT | user=%s",
-                    recipient.id
-                )
-
-            except Exception as exc:
-
-                NotificationService._log_delivery(
-                    notification=notification,
-                    recipient=recipient,
-                    channel='email',
-                    status_value='failed',
-                    reason=str(exc)
-                )
-
-                logger.exception(
-                    "EMAIL FAILED | user=%s",
-                    recipient.id
-                )
-
-        else:
-
-            NotificationService._log_delivery(
-                notification=notification,
-                recipient=recipient,
-                channel='email',
-                status_value='skipped',
-                reason='Email notifications disabled'
-            )
 
         # =================================================
         # SMS

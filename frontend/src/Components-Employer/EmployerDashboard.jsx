@@ -228,6 +228,7 @@ export const EmployerDashboard = () => {
         const targetApplicationId = location.state?.targetApplicationId;
         const targetManagerId = location.state?.targetManagerId;
         const targetTicketId = location.state?.targetTicketId;
+        const targetAnnouncementId = location.state?.targetAnnouncementId;
 
         if (!targetTab) return;
 
@@ -241,19 +242,21 @@ export const EmployerDashboard = () => {
                 // job not loaded yet, or doesn't exist -> fall back to the list
                 setActiveTab('My job post');
             }
+        } else if (targetTab === 'Company Branding') {
+            // Handle Company Branding tab navigation
+            setActiveTab('Company Branding');
+            // The CompanyBranding component will read targetAnnouncementId from location.state
         } else {
             setActiveTab(targetTab);
             if (targetTab === 'AccountManager') {
-                setPendingTargetManagerId(targetManagerId ?? null);   // ← add this
+                setPendingTargetManagerId(targetManagerId ?? null);
             }
             if (targetTab === 'MyTickets') {
                 setPendingTargetTicketId(targetTicketId ?? null);
             }
-            if (targetTab === 'Company Branding') {
-                setActiveTab('Company Branding');
-            }
         }
 
+        // Clear the state after processing to prevent re-triggering
         navigate(location.pathname, { replace: true, state: {} });
     }, [location.state, PostedJob]);
 

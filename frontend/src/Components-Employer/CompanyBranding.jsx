@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./CompanyBranding.css";
 
 const PRESET_COLORS = ["#2563EB", "#7C3AED", "#059669", "#DC2626", "#EA580C", "#0F172A"];
 
 export default function CompanyBranding() {
-  const [activeTab, setActiveTab] = useState("branding");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(
+    location.state?.targetAnnouncementId ? "announcements" : "branding"
+  );
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
@@ -34,10 +39,18 @@ export default function CompanyBranding() {
     status: "draft",
   });
 
+  const [formErrors, setFormErrors] = useState({});
+
   useEffect(() => {
     fetchCompanyData();
     fetchAnnouncements();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.targetAnnouncementId) {
+      setActiveTab("announcements");
+    }
+  }, [location.state]);
 
   const fetchCompanyData = async () => {
     try {
@@ -114,17 +127,32 @@ export default function CompanyBranding() {
 
   const handleCreateAnnouncement = async (e) => {
     e.preventDefault();
+    const errors = {};
+    if (hasOnlySpecialChars(newAnnouncement.title)) {
+      errors.title = "Title must include some text, not only special characters.";
+    }
+    if (hasOnlySpecialChars(newAnnouncement.description)) {
+      errors.description = "Description must include some text, not only special characters.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
+
     setLoading(true);
     try {
       await api.post("announcements/", newAnnouncement);
       setShowModal(false);
+      setFormErrors({});
+
       setNewAnnouncement({
         title: "",
         description: "",
         announcement_type: "hiring",
         start_date: new Date().toISOString().split("T")[0],
         end_date: "",
-        status: "published",
+        status: "draft",
       });
       fetchAnnouncements();
     } catch (err) {
@@ -144,10 +172,27 @@ export default function CompanyBranding() {
     }
   };
 
+  // Highlight announcement if coming from notification
+  const getAnnouncementHighlight = (id) => {
+    return location.state?.targetAnnouncementId === id ? "cb-highlighted-row" : "";
+  };
+
+  const handleEndDateChange = (e) => {
+    const value = e.target.value; // "" or "yyyy-mm-dd"
+    if (value) {
+      const [year] = value.split("-");
+      if (year.length > 4) return; // ignore the overflow keystroke, don't update state
+    }
+    setNewAnnouncement({ ...newAnnouncement, end_date: value });
+  };
+
+  const hasOnlySpecialChars = (value) => {
+    // true if the string has no letters or digits at all (i.e. is empty after stripping symbols)
+    return !/[a-zA-Z0-9]/.test(value || "");
+  };
   return (
     <div className="cb-container">
       <div className="cb-wrapper">
-        
         {/* Navigation Header */}
         <div className="cb-header">
           <div>
@@ -181,7 +226,6 @@ export default function CompanyBranding() {
         {/* TAB 1: BRANDING BUILDER */}
         {activeTab === "branding" && (
           <div className="cb-grid">
-            
             {/* Editor Form */}
             <form onSubmit={handleSaveBranding} className="cb-card cb-form">
               <h2 className="cb-card-heading">Visual Identity & Links</h2>
@@ -321,7 +365,6 @@ export default function CompanyBranding() {
                 </div>
               </div>
             </div>
-
           </div>
         )}
 
@@ -358,7 +401,14 @@ export default function CompanyBranding() {
                     </tr>
                   ) : (
                     announcements.map((item) => (
-                      <tr key={item.id}>
+                      <tr
+                        key={item.id}
+                        className={getAnnouncementHighlight(item.id)}
+                        style={{
+                          backgroundColor: location.state?.targetAnnouncementId === item.id ? '#FFF8E1' : 'transparent',
+                          borderLeft: location.state?.targetAnnouncementId === item.id ? '4px solid #FFD700' : 'none'
+                        }}
+                      >
                         <td><strong>{item.title}</strong></td>
                         <td><span className="cb-type-badge">{item.announcement_type}</span></td>
                         <td>
@@ -403,10 +453,14 @@ export default function CompanyBranding() {
                     required
                     type="text"
                     value={newAnnouncement.title}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                    onChange={(e) => {
+                      setNewAnnouncement({ ...newAnnouncement, title: e.target.value });
+                      setFormErrors((prev) => ({ ...prev, title: "" }));
+                    }}
                     placeholder="e.g. Mega Off-Campus Hiring Drive"
                     className="cb-input"
                   />
+                  {formErrors.title && <span className="error-msg">{formErrors.title}</span>}
                 </div>
 
                 <div className="cb-row">
@@ -428,7 +482,8 @@ export default function CompanyBranding() {
                     <input
                       type="date"
                       value={newAnnouncement.end_date}
-                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, end_date: e.target.value })}
+                      min={newAnnouncement.start_date || new Date().toISOString().split("T")[0]}
+                      onChange={handleEndDateChange}
                       className="cb-input"
                     />
                   </div>
@@ -440,10 +495,14 @@ export default function CompanyBranding() {
                     required
                     rows={3}
                     value={newAnnouncement.description}
-                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, description: e.target.value })}
+                    onChange={(e) => {
+                      setNewAnnouncement({ ...newAnnouncement, description: e.target.value });
+                      setFormErrors((prev) => ({ ...prev, description: "" }));
+                    }}
                     placeholder="Provide details about dates, eligibility, criteria, etc."
                     className="cb-textarea"
                   />
+                  {formErrors.description && <span className="error-msg">{formErrors.description}</span>}
                 </div>
 
                 <div className="cb-modal-actions">
@@ -462,7 +521,6 @@ export default function CompanyBranding() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

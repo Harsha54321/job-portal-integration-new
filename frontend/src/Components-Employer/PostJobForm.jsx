@@ -197,9 +197,8 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
     const jobTitleRegex = /^[a-zA-Z][a-zA-Z0-9\s&/_@.+()!-]{3,}$/;
     const durationRegex = /^(\d+\s*(month|months|year|years)|permanent)$/i;
     const openingsRegex = /^[1-9][0-9]{0,2}$/;
-    const contentRegex = /^(?=.*[a-zA-Z])[a-zA-Z0-9\s.,-]{5,}$/;
-    const expRegex = /^(\d{1,2})(\s*-\s*(\d{1,2}))?$/;
-
+    const contentRegex = /^(?=.*[a-zA-Z]).{5,}$/;
+    const expRegex = /^(\d{1,2}(?:\.\d{1,2})?)(\s*-\s*(\d{1,2}(?:\.\d{1,2})?))?$/;
     // Job Title
     const titleTrimmed = formData.job_title.trim();
     if (!titleTrimmed) {
@@ -250,7 +249,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
         newErrors.experience = "Invalid format (e.g., '0', '0-6', '3-12')";
       } else {
         if (expStr.includes('-')) {
-          const [start, end] = expStr.split('-').map(num => parseInt(num.trim()));
+          const [start, end] = expStr.split('-').map(num => parseFloat(num.trim())); // parseFloat, not parseInt
           if (end <= start) {
             newErrors.experience = "End value must be greater than start value";
           }
@@ -258,7 +257,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
             newErrors.experience = "Experience cannot be negative";
           }
         } else {
-          const value = parseInt(expStr);
+          const value = parseFloat(expStr); // parseFloat, not parseInt
           if (value < 0) {
             newErrors.experience = "Experience cannot be negative";
           }
@@ -447,7 +446,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
   const parseExperienceData = (expStr) => {
     if (!expStr) return { fresher: '', experience: '' };
     const isFresher = /fresher/i.test(expStr);
-    const numMatch = expStr.match(/(\d+(?:\s*-\s*\d+)?)\s*years?/i);
+    const numMatch = expStr.match(/(\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?)\s*years?/i); // decimals added
     const experience = numMatch ? numMatch[1].replace(/\s+/g, '') : '';
     return { fresher: isFresher ? 'yes' : (experience ? 'no' : ''), experience };
   };
@@ -846,7 +845,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
                     className={`jobpost-input ${errors.experience ? "input-error" : ""}`}
                     type="text"
                     name="experience"
-                    placeholder="e.g., 0, 0-12, 6-24 (in months)"
+                    placeholder="e.g., 0, 0-12, 6-24 (in years)"
                     value={formData.experience}
                     onChange={handleChange}
                   />

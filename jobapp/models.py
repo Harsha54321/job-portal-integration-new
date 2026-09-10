@@ -1106,15 +1106,9 @@ class RaiseTicket(models.Model):
         choices=SUBJECT_CHOICES
     )
  
-    name = models.CharField(
-        max_length=150
-    )
- 
+    name = models.CharField(max_length=150)
     email = models.EmailField()
- 
-    phone = models.CharField(
-        max_length=20
-    )
+    phone = models.CharField(max_length=20)
  
     message = models.TextField(
         blank=True,
@@ -1127,21 +1121,18 @@ class RaiseTicket(models.Model):
         null=True
     )
  
-    # NEW FIELD
     priority = models.CharField(
         max_length=20,
         choices=PRIORITY_CHOICES,
         default='Medium'
     )
  
-    # NEW FIELD
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='Pending'
     )
  
-    # NEW FIELD
     resolved_on = models.DateField(
         blank=True,
         null=True
@@ -1152,7 +1143,53 @@ class RaiseTicket(models.Model):
     )
 
     class Meta:
-        db_table='RaiseTicket'
+        db_table = 'RaiseTicket'
+ 
+    def save(self, *args, **kwargs):
+        # ─────────────────────────────────────────
+        # STEP 1: Subject-based priority (default)
+        # ─────────────────────────────────────────
+        priority_mapping = {
+            "Broken 'Apply' Button/Application Failure": "High",
+            "File Upload/Resume Parsing Errors": "High",
+            "Outdated or Ghost Job Listings": "Medium",
+            "Incorrect/Irrelevant Search Results & Filters": "Medium",
+            "Profile Update/Saved Data Not Saving": "High",
+            "Application Status Unchanged/Limbo": "Medium",
+            "Broken Job Alerts & Notifications": "Low",
+            "Login/Registration Issues (Social Login Bugs)": "High",
+            "Site Incompatibility/Non-Responsive Mobile Layout": "High",
+            "Duplicate Job Listings (Spam)": "Medium",
+            "Others": "Medium",
+        }
+        self.priority = priority_mapping.get(
+            self.subject,
+            "Medium"
+        )
+
+        # ─────────────────────────────────────────
+        # STEP 2: Premium Support override
+        # (EMPLOYER ONLY — jobseekers have no plans)
+        # ─────────────────────────────────────────
+        if self.email:
+            user = (
+                User.objects
+                .filter(email=self.email, user_type='employer')
+                .first()
+            )
+
+            if user:
+                subscription = (
+                    Subscription.objects
+                    .filter(user=user, status='active')
+                    .select_related('plan')
+                    .first()
+                )
+
+                if subscription and subscription.plan.Premium_Support:
+                    self.priority = "High"
+
+        super().save(*args, **kwargs)
  
     def __str__(self):
         return f"{self.name} - {self.subject}"
@@ -1396,6 +1433,14 @@ class CompanyAnnouncement(models.Model):
         CompanyProfile,
         on_delete=models.CASCADE,
         related_name="announcements"
+    )
+    # NEW: track the actual employer who created this announcement
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_announcements"
     )
     title = models.CharField(max_length=255)
     description = models.TextField()

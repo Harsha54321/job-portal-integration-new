@@ -10,6 +10,12 @@ export default function AdminAnnouncementModeration() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [editingStatus, setEditingStatus] = useState("");
+  
+  // Individual loading states for each button
+  const [isUpdateStatusLoading, setIsUpdateStatusLoading] = useState(false);
+  const [isApproveLoading, setIsApproveLoading] = useState(false);
+  const [isRejectLoading, setIsRejectLoading] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   const fetchAnnouncements = async () => {
     setLoading(true);
@@ -36,11 +42,25 @@ export default function AdminAnnouncementModeration() {
   const handleBackToList = () => {
     setSelectedAnnouncement(null);
     setEditingStatus("");
+    // Reset all loading states
+    setIsUpdateStatusLoading(false);
+    setIsApproveLoading(false);
+    setIsRejectLoading(false);
+    setIsDeleteLoading(false);
   };
 
   // Update status using the correct backend endpoints
   const handleStatusChange = async (newStatus) => {
     if (!selectedAnnouncement) return;
+
+    // Don't proceed if status hasn't changed
+    if (newStatus === selectedAnnouncement.status) {
+      alert("Status is already set to this value.");
+      return;
+    }
+
+    // Set loading for the specific action
+    setIsUpdateStatusLoading(true);
 
     try {
       let response;
@@ -49,8 +69,8 @@ export default function AdminAnnouncementModeration() {
       } else if (newStatus === "draft") {
         response = await api.patch(`admin/announcements/${selectedAnnouncement.id}/reject/`);
       } else {
-        // If you ever add "expired" support, add an endpoint or use reject
         alert("Status change not supported.");
+        setIsUpdateStatusLoading(false);
         return;
       }
 
@@ -62,23 +82,92 @@ export default function AdminAnnouncementModeration() {
           item.id === selectedAnnouncement.id ? updated : item
         )
       );
+      setEditingStatus(newStatus);
       alert(`Status updated to "${newStatus}"`);
     } catch (err) {
       console.error("Status update failed:", err);
       alert("Failed to update status.");
+    } finally {
+      setIsUpdateStatusLoading(false);
+    }
+  };
+
+  // Handle Approve (Publish)
+  const handleApprove = async () => {
+    if (!selectedAnnouncement) return;
+    if (selectedAnnouncement.status === "published") {
+      alert("Announcement is already published.");
+      return;
+    }
+
+    setIsApproveLoading(true);
+
+    try {
+      await api.patch(`admin/announcements/${selectedAnnouncement.id}/approve/`);
+      
+      const updated = { ...selectedAnnouncement, status: "published" };
+      setSelectedAnnouncement(updated);
+      setAnnouncements((prev) =>
+        prev.map((item) =>
+          item.id === selectedAnnouncement.id ? updated : item
+        )
+      );
+      setEditingStatus("published");
+      alert('Announcement published successfully!');
+    } catch (err) {
+      console.error("Approve failed:", err);
+      alert("Failed to approve announcement.");
+    } finally {
+      setIsApproveLoading(false);
+    }
+  };
+
+  // Handle Reject (Draft)
+  const handleReject = async () => {
+    if (!selectedAnnouncement) return;
+    if (selectedAnnouncement.status === "draft") {
+      alert("Announcement is already in draft status.");
+      return;
+    }
+
+    setIsRejectLoading(true);
+
+    try {
+      await api.patch(`admin/announcements/${selectedAnnouncement.id}/reject/`);
+      
+      const updated = { ...selectedAnnouncement, status: "draft" };
+      setSelectedAnnouncement(updated);
+      setAnnouncements((prev) =>
+        prev.map((item) =>
+          item.id === selectedAnnouncement.id ? updated : item
+        )
+      );
+      setEditingStatus("draft");
+      alert('Announcement rejected and moved to draft!');
+    } catch (err) {
+      console.error("Reject failed:", err);
+      alert("Failed to reject announcement.");
+    } finally {
+      setIsRejectLoading(false);
     }
   };
 
   // Delete announcement
   const handleDelete = async (id) => {
     if (!window.confirm("Permanently delete this announcement?")) return;
+    
+    setIsDeleteLoading(true);
+    
     try {
       await api.delete(`admin/announcements/${id}/`);
       setAnnouncements((prev) => prev.filter((item) => item.id !== id));
       if (selectedAnnouncement?.id === id) handleBackToList();
-      alert("Deleted.");
+      alert("Announcement deleted successfully.");
     } catch (err) {
-      alert("Delete failed.");
+      console.error("Delete failed:", err);
+      alert("Failed to delete announcement.");
+    } finally {
+      setIsDeleteLoading(false);
     }
   };
 
@@ -94,12 +183,15 @@ export default function AdminAnnouncementModeration() {
     return matchesSearch && matchesStatus;
   });
 
+  // Check if any operation is in progress (to disable other buttons)
+  const isAnyLoading = isUpdateStatusLoading || isApproveLoading || isRejectLoading || isDeleteLoading;
+
   // ---------- Render: Detail View ----------
   if (selectedAnnouncement) {
     return (
       <div className="aam-container">
         <div className="aam-wrapper">
-          {/* Back button (styled like AdminTickets) */}
+          {/* Back button */}
           <div style={{ marginBottom: "20px" }}>
             <button
               onClick={handleBackToList}
@@ -110,15 +202,17 @@ export default function AdminAnnouncementModeration() {
                 border: "none",
                 padding: "8px 16px",
                 borderRadius: "6px",
-                cursor: "pointer",
+                cursor: isAnyLoading ? "not-allowed" : "pointer",
                 fontWeight: "500",
+                opacity: isAnyLoading ? 0.6 : 1,
               }}
+              disabled={isAnyLoading}
             >
               ← Back to Announcements
             </button>
           </div>
 
-          {/* Detail card - using AdminTickets style classes */}
+          {/* Detail card */}
           <div className="Adm-tic-header-section" style={{ display: "block" }}>
             <div className="Adm-tic-title-block">
               <div>
@@ -176,40 +270,72 @@ export default function AdminAnnouncementModeration() {
                   border: "1px solid #cbd5e1",
                   background: "#f8fafc",
                 }}
+                disabled={isAnyLoading}
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
-                {/* Expired is not editable via approve/reject, but you can add it later */}
               </select>
               <button
                 onClick={() => handleStatusChange(editingStatus)}
                 className="aam-btn aam-approve"
-                style={{ padding: "8px 20px" }}
+                style={{ 
+                  padding: "8px 20px",
+                  opacity: (isUpdateStatusLoading || editingStatus === selectedAnnouncement.status) ? 0.6 : 1,
+                  cursor: (isUpdateStatusLoading || editingStatus === selectedAnnouncement.status) ? "not-allowed" : "pointer",
+                  minWidth: "130px",
+                }}
+                disabled={isUpdateStatusLoading || editingStatus === selectedAnnouncement.status}
               >
-                Update Status
+                {isUpdateStatusLoading ? "Updating..." : "Update Status"}
               </button>
             </div>
           </div>
 
-          {/* Quick action buttons */}
-          <div style={{ marginTop: "20px", display: "flex", gap: "12px" }}>
+          {/* Quick action buttons - Each with its own loading state */}
+          <div style={{ marginTop: "20px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            {/* Approve Button */}
             <button
-              onClick={() => handleStatusChange("published")}
+              onClick={handleApprove}
               className="aam-btn aam-approve"
+              disabled={isApproveLoading || selectedAnnouncement.status === "published"}
+              style={{
+                opacity: (isApproveLoading || selectedAnnouncement.status === "published") ? 0.6 : 1,
+                cursor: (isApproveLoading || selectedAnnouncement.status === "published") ? "not-allowed" : "pointer",
+                minWidth: "150px",
+                padding: "8px 16px",
+              }}
             >
-              Approve (Publish)
+              {isApproveLoading ? "Publishing..." : "Approve (Publish)"}
             </button>
+
+            {/* Reject Button */}
             <button
-              onClick={() => handleStatusChange("draft")}
+              onClick={handleReject}
               className="aam-btn aam-reject"
+              disabled={isRejectLoading || selectedAnnouncement.status === "draft"}
+              style={{
+                opacity: (isRejectLoading || selectedAnnouncement.status === "draft") ? 0.6 : 1,
+                cursor: (isRejectLoading || selectedAnnouncement.status === "draft") ? "not-allowed" : "pointer",
+                minWidth: "150px",
+                padding: "8px 16px",
+              }}
             >
-              Reject (Draft)
+              {isRejectLoading ? "Rejecting..." : "Reject (Draft)"}
             </button>
+
+            {/* Delete Button */}
             <button
               onClick={() => handleDelete(selectedAnnouncement.id)}
               className="aam-btn aam-delete"
+              disabled={isDeleteLoading}
+              style={{
+                opacity: isDeleteLoading ? 0.6 : 1,
+                cursor: isDeleteLoading ? "not-allowed" : "pointer",
+                minWidth: "120px",
+                padding: "8px 16px",
+              }}
             >
-              Delete
+              {isDeleteLoading ? "Deleting..." : "Delete"}
             </button>
           </div>
         </div>
@@ -230,7 +356,7 @@ export default function AdminAnnouncementModeration() {
           </div>
         </div>
 
-        {/* Search & Filter (like AdminTickets) */}
+        {/* Search & Filter */}
         <div className="um-search-container" style={{ marginBottom: "20px" }}>
           <div className="search-wrapper">
             <span className="search-icon">

@@ -200,27 +200,27 @@ WSGI_APPLICATION = 'jobportal.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
  
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  
-    }
-}
-
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'jobportal_dev',
-#         'USER': 'jobportal_user',
-#         'PASSWORD': 'Jobportal@01',
-#         'HOST': '54.183.89.14',
-#         'PORT': '3306',
-#         'CONN_MAX_AGE':60,
-#         'OPTIONS': {
-#             'charset': 'utf8mb4',
-#         }
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',  
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'jobportal_dev',
+        'USER': 'jobportal_user',
+        'PASSWORD': 'Jobportal@01',
+        'HOST': '54.183.89.14',
+        'PORT': '3306',
+        'CONN_MAX_AGE':60,
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        }
+    }
+}
  
 
 
@@ -233,6 +233,16 @@ EMAIL_TIMEOUT = 60
 EMAIL_HOST_USER = 'adminjobportal1@gmail.com'
 EMAIL_HOST_PASSWORD = 'zhxy xkmq nvun nrvp'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_USE_SSL = False
+# EMAIL_TIMEOUT = 60
+# EMAIL_HOST_USER = 'jobportaladmin93@gmail.com'
+# EMAIL_HOST_PASSWORD = 'nfac ypnd whjl rhvm'
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
  
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -259,8 +269,8 @@ USE_TZ = False
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-# MEDIA_ROOT = '/app/media'
+# MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = '/app/media'
  
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -289,12 +299,14 @@ RAZORPAY_WEBHOOK_SECRET = ''
 import os
  
 # FRONTEND_URL = os.getenv("FRONTEND_URL", "http://54.183.89.14")
-# FRONTEND_URL = os.getenv("FRONTEND_URL", "https://jobportal.stacklycloud.com")
-FRONTEND_URL = "http://localhost:5173"
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://jobportal.stacklycloud.com")
+# FRONTEND_URL = "http://localhost:5173"
 
-SITE_URL = "http://127.0.0.1:8000"
+# SITE_URL = "http://127.0.0.1:8000"
 # SITE_URL = "http://54.183.89.14"
-# SITE_URL = "https://jobportal.stacklycloud.com"
+SITE_URL = "https://jobportal.stacklycloud.com"
+
+#adminjobportal1@gmail.com
 GOOGLE_CLIENT_ID = "534453822581-vvarj10pdfecp6ouht0qi1a4j6q333ak.apps.googleusercontent.com"
 # GOOGLE_CLIENT_ID = "105293618059-al95762js6gc2o9umchkb3la0mnirhs1.apps.googleusercontent.com"
 #GOOGLE_CLIENT_ID = "146646258104-184rcr7uv1mpttpi8bjf9tjq2r2ijg1i.apps.googleusercontent.com"

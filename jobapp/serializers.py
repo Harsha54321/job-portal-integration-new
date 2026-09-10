@@ -1048,29 +1048,28 @@ class SimpleCompanyBrandingSerializer(serializers.ModelSerializer):
 
 class CompanyAnnouncementSerializer(serializers.ModelSerializer):
     company = SimpleCompanyBrandingSerializer(read_only=True)
+    created_by_email = serializers.CharField(source='created_by.email', read_only=True)
 
     class Meta:
         model = CompanyAnnouncement
         fields = [
-            'id',
-            'company',
-            'title',
-            'description',
-            'image',
-            'announcement_type',
-            'start_date',
-            'end_date',
-            'status',
-            'created_at',
-            'updated_at'
+            'id', 'company', 'created_by', 'created_by_email',
+            'title', 'description', 'image', 'announcement_type',
+            'start_date', 'end_date', 'status',
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'company', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'company', 'created_by', 'created_by_email',
+            'status', 'created_at', 'updated_at'
+        ]
 
     def create(self, validated_data):
         request = self.context.get('request')
         if not hasattr(request.user, 'employer_profile') or not request.user.employer_profile.company:
             raise serializers.ValidationError("No company profile associated with this employer account.")
         validated_data['company'] = request.user.employer_profile.company
+        validated_data['status'] = 'draft'
+        validated_data['created_by'] = request.user   # ← captures the actual employer
         return super().create(validated_data)
 
 # EmployerProfile Serializers

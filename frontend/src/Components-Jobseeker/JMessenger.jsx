@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import '../Components-Employer/Chatbox.css';
 import { useJobs } from '../JobContext';
 import home from "../assets/home_icon.png";
@@ -22,95 +22,183 @@ export const JMessenger = () => {
     const [input, setInput] = useState("");
     const [activeChatId, setActiveChatId] = useState(null);
     const [messages, setMessages] = useState([]);
-    const [activeUserName, setActiveUsername] = useState("");
     const [sending, setSending] = useState(false);
     const [pollingInterval, setPollingInterval] = useState(null);
     const [otherUserStatus, setOtherUserStatus] = useState({ is_online: false, last_seen: null });
+    const [isLoading, setIsLoading] = useState(false);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     const scrollRef = useRef(null);
     const activeChatIdRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
+    // FIX: Get userId from sessionStorage directly, not from context
+    // This ensures we always have the correct logged-in user ID
     const loggedInUserId = parseInt(
-        currentUserId || sessionStorage.getItem("user_id") || localStorage.getItem("user_id"),
+        sessionStorage.getItem("user_id") || localStorage.getItem("user_id") || "0",
         10
     );
 
-    // --- Only ONE declaration of activeChat and otherParticipant ---
-    const activeChat = chats?.find(chat => chat.id === activeChatId);
-    const otherParticipant = activeChat?.participants?.find(
-        p => parseInt(p.id, 10) !== loggedInUserId
-    );
-    // ------------------------------------------------------------
+    console.log('🔑 Logged in User ID:', loggedInUserId);
 
+    // ============================================================
+    // Find the OTHER participant (not logged-in user)
+    // ============================================================
+    const activeChat = useMemo(() => {
+        return chats?.find(chat => chat.id === activeChatId);
+    }, [chats, activeChatId]);
+
+    const otherParticipant = useMemo(() => {
+        if (!activeChat || !activeChat.participants) return null;
+        
+        // Find the participant who is NOT the logged in user
+        const other = activeChat.participants.find(
+            p => parseInt(p.id, 10) !== loggedInUserId
+        );
+        
+        if (other) {
+            console.log('✅ Other participant found:', other.username, '(ID:', other.id, ')');
+            return other;
+        }
+        
+        console.warn('⚠️ No other participant found in chat');
+        return null;
+    }, [activeChat, loggedInUserId]);
+
+    // --- Get display name ---
+    const getDisplayName = useCallback((chat) => {
+        if (!chat || !chat.participants) return 'User';
+        
+        const other = chat.participants.find(
+            p => parseInt(p.id, 10) !== loggedInUserId
+        );
+        
+        if (other) {
+            return other.username || 'User';
+        }
+        
+        return chat.initiated_by?.username || 'User';
+    }, [loggedInUserId]);
+
+    const displayName = useMemo(() => {
+        return getDisplayName(activeChat);
+    }, [activeChat, getDisplayName]);
+
+    // --- Fetch user status ---
     const fetchOtherUserStatus = useCallback(async () => {
-        if (!activeChatId || !otherParticipant) return;
+        if (!activeChatId) {
+            console.log('No active chat ID, skipping status fetch');
+            return;
+        }
+
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
-            const res = await api.get(`/chat/conversations/${activeChatId}/`);
+            console.log(`Fetching status for conversation: ${activeChatId}`);
+            const res = await api.get(`/chat/conversations/${activeChatId}/`, {
+                signal: controller.signal
+            });
+            
             const conversation = res.data;
-            const other = conversation.participants?.find(p => parseInt(p.id, 10) !== loggedInUserId);
+            console.log('Conversation data:', conversation);
+            
+            const other = conversation.participants?.find(
+                p => parseInt(p.id, 10) !== loggedInUserId
+            );
+            
             if (other) {
+                console.log('✅ Other participant found:', other.username);
                 setOtherUserStatus({
                     is_online: Boolean(other.is_online),
-                    last_seen: other.last_seen || null
+                    last_seen: other.last_seen || null,
+                    username: other.username
                 });
+            } else {
+                if (otherParticipant) {
+                    setOtherUserStatus({
+                        is_online: Boolean(otherParticipant.is_online),
+                        last_seen: otherParticipant.last_seen || null,
+                        username: otherParticipant.username
+                    });
+                }
             }
         } catch (err) {
-            console.error('Failed to fetch user status:', err);
+            if (err.name === 'AbortError') {
+                console.log('Status fetch cancelled');
+            } else {
+                console.error('Failed to fetch user status:', err);
+                if (otherParticipant) {
+                    setOtherUserStatus({
+                        is_online: Boolean(otherParticipant.is_online),
+                        last_seen: otherParticipant.last_seen || null,
+                        username: otherParticipant.username
+                    });
+                }
+            }
         }
-    }, [activeChatId, otherParticipant, loggedInUserId]);
+    }, [activeChatId, loggedInUserId, otherParticipant]);
 
     const location = useLocation();
     const navigate = useNavigate();
     const deepLinkAppliedRef = useRef(false);
+
+    // --- Handle deep linking ---
     useEffect(() => {
         if (deepLinkAppliedRef.current) return;
         const targetConversationId = location.state?.conversationId;
         if (!targetConversationId || !chats || chats.length === 0) return;
         const targetChat = chats.find(chat => chat.id === targetConversationId);
-        if (!targetChat) return; // chat not in this user's list yet — nothing to open
+        if (!targetChat) return;
         setActiveChatId(targetChat.id);
-        const otherUser = targetChat.participants?.find(p => p.id !== parseInt(currentUserId));
-        setActiveUsername(otherUser?.username || targetChat.initiated_by?.username || 'Unknown User');
         deepLinkAppliedRef.current = true;
-        // clear the nav state so a later refresh/back doesn't reopen this chat unexpectedly
+        setIsInitialLoad(false);
         navigate(location.pathname, { replace: true, state: {} });
-    }, [chats, location.state, currentUserId, navigate, location.pathname]);
+    }, [chats, location.state, navigate, location.pathname]);
 
+    // --- Fetch status on chat change ---
     useEffect(() => {
-        if (activeChatId && otherParticipant) {
+        if (activeChatId) {
             fetchOtherUserStatus();
         }
-    }, [activeChatId, otherParticipant, fetchOtherUserStatus]);
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [activeChatId, fetchOtherUserStatus]);
 
+    // --- Poll for status ---
     useEffect(() => {
         if (!activeChatId) return;
         const interval = setInterval(() => {
             fetchOtherUserStatus();
         }, 10000);
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
     }, [activeChatId, fetchOtherUserStatus]);
 
-    // Debug logs, etc.
-    useEffect(() => {
-        console.log("Current User ID:", loggedInUserId);
-        console.log("Current User:", currentUser);
-    }, [loggedInUserId, currentUser]);
-
-    useEffect(() => {
-        activeChatIdRef.current = activeChatId;
-    }, [activeChatId]);
-
+    // --- Mark messages as read ---
     const markAsRead = async (messageId) => {
         try {
             const response = await api.post(`/chat/messages/${messageId}/read/`);
             return response.status === 200;
         } catch (error) {
-            console.error('Error marking message as read:', error.response?.data || error);
+            console.error('Error marking message as read:', error);
             return false;
         }
     };
 
     const markMultipleAsRead = async (messageIds) => {
+        if (!messageIds || messageIds.length === 0) return true;
         try {
             const promises = messageIds.map(id => markAsRead(id));
             await Promise.all(promises);
@@ -144,35 +232,62 @@ export const JMessenger = () => {
 
     const hasMessages = chats && chats.length > 0;
 
-    const fetchMsg = async () => {
-        try {
-            if (!activeChat?.id) return;
-            const msgs = await fetchMessages(activeChat.id);
-            console.log("Fetched messages:", msgs);
-            console.log("Current User ID for comparison:", loggedInUserId);
-            msgs?.forEach(msg => {
-                console.log("Message:", {
-                    id: msg.id,
-                    content: msg.content,
-                    sender_id: msg.sender?.id || msg.sender_id,
-                    receiver_id: msg.receiver?.id || msg.receiver_id,
-                    is_from_me: isMessageFromMe(msg)
-                });
-            });
-            setMessages(msgs || []);
-            await markAllMessagesAsReadInActiveChat(activeChat.id, msgs || []);
-        } catch (err) {
-            console.error("Failed to load messages:", err);
+    // --- Fetch messages ---
+    const fetchMsg = useCallback(async () => {
+        if (!activeChat?.id) {
+            console.log('No active chat, skipping message fetch');
+            return;
         }
-    };
 
+        setIsLoading(true);
+        
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        try {
+            console.log(`Fetching messages for conversation: ${activeChat.id}`);
+            const msgs = await fetchMessages(activeChat.id);
+            
+            if (!controller.signal.aborted) {
+                console.log('Messages fetched:', msgs?.length || 0);
+                setMessages(msgs || []);
+                
+                if (msgs && msgs.length > 0) {
+                    await markAllMessagesAsReadInActiveChat(activeChat.id, msgs);
+                }
+                setIsInitialLoad(false);
+            }
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error("Failed to load messages:", err);
+                setMessages([]);
+            }
+        } finally {
+            if (!controller.signal.aborted) {
+                setIsLoading(false);
+            }
+        }
+    }, [activeChat, fetchMessages]);
+
+    // --- Load messages when chat changes ---
     useEffect(() => {
         if (!activeChat?.id) return;
         fetchMsg();
-    }, [activeChatId]);
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [activeChatId, fetchMsg]);
 
+    // --- Poll for new messages ---
     useEffect(() => {
         if (!activeChatId) return;
+        
         const interval = setInterval(async () => {
             try {
                 const newMessages = await fetchMessages(activeChatId);
@@ -195,12 +310,14 @@ export const JMessenger = () => {
                 console.error("Error polling messages:", err);
             }
         }, 5000);
+        
         setPollingInterval(interval);
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [activeChatId, messages.length]);
+    }, [activeChatId, messages.length, fetchMessages, setChats]);
 
+    // --- Refresh chats periodically ---
     useEffect(() => {
         const refreshChats = setInterval(async () => {
             if (!document.hidden) {
@@ -210,12 +327,14 @@ export const JMessenger = () => {
         return () => clearInterval(refreshChats);
     }, [fetchChats]);
 
+    // --- Auto scroll ---
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages, sending]);
 
+    // --- Send message ---
     const handleSend = async (e) => {
         e.preventDefault();
         if (!input.trim() || isChatEnded || !activeChat || !otherParticipant) return;
@@ -230,7 +349,6 @@ export const JMessenger = () => {
             const res = await sendMessage(activeChat?.id, messageText);
             if (res.success) {
                 const newMsg = res.data;
-                console.log("Sent message:", newMsg);
                 setMessages(prev => [...prev, newMsg]);
             } else {
                 console.error("Failed to send message:", res.error);
@@ -250,17 +368,21 @@ export const JMessenger = () => {
         }
     };
 
+    // --- Load chats on mount ---
     useEffect(() => {
         const loadChats = async () => {
             try {
                 await fetchChats();
+                setIsInitialLoad(false);
             } catch (err) {
                 console.error("Failed to load chats:", err);
+                setIsInitialLoad(false);
             }
         };
         loadChats();
-    }, []);
+    }, [fetchChats]);
 
+    // --- Utility functions ---
     const getDateSeparator = (timestamp) => {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -274,11 +396,11 @@ export const JMessenger = () => {
         return date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     };
 
-    const groupMessagesByDate = (messages) => {
-        if (!messages || messages.length === 0) return [];
+    const groupMessagesByDate = (msgs) => {
+        if (!msgs || msgs.length === 0) return [];
         const groups = [];
         let currentDate = null;
-        const sortedMessages = [...messages].sort((a, b) => {
+        const sortedMessages = [...msgs].sort((a, b) => {
             const timeA = new Date(a.timestamp || a.created_at);
             const timeB = new Date(b.timestamp || b.created_at);
             return timeA - timeB;
@@ -315,10 +437,8 @@ export const JMessenger = () => {
     const isMessageFromMe = (msg) => {
         const senderId = msg.sender?.id || msg.sender_id || msg.senderId;
         const senderIdNum = parseInt(senderId);
-        const storedUserId = sessionStorage.getItem("user_id");
-        const currentUserIdNum = parseInt(storedUserId);
-        console.log(`[isMessageFromMe] Sender: ${senderIdNum}, Current User: ${currentUserIdNum}, Is Me: ${senderIdNum === currentUserIdNum}`);
-        return senderIdNum === currentUserIdNum;
+        // Use the same loggedInUserId we defined at the top
+        return senderIdNum === loggedInUserId;
     };
 
     const getUnreadCount = (chat) => {
@@ -331,6 +451,29 @@ export const JMessenger = () => {
         }
         return 0;
     };
+
+    // --- Loading state ---
+    if (isInitialLoad && !activeChat) {
+        return (
+            <div className="messages-container">
+                <div className="E-chat-name">
+                    <div className="web-sidebar" style={{ height: "100vh" }}>
+                        <div className="sidebar-header">
+                            <h2 style={{ color: "#007bff", textAlign: "center" }}>Messages</h2>
+                        </div>
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                            Loading chats...
+                        </div>
+                    </div>
+                </div>
+                <div className="web-main-chat">
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#888' }}>
+                        <div>Loading messages...</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="messages-container">
@@ -345,17 +488,14 @@ export const JMessenger = () => {
                     {hasMessages && chats.map(chat => {
                         const unreadCount = getUnreadCount(chat);
                         const isActive = activeChat?.id === chat.id;
-                        const otherUser = chat.participants?.find(p => p.id !== parseInt(currentUserId));
-                        const displayName = otherUser?.username || chat.initiated_by?.username || 'Unknown User';
+                        const displayName = getDisplayName(chat);
                         return (
                             <div
                                 key={chat.id}
                                 className={`sidebar-item ${isActive ? 'active' : ''}`}
                                 style={{ cursor: 'pointer' }}
-                                onClick={async () => {
+                                onClick={() => {
                                     setActiveChatId(chat.id);
-                                    const otherUser = chat.participants?.find(p => p.id !== parseInt(currentUserId));
-                                    setActiveUsername(otherUser?.username || chat.initiated_by?.username || 'Unknown User');
                                 }}
                             >
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -378,6 +518,11 @@ export const JMessenger = () => {
                             </div>
                         );
                     })}
+                    {!hasMessages && (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                            No conversations yet
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -387,7 +532,7 @@ export const JMessenger = () => {
                         <header className="web-chat-header">
                             <div style={{ display: 'flex', alignItems: 'center' }}>
                                 <strong style={{ marginRight: '10px' }}>
-                                    {activeUserName || otherParticipant?.username || 'User'}
+                                    {isLoading ? 'Loading...' : displayName}
                                 </strong>
                                 <span className={`status-dot ${otherUserStatus.is_online ? 'online' : 'offline'}`}></span>
                                 <span className="status-text">
@@ -429,7 +574,9 @@ export const JMessenger = () => {
                                     );
                                 })
                             ) : (
-                                <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No messages yet. Start the conversation!</div>
+                                <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+                                    {isLoading ? 'Loading messages...' : 'No messages yet. Start the conversation!'}
+                                </div>
                             )}
                             {sending && (
                                 <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "12px", width: "100%" }}>
@@ -439,8 +586,20 @@ export const JMessenger = () => {
                             {isChatEnded && <div className="chat-end-label">--- Conversation Ended ---</div>}
                         </div>
                         <form className="web-input-bar" onSubmit={handleSend}>
-                            <input className="web-text-input" value={input} disabled={isChatEnded} onChange={(e) => setInput(e.target.value)} placeholder={isChatEnded ? "Conversation ended" : "Reply to employer..."} />
-                            <button type="submit" className="web-send-button" disabled={isChatEnded || !input.trim()}>SEND</button>
+                            <input 
+                                className="web-text-input" 
+                                value={input} 
+                                disabled={isChatEnded || isLoading} 
+                                onChange={(e) => setInput(e.target.value)} 
+                                placeholder={isChatEnded ? "Conversation ended" : "Reply to employer..."} 
+                            />
+                            <button 
+                                type="submit" 
+                                className="web-send-button" 
+                                disabled={isChatEnded || !input.trim() || isLoading}
+                            >
+                                SEND
+                            </button>
                         </form>
                     </>
                 ) : (

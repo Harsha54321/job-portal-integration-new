@@ -443,3 +443,20 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Highlighted announcement row (when coming from notification) */
+.cb-highlighted-row {
+  background-color: #FFF8E1 !important;
+  border-left: 4px solid #FFD700 !important;
+  animation: cb-highlight-fade 3s ease-in-out;
+}
+
+@keyframes cb-highlight-fade {
+  0% { background-color: #FFF8E1; }
+  70% { background-color: #FFF8E1; }
+  100% { background-color: transparent; }
+}
+
+.cb-highlighted-row td:first-child {
+  border-left: 4px solid #FFD700;
+}
