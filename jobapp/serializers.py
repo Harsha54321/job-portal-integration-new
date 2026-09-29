@@ -3,6 +3,7 @@ from rest_framework.exceptions import ValidationError
 from drf_writable_nested.serializers import WritableNestedModelSerializer
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from datetime import timedelta
 from .models import (
     EmployerRegistrationSettings, JobseekerSecurityProfile, PlanFeature, User, JobSeekerProfile, EmployerProfile, AdminProfile,
     EducationEntry, WorkExperienceEntry, Skill, LanguageKnown, Certification,
@@ -27,22 +28,47 @@ User = get_user_model()
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Custom serializer that accepts BOTH username and email
+    Custom serializer that accepts BOTH username and email.
+
+    Order of validation (IMPORTANT — do not reorder):
+        1. Find user by username/email
+        2. USER-TYPE / PORTAL GUARD   ← runs FIRST
+        3. Password check
+        4. Jobseeker 2FA check
+        5. is_active check
+        6. account status check
+        7. Admin-only block: password expiry → admin 2FA → success log
+        8. Update login time
+        9. Generate JWT tokens
     """
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         self.fields.clear()
-        self.fields['username'] = serializers.CharField(required=False, allow_blank=True, write_only=True)
-        self.fields['email'] = serializers.CharField(required=False, allow_blank=True, write_only=True)
-        self.fields['password'] = serializers.CharField(write_only=True, required=True)
+        self.fields['username'] = serializers.CharField(
+            required=False, allow_blank=True, write_only=True
+        )
+        self.fields['email'] = serializers.CharField(
+            required=False, allow_blank=True, write_only=True
+        )
+        self.fields['password'] = serializers.CharField(
+            write_only=True, required=True
+        )
+        # NEW: tells the backend which portal the login came from.
+        # Frontends must send "admin", "employer", or "jobseeker".
+        self.fields['login_portal'] = serializers.ChoiceField(
+            choices=['admin', 'employer', 'jobseeker'],
+            required=False,
+            write_only=True,
+        )
 
     def validate(self, attrs):
         login_value = attrs.get('username') or attrs.get('email')
         password = attrs.get('password')
+        login_portal = attrs.get('login_portal')
 
-        print(f"🔍 Login attempt with: '{login_value}'")
+        print(f"🔍 Login attempt | value='{login_value}' | portal='{login_portal}'")
 
         if not login_value:
             raise serializers.ValidationError({
@@ -54,9 +80,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "detail": ["Password is required"]
             })
 
-        # Find user by username OR email
-        user = None
-        
+        # ---------------------------------------------------------
+        # 1. FIND USER
+        # ---------------------------------------------------------
         try:
             user = User.objects.get(
                 Q(username__iexact=login_value) | Q(email__iexact=login_value)
@@ -69,8 +95,42 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             user = User.objects.filter(
                 Q(username__iexact=login_value) | Q(email__iexact=login_value)
             ).first()
- 
-        # Check password
+
+        # ---------------------------------------------------------
+        # 2. ✅ USER-TYPE / PORTAL GUARD  (RUNS FIRST)
+        # ---------------------------------------------------------
+        # If the frontend tells us which portal is being used, reject
+        # the wrong user type IMMEDIATELY. This ensures an admin with
+        # an expired password logging in from Elogin/Jlogin sees the
+        # correct "This login is only for Employer/Jobseeker users"
+        # message — never the password-expired message.
+        if login_portal:
+            portal_to_type = {
+                'admin':     'admin',
+                'employer':  'employer',
+                'jobseeker': 'jobseeker',
+            }
+            portal_label = {
+                'admin':     'Admin',
+                'employer':  'Employer',
+                'jobseeker': 'Jobseeker',
+            }
+            expected_type = portal_to_type.get(login_portal)
+
+            if expected_type and user.user_type != expected_type:
+                raise serializers.ValidationError({
+                    "detail": [
+                        f"Invalid credentials. "
+                        f"This login is only for "
+                        f"{portal_label[login_portal]} users."
+                    ],
+                    "wrong_portal": True,
+                    "expected_user_type": expected_type,
+                })
+
+        # ---------------------------------------------------------
+        # 3. PASSWORD CHECK
+        # ---------------------------------------------------------
         if not user.check_password(password):
             if user.user_type == "admin":
                 AdminSecurityService.log_event(
@@ -84,8 +144,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "detail": ["Incorrect password."]
             })
 
-        # JOBSEEKER 2FA CHECK
-     
+        # ---------------------------------------------------------
+        # 4. JOBSEEKER 2FA CHECK
+        # ---------------------------------------------------------
         if user.user_type == "jobseeker":
             sec_profile = getattr(user, 'security', None)
             if sec_profile and sec_profile.two_factor_enabled:
@@ -94,9 +155,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     available_methods.append("email")
                 if sec_profile.sms_verified:
                     available_methods.append("sms")
- 
+
                 if available_methods:
-                    default_method = sec_profile.two_factor_method or available_methods[0]
+                    default_method = (
+                        sec_profile.two_factor_method
+                        or available_methods[0]
+                    )
                     temp_token = Admin2FAService.generate_temp_token(user.id)
                     return {
                         "requires_2fa": True,
@@ -112,14 +176,18 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                         }
                     }
 
-        # Check if user is active
+        # ---------------------------------------------------------
+        # 5. is_active CHECK
+        # ---------------------------------------------------------
         if not user.is_active:
             raise serializers.ValidationError({
                 "detail": ["Your account is inactive. Please contact support."],
                 "account_inactive": True
             })
-        
-        # Check account status
+
+        # ---------------------------------------------------------
+        # 6. ACCOUNT STATUS CHECK
+        # ---------------------------------------------------------
         if user.status != User.AccountStatus.ACTIVE:
             if user.status == User.AccountStatus.HOLD:
                 raise serializers.ValidationError({
@@ -139,13 +207,40 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     "status": "inactive",
                     "account_inactive": True
                 })
-        
-        # Update login time
-        user.login_time = timezone.now()
-        user.save(update_fields=["login_time"])
- 
-        # Admin security log - SUCCESS
+
+        # ---------------------------------------------------------
+        # 7. ADMIN-ONLY BLOCK
+        # Password expiry + admin 2FA + success log.
+        # Non-admin users NEVER reach this block, so they always
+        # fall through cleanly to the normal success path.
+        # ---------------------------------------------------------
         if user.user_type == "admin":
+
+            # ---------- Password expiry ----------
+            if user.password_changed_at:
+                expiry_date = (
+                    user.password_changed_at
+                    + timedelta(days=user.password_expiry_days or 30)
+                )
+                if timezone.now() > expiry_date:
+                    AdminSecurityService.log_event(
+                        request=self.context.get("request"),
+                        user=user,
+                        action="LOGIN_FAILED",
+                        status="FAILED",
+                        extra_data={"reason": "Password expired"}
+                    )
+                    raise serializers.ValidationError({
+                        "detail": ["Password expired. Please reset your password."],
+                        "password_expired": True
+                    })
+
+            # ---------- Admin 2FA ----------
+            admin_2fa_response = Admin2FAService.handle_admin_login_2fa(user)
+            if admin_2fa_response:
+                return admin_2fa_response
+
+            # ---------- Admin success log ----------
             AdminSecurityService.log_event(
                 request=self.context.get("request"),
                 user=user,
@@ -153,23 +248,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 status="SUCCESS",
                 extra_data={"login_method": "username/email"}
             )
- 
-        # Password expiry check
-        if user.password_changed_at:
-            expiry_date = user.password_changed_at + timedelta(days=user.password_expiry_days)
-            if timezone.now() > expiry_date:
-                raise serializers.ValidationError({
-                    "detail": ["Password expired. Please reset your password."],
-                    "password_expired": True
-                })
- 
-        # Admin login 2FA check
-        if user.user_type == "admin":
-            admin_2fa_response = Admin2FAService.handle_admin_login_2fa(user)
-            if admin_2fa_response:
-                return admin_2fa_response
- 
-        # Generate tokens
+
+        # ---------------------------------------------------------
+        # 8. UPDATE LOGIN TIME
+        # ---------------------------------------------------------
+        user.login_time = timezone.now()
+        user.save(update_fields=["login_time"])
+
+        # ---------------------------------------------------------
+        # 9. GENERATE TOKENS
+        # ---------------------------------------------------------
         refresh = RefreshToken.for_user(user)
 
         # Admin device tracking
@@ -185,7 +273,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     "is_trusted": True,
                 }
             )
- 
+
         user.is_online = True
         user.last_seen = timezone.now()
         user.save(update_fields=['is_online', 'last_seen'])

@@ -3567,10 +3567,14 @@ class AdminResetPasswordConfirmView(APIView):
             user.save(
                 update_fields=[
                     "password",
-                    "password_changed_at"
+                    "password_changed_at",
                 ]
             )
- 
+
+            # ✅ NEW: revoke old tasks and schedule new ones
+            from .scheduling import reset_and_reschedule_admin_password_tasks
+            reset_and_reschedule_admin_password_tasks(user)
+
             # Mark token used
             reset_token.is_used = True
             reset_token.save(update_fields=["is_used"])
@@ -6292,7 +6296,7 @@ def normalize_gst(value: str) -> str:
 logger = logging.getLogger(__name__)
 class AdminLoginView(APIView):
     permission_classes = [AllowAny]
-   
+
     def post(self, request):
         print("REQUEST DATA:", request.data)
         email = (
@@ -6303,11 +6307,11 @@ class AdminLoginView(APIView):
         password = (
             request.data.get("password", "")
         ).strip()
-       
+
         print("EMAIL:", email)
-       
+
         errors = {}
- 
+
         if not email:
             errors["email"] = "Email is required."
         if not password:
@@ -6320,7 +6324,7 @@ class AdminLoginView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
- 
+
         try:
             user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
@@ -6337,7 +6341,7 @@ class AdminLoginView(APIView):
                 )
             except Exception as exc:
                 logger.exception("ADMIN LOGIN LOG FAILED: %s", str(exc))
- 
+
             return Response(
                 {
                     "success": False,
@@ -6347,7 +6351,7 @@ class AdminLoginView(APIView):
                 },
                 status=status.HTTP_401_UNAUTHORIZED
             )
- 
+
         if user.user_type != "admin":
             try:
                 AdminSecurityService.log_event(
@@ -6370,7 +6374,7 @@ class AdminLoginView(APIView):
                 },
                 status=status.HTTP_403_FORBIDDEN
             )
- 
+
         if not user.check_password(password):
             try:
                 AdminSecurityService.log_event(
@@ -6393,7 +6397,7 @@ class AdminLoginView(APIView):
                 },
                 status=status.HTTP_401_UNAUTHORIZED
             )
- 
+
         if not user.is_active:
             try:
                 AdminSecurityService.log_event(
@@ -6416,36 +6420,69 @@ class AdminLoginView(APIView):
                 },
                 status=status.HTTP_403_FORBIDDEN
             )
- 
+
+        # =================================================
+        # ✅ NEW: PASSWORD EXPIRY CHECK  (ADMIN ONLY)
+        # =================================================
+        if user.password_changed_at:
+            expiry_date = (
+                user.password_changed_at
+                + timedelta(days=user.password_expiry_days or 30)
+            )
+            if timezone.now() > expiry_date:
+                try:
+                    AdminSecurityService.log_event(
+                        request=request,
+                        user=user,
+                        action="LOGIN_FAILED",
+                        status="FAILED",
+                        extra_data={
+                            "reason": "Password expired",
+                            "password_changed_at": str(user.password_changed_at),
+                            "password_expiry_days": user.password_expiry_days,
+                        }
+                    )
+                except Exception as exc:
+                    logger.exception("PASSWORD EXPIRED LOG FAILED: %s", str(exc))
+
+                return Response(
+                    {
+                        "success": False,
+                        "password_expired": True,
+                        "errors": {
+                            "password": (
+                                "Your password has expired. "
+                                "Please reset it to continue."
+                            )
+                        },
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         # =================================================
         # UPDATE LOGIN TIME
         # =================================================
         user.login_time = timezone.now()
         user.save(update_fields=["login_time"])
- 
+
         # =================================================
-        # 2FA CHECK - CRITICAL PART
+        # 2FA CHECK
         # =================================================
-        # Check if admin has 2FA enabled
         profile = getattr(user, 'admin_profile', None)
-       
+
         if profile and profile.two_factor_enabled:
-            # Determine available methods
             available_methods = []
             if profile.email_verified:
                 available_methods.append("email")
             if profile.sms_verified:
                 available_methods.append("sms")
-           
+
             if available_methods:
-               
                 default_method = available_methods[0]
-                # success, message = Admin2FAService.send_2fa_otp(user, default_method)
-               
+
                 if default_method:
-               
                     temp_token = Admin2FAService.generate_temp_token(user.id)
-                 
+
                     AdminSecurityService.log_event(
                         request=request,
                         user=user,
@@ -6456,7 +6493,7 @@ class AdminLoginView(APIView):
                             "default_method": default_method
                         }
                     )
-                   
+
                     return Response({
                         "success": True,
                         "requires_2fa": True,
@@ -6472,17 +6509,17 @@ class AdminLoginView(APIView):
                         "requires_2fa": True,
                         "error": f"Failed to send OTP: {message}"
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
- 
+
         # =================================================
         # NO 2FA - GENERATE JWT TOKENS DIRECTLY
         # =================================================
         refresh = RefreshToken.for_user(user)
-       
+
         # Device tracking
         user_agent = request.META.get("HTTP_USER_AGENT", "")
         device_fingerprint = hashlib.md5(user_agent.encode()).hexdigest()
         refresh_jti = refresh.payload.get("jti", "")
-       
+
         device, created = AdminTrustedDevice.objects.get_or_create(
             user=user,
             device_fingerprint=device_fingerprint,
@@ -6497,8 +6534,7 @@ class AdminLoginView(APIView):
             device.last_used_at = timezone.now()
             device.refresh_token_jti = refresh_jti
             device.save()
- 
-        # Security log
+
         try:
             AdminSecurityService.log_event(
                 request=request,
@@ -6512,17 +6548,13 @@ class AdminLoginView(APIView):
                     "two_factor_used": False
                 }
             )
-            print(
-                "ADMIN LOGIN LOG SAVED"
-            )
+            print("ADMIN LOGIN LOG SAVED")
         except Exception as exc:
             logger.exception("ADMIN SUCCESS LOG FAILED: %s", str(exc))
- 
+
         return Response({
             "success": True,
-            "message": (
-                "Admin login successful."
-            ),
+            "message": "Admin login successful.",
             "requires_2fa": False,
             "access": str(refresh.access_token),
             "refresh": str(refresh),
@@ -9243,27 +9275,29 @@ class AdminChangePasswordView(APIView):  # new 11/05
         # Save password
         user.set_password(new_password)
         user.password_changed_at = timezone.now()
-        user.password_expiry_days = expiry_map.get(
-            expiration_interval,
-            30
-        )
+        user.password_expiry_days = expiry_map.get(expiration_interval, 30)
+
         AdminSecurityService.log_event(
-    request=request,
-    user=user,
-    action="PASSWORD_CHANGE",
-    status="SUCCESS",
-)
+            request=request,
+            user=user,
+            action="PASSWORD_CHANGE",
+            status="SUCCESS",
+        )
         user.save()
- 
+
+        # NEW: revoke old tasks and schedule new ones at the exact times
+        from .scheduling import reset_and_reschedule_admin_password_tasks
+        reset_and_reschedule_admin_password_tasks(user)
+
         return Response(
-    {
-        "success": True,
-        "message": "Password updated successfully",
-        "expiration_interval": expiration_interval,
-        "password_changed_at": user.password_changed_at
-    },
-    status=status.HTTP_200_OK
-)
+            {
+                "success": True,
+                "message": "Password updated successfully",
+                "expiration_interval": expiration_interval,
+                "password_changed_at": user.password_changed_at,
+            },
+            status=status.HTTP_200_OK,
+        )
    
  
 # status for 2fa

@@ -333,3 +333,111 @@ def process_pending_notifications():
         "skipped": skipped_count,
         "failed": failed_count,
     }
+
+# =========================================================
+# ADMIN PASSWORD EXPIRY — dynamic per-admin scheduling
+# Uses Celery ETA one-shot tasks (not beat).
+# =========================================================
+
+from datetime import timedelta
+
+from celery import shared_task
+from django.utils import timezone
+
+from .models import User
+from .utils import (
+    send_admin_password_expiry_warning_email,
+    send_admin_password_expired_email,
+)
+
+
+@shared_task(name="jobapp.tasks.check_admin_password_expiry")
+def check_admin_password_expiry():
+    """
+    Runs periodically (e.g. every hour via Celery Beat).
+
+    For every admin with password_changed_at set:
+      - If password expires in <= 24h AND warning not yet sent → send warning
+      - If password already expired AND expired notice not sent → send expired notice
+    """
+    from .models import User
+    from .utils import (
+        send_admin_password_expiry_warning_email,
+        send_admin_password_expired_email,
+    )
+
+    now = timezone.now()
+    warning_sent = 0
+    expired_sent = 0
+    errors = 0
+
+    # ---- Warning branch ----
+    warning_window_end = now + timedelta(hours=24)
+
+    warning_admins = User.objects.filter(
+        user_type="admin",
+        password_changed_at__isnull=False,
+        password_warning_task_id__isnull=True,   # not yet sent
+    )
+
+    for user in warning_admins:
+        expiry_days = user.password_expiry_days or 30
+        expiry_date = user.password_changed_at + timedelta(days=expiry_days)
+        remaining = expiry_date - now
+
+        # Not yet expired AND within 24h of expiry
+        if timedelta(0) < remaining <= timedelta(hours=24):
+            try:
+                send_admin_password_expiry_warning_email(user, days_left=1)
+                user.password_warning_task_id = "SENT"   # mark as sent
+                user.save(update_fields=["password_warning_task_id"])
+                warning_sent += 1
+                logger.info(
+                    "ADMIN PASSWORD WARNING EMAIL SENT | admin_id=%s",
+                    user.id,
+                )
+            except Exception as exc:
+                errors += 1
+                logger.exception(
+                    "ADMIN PASSWORD WARNING EMAIL FAILED | admin_id=%s | %s",
+                    user.id, exc,
+                )
+
+    # ---- Expired branch ----
+    expired_admins = User.objects.filter(
+        user_type="admin",
+        password_changed_at__isnull=False,
+        password_expired_task_id__isnull=True,   # not yet sent
+    )
+
+    for user in expired_admins:
+        expiry_days = user.password_expiry_days or 30
+        expiry_date = user.password_changed_at + timedelta(days=expiry_days)
+
+        if now >= expiry_date:
+            try:
+                send_admin_password_expired_email(user)
+                user.password_expired_task_id = "SENT"   # mark as sent
+                user.save(update_fields=["password_expired_task_id"])
+                expired_sent += 1
+                logger.info(
+                    "ADMIN PASSWORD EXPIRED EMAIL SENT | admin_id=%s",
+                    user.id,
+                )
+            except Exception as exc:
+                errors += 1
+                logger.exception(
+                    "ADMIN PASSWORD EXPIRED EMAIL FAILED | admin_id=%s | %s",
+                    user.id, exc,
+                )
+
+    logger.info(
+        "ADMIN PASSWORD EXPIRY CHECK DONE | warned=%s expired=%s errors=%s",
+        warning_sent, expired_sent, errors,
+    )
+
+    return {
+        "warning_sent": warning_sent,
+        "expired_sent": expired_sent,
+        "errors": errors,
+    }

@@ -583,7 +583,10 @@ export const Jlogin = () => {
         ? { email: formValues.username, password: formValues.password }
         : { username: formValues.username, password: formValues.password };
 
-      const response = await api.post('login/', loginData);
+      const response = await api.post('login/', {
+        ...loginData,
+        login_portal: "jobseeker",
+      });
 
       // Check if 2FA challenge is requested
       if (response.data?.requires_2fa === true) {

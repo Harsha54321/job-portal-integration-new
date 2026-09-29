@@ -722,3 +722,173 @@ def get_best_faq_match(user_message):
         return best_match
     
     return None
+
+from django.core.mail import EmailMultiAlternatives
+
+
+def _build_admin_reset_email_html(title, intro, username, email, reset_link):
+    """Reusable HTML email template for admin password emails."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+      <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:32px 0;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+
+                <!-- Header -->
+                <tr>
+                  <td style="background:#1E88E5;padding:22px 30px;">
+                    <span style="color:#ffffff;font-size:20px;font-weight:700;">Job Portal</span>
+                    <span style="color:#cfe4ff;font-size:13px;margin-left:8px;">Admin Security</span>
+                  </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                  <td style="padding:30px;">
+                    <h2 style="margin:0 0 14px;font-size:20px;color:#032240;">{title}</h2>
+
+                    <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 14px;">
+                      Hello <strong>{username}</strong>,
+                    </p>
+
+                    <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px;">
+                      {intro}
+                    </p>
+
+                    <p style="color:#666;font-size:14px;margin:0 0 24px;">
+                      <strong>Account:</strong> {email}
+                    </p>
+
+                    <!-- CTA Button -->
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td align="center" style="border-radius:8px;" bgcolor="#1E88E5">
+                          <a href="{reset_link}"
+                             target="_blank"
+                             style="display:inline-block;padding:14px 28px;font-size:15px;color:#ffffff;font-weight:600;text-decoration:none;border-radius:8px;">
+                            Reset Admin Password
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="color:#888;font-size:13px;line-height:1.6;margin:26px 0 0;">
+                      If the button doesn't work, copy and paste this link into your browser:
+                    </p>
+
+                    <p style="color:#1E88E5;font-size:13px;word-break:break-all;margin:6px 0 0;">
+                      {reset_link}
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background:#f9fafb;padding:18px 30px;border-top:1px solid #eef1f4;">
+                    <p style="color:#999;font-size:12px;margin:0;">
+                      — Job Portal Security Team
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+    """
+
+
+def send_admin_password_expiry_warning_email(user, days_left=1):
+    """Send a warning email 24 hours before an admin password expires."""
+    from django.conf import settings
+
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+    reset_link = f"{frontend_url}/Job-portal/admin/login/forgotpassword"
+
+    subject = "⚠️ Your Admin Password Will Expire in 24 Hours"
+
+    text_body = f"""
+Hello {user.username},
+
+Your Admin account password will expire in approximately {days_left} day (24 hours).
+
+Account: {user.email}
+
+Please reset your password before it expires to avoid being locked out:
+{reset_link}
+
+If you don't reset it in time, you will be required to reset your password
+the next time you try to log in.
+
+— Job Portal Security Team
+"""
+
+    html_body = _build_admin_reset_email_html(
+        title="Your Admin Password Will Expire in 24 Hours",
+        intro=(
+            f"Your Admin account password will expire in approximately "
+            f"{days_left} day (24 hours). Please reset it before then to "
+            f"avoid being locked out."
+        ),
+        username=user.username,
+        email=user.email,
+        reset_link=reset_link,
+    )
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    email.attach_alternative(html_body, "text/html")
+    email.send(fail_silently=False)
+
+
+def send_admin_password_expired_email(user):
+    """Send a notification email the moment the admin password expires."""
+    from django.conf import settings
+
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+    reset_link = f"{frontend_url}/Job-portal/admin/login/forgotpassword"
+
+    subject = "Your Admin Password Has Expired"
+
+    text_body = f"""
+Hello {user.username},
+
+Your Admin account password has expired. You will not be able to log in
+until you reset it.
+
+Account: {user.email}
+
+Reset your password here:
+{reset_link}
+
+— Job Portal Security Team
+"""
+
+    html_body = _build_admin_reset_email_html(
+        title="Your Admin Password Has Expired",
+        intro=(
+            "Your Admin account password has expired. You will not be able "
+            "to log in until you reset it."
+        ),
+        username=user.username,
+        email=user.email,
+        reset_link=reset_link,
+    )
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    email.attach_alternative(html_body, "text/html")
+    email.send(fail_silently=False)

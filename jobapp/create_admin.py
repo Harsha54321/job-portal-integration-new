@@ -12,6 +12,8 @@ Place this file at:
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from jobapp.scheduling import schedule_admin_password_expiry_tasks
 from accounts.models import AdminProfile
 
 User = get_user_model()
@@ -24,14 +26,23 @@ class Command(BaseCommand):
         parser.add_argument('--email',    default='admin@jobportal.com')
         parser.add_argument('--username', default='admin')
         parser.add_argument('--password', default='Admin@123')
+        parser.add_argument(
+            '--expiry-days',
+            type=int,
+            default=30,
+            help='Password expiry in days (default: 30)'
+        )
 
     def handle(self, *args, **options):
         email    = options['email']
         username = options['username']
         password = options['password']
+        expiry_days = options['expiry_days']
 
         if User.objects.filter(email=email).exists():
-            self.stdout.write(self.style.WARNING(f'Admin user with email "{email}" already exists.'))
+            self.stdout.write(self.style.WARNING(
+                f'Admin user with email "{email}" already exists.'
+            ))
             return
 
         user = User.objects.create_user(
@@ -43,7 +54,14 @@ class Command(BaseCommand):
             is_active = True,
         )
 
-        # Create the AdminProfile linked to this user
+        # Start the password expiry clock from day one
+        user.password_changed_at = timezone.now()
+        user.password_expiry_days = expiry_days
+        user.save(update_fields=["password_changed_at", "password_expiry_days"])
+
+        # Schedule warning + expired emails at exact times
+        schedule_admin_password_expiry_tasks(user)
+
         AdminProfile.objects.create(
             user         = user,
             access_level = 'Full',
@@ -51,8 +69,9 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f'Admin created successfully!\n'
-            f'  Email:    {email}\n'
-            f'  Username: {username}\n'
-            f'  Password: {password}\n'
-            f'  Type:     {user.user_type}'
+            f'  Email:          {email}\n'
+            f'  Username:       {username}\n'
+            f'  Password:       {password}\n'
+            f'  Type:           {user.user_type}\n'
+            f'  Expiry (days):  {expiry_days}'
         ))

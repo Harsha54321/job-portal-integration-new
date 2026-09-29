@@ -175,7 +175,10 @@ export const Elogin = () => {
         ? { email: formValues.username, password: formValues.password }
         : { username: formValues.username, password: formValues.password };
 
-      const res = await api.post("/login/", loginData);
+      const res = await api.post("/login/", {
+        ...loginData,
+        login_portal: "employer",
+      });
 
       console.log("Login response:", res.data);
 

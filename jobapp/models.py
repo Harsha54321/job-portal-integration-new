@@ -28,6 +28,13 @@ class User(AbstractUser):
     )
     password_changed_at = models.DateTimeField(null=True,blank=True)
     password_expiry_days = models.IntegerField(default=30)
+
+    password_warning_task_id = models.CharField(
+        max_length=255, null=True, blank=True
+    )
+    password_expired_task_id = models.CharField(
+        max_length=255, null=True, blank=True
+    )
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'user_type']

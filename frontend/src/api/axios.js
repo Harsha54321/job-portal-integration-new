@@ -1,9 +1,9 @@
 import axios from "axios";
 
-// const baseURL = "http://127.0.0.1:8000/api/";
+const baseURL = "http://127.0.0.1:8000/api/";
 // const baseURL = "http://54.183.89.14/api/";
 
-const baseURL= "https://jobportal.stacklycloud.com/api/"
+// const baseURL= "https://jobportal.stacklycloud.com/api/"
 
 
 console.log("API Base URL:", baseURL);
@@ -30,6 +30,18 @@ const publicEndpoints = [
   "/auth/admin/forgot-password/",
 ];
 
+// Helper: normalize URL by stripping leading slashes
+const normalizeUrl = (url) => (url || "").replace(/^\/+/, "");
+
+// Helper: check if a request URL matches any public endpoint
+// Works whether the request URL has a leading slash or not
+const isPublicRequest = (requestUrl) => {
+  const normalizedRequestUrl = normalizeUrl(requestUrl);
+  return publicEndpoints.some((endpoint) =>
+    normalizedRequestUrl.includes(normalizeUrl(endpoint))
+  );
+};
+
 const redirectToHome = () => {
   sessionStorage.removeItem("access");
   sessionStorage.removeItem("refresh");
@@ -55,9 +67,7 @@ api.interceptors.request.use(
     const token = sessionStorage.getItem("access");
     const requestUrl = config.url || "";
 
-    const isPublicEndpoint = publicEndpoints.some((endpoint) =>
-      requestUrl.includes(endpoint)
-    );
+    const isPublicEndpoint = isPublicRequest(requestUrl);
 
     if (!config.headers["Content-Type"]) {
       if (config.data instanceof FormData) {
@@ -118,9 +128,7 @@ api.interceptors.response.use(
     }
 
     const requestUrl = originalRequest.url || "";
-    const isPublicEndpoint = publicEndpoints.some((endpoint) =>
-      requestUrl.includes(endpoint)
-    );
+    const isPublicEndpoint = isPublicRequest(requestUrl);
 
     if (isPublicEndpoint) {
       return Promise.reject(error);

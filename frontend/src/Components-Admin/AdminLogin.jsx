@@ -26,11 +26,13 @@ export const AdminLogin = () => {
     const [otpError, setOtpError] = useState("");
     const [countdown, setCountdown] = useState(0);
     const [canResend, setCanResend] = useState(true);
-    const [otpSent, setOtpSent] = useState(false); // Track if OTP has been sent for current method
-    const [isSendingOTP, setIsSendingOTP] = useState(false); // Loading state for send OTP button
+    const [otpSent, setOtpSent] = useState(false);
+    const [isSendingOTP, setIsSendingOTP] = useState(false);
     const otpInputRef = useRef(null);
-    // =================================================
 
+    // ========== PASSWORD EXPIRY POPUP STATE ==========
+    const [showExpiryPopup, setShowExpiryPopup] = useState(false);
+    const [expiryMessage, setExpiryMessage] = useState("");
     // useEffect(() => {
     //     const savedRemember = sessionStorage.getItem("admin_remember_me") === "true";
     //     if (savedRemember) {
@@ -63,6 +65,33 @@ export const AdminLogin = () => {
         }
         return () => clearTimeout(timer);
     }, [countdown]);
+
+    // =================================================
+    // LOCK BODY SCROLL WHILE ANY MODAL/POPUP IS OPEN
+    // =================================================
+    useEffect(() => {
+        const anyModalOpen = showOTPModal || showExpiryPopup;
+
+        if (anyModalOpen) {
+            const originalOverflow = document.body.style.overflow;
+            const originalPaddingRight = document.body.style.paddingRight;
+
+            // Prevent scrollbar-induced layout shift
+            const scrollbarWidth =
+                window.innerWidth - document.documentElement.clientWidth;
+
+            document.body.style.overflow = "hidden";
+            if (scrollbarWidth > 0) {
+                document.body.style.paddingRight = `${scrollbarWidth}px`;
+            }
+
+            return () => {
+                document.body.style.overflow = originalOverflow;
+                document.body.style.paddingRight = originalPaddingRight;
+            };
+        }
+    }, [showOTPModal, showExpiryPopup]);
+    // =================================================
 
     const togglePasswordView = () => {
         setPasswordShow((prev) => !prev);
@@ -106,7 +135,6 @@ export const AdminLogin = () => {
 
     // ========== 2FA FUNCTIONS ==========
 
-    // Send OTP for selected method (called when user clicks "Send OTP" or switches method)
     const sendOTPForMethod = async (method) => {
         if (!method) {
             setOtpError("Please select a verification method first");
@@ -126,7 +154,7 @@ export const AdminLogin = () => {
                 setOtpSent(true);
                 setCanResend(false);
                 setCountdown(60);
-                setOtpError(""); // Clear any previous errors
+                setOtpError("");
                 console.log(`OTP sent to ${method} successfully`);
             } else {
                 setOtpError(response.data?.message || `Failed to send OTP to ${method}`);
@@ -141,13 +169,11 @@ export const AdminLogin = () => {
         }
     };
 
-    // Resend OTP for 2FA
     const handleResendOTP = async () => {
         if (!canResend) return;
         await sendOTPForMethod(selectedMethod);
     };
 
-    // Close OTP modal and reset state
     const handleCloseOTPModal = () => {
         setShowOTPModal(false);
         setOtpValue("");
@@ -162,7 +188,6 @@ export const AdminLogin = () => {
         setCountdown(0);
     };
 
-    // Verify OTP and complete login
     const handleVerifyOTP = async () => {
         if (!otpValue || otpValue.length !== 6) {
             setOtpError("Please enter a valid 6-digit OTP");
@@ -190,7 +215,6 @@ export const AdminLogin = () => {
             });
 
             if (response.data?.success && response.data?.access) {
-                // Store tokens
                 sessionStorage.setItem("access", response.data.access);
                 sessionStorage.setItem("refresh", response.data.refresh);
                 sessionStorage.setItem("user_type", response.data.user?.user_type || "admin");
@@ -219,7 +243,6 @@ export const AdminLogin = () => {
                     localStorage.removeItem("admin_saved_password");
                 }
 
-                // Close modal and navigate
                 handleCloseOTPModal();
                 navigate("/Job-portal/admin/dashboard");
             } else {
@@ -236,23 +259,37 @@ export const AdminLogin = () => {
         }
     };
 
-    // Handle method selection change (does NOT auto-send OTP)
     const handleMethodChange = (method) => {
         setSelectedMethod(method);
-        setOtpValue(""); // Clear previous OTP
-        setOtpError(""); // Clear previous errors
-        setOtpSent(false); // Reset OTP sent status for new method
-        // Do NOT auto-send OTP - user must click Send OTP button
+        setOtpValue("");
+        setOtpError("");
+        setOtpSent(false);
     };
 
-    // =============================================
-    // Email validation regex
+    // ========== PASSWORD EXPIRY POPUP HANDLERS ==========
+    const handleExpiryPopupOk = () => {
+        setShowExpiryPopup(false);
+        sessionStorage.setItem("admin_password_expired", "true");
+        navigate("/Job-portal/admin/login/forgotpassword", {
+            replace: true,
+            state: {
+                reason: "expired",
+                message: expiryMessage,
+            },
+        });
+    };
+
+    // ✅ NEW: "Later" — just close popup, stay on login page
+    const handleExpiryPopupLater = () => {
+        setShowExpiryPopup(false);
+    };
+    // =================================================
+
     const validateEmail = (email) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         return emailRegex.test(email);
     };
 
-    // Password validation - at least 6 characters
     const validatePassword = (password) => {
         return password && password.trim().length >= 6;
     };
@@ -300,8 +337,6 @@ export const AdminLogin = () => {
                     "email";
                 setSelectedMethod(defaultMethod);
 
-                // IMPORTANT: DO NOT send OTP automatically
-                // User must manually click "Send OTP" button
                 setOtpSent(false);
                 setCanResend(true);
                 setCountdown(0);
@@ -350,31 +385,37 @@ export const AdminLogin = () => {
                 const status = error.response.status;
                 const errorData = error.response?.data;
 
-                // Check if it's a non-admin user trying to login
+                // Password expired → show popup
+                if (errorData?.password_expired === true) {
+                    setExpiryMessage(
+                        errorData?.errors?.password ||
+                        "Your password has expired. Please reset it to continue."
+                    );
+                    setShowExpiryPopup(true);
+                    setIsLoading(false);
+                    return;
+                }
+
                 if (errorData?.errors?.email && errorData.errors.email.includes("does not have admin access")) {
                     setErrors({
                         adminID: "Invalid credentials. This login is only for Admin users."
                     });
                 }
-                // Check for "No account found" error
                 else if (errorData?.errors?.email && errorData.errors.email.includes("No account found")) {
                     setErrors({
                         adminID: "No account found with this email address."
                     });
                 }
-                // Check for incorrect password
                 else if (errorData?.errors?.password && errorData.errors.password.includes("Incorrect password")) {
                     setErrors({
                         password: "Incorrect password. Please try again."
                     });
                 }
-                // Check for account disabled
                 else if (errorData?.errors?.email && errorData.errors.email.includes("disabled")) {
                     setErrors({
                         adminID: "This account is disabled. Please contact support."
                     });
                 }
-                // Handle other error formats
                 else {
                     const message = errorData?.detail ||
                         errorData?.message ||
@@ -385,7 +426,6 @@ export const AdminLogin = () => {
                         null;
 
                     if (message) {
-                        // Try to determine which field the error belongs to
                         if (message.toLowerCase().includes('password')) {
                             setErrors({ password: message });
                         } else if (message.toLowerCase().includes('email') || message.toLowerCase().includes('account') || message.toLowerCase().includes('found')) {
@@ -495,7 +535,7 @@ export const AdminLogin = () => {
                 </form>
             </div>
 
-            {/* ========== 2FA OTP MODAL (UPDATED) ========== */}
+            {/* ========== 2FA OTP MODAL ========== */}
             {showOTPModal && (
                 <div className="otp-modal-overlay" style={{
                     position: 'fixed',
@@ -522,7 +562,6 @@ export const AdminLogin = () => {
                             Please verify your identity to complete login
                         </p>
 
-                        {/* Method Selection with Send OTP Button */}
                         <div className="2fa-method-selector" style={{ marginBottom: '20px' }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#555' }}>
                                 Select Verification Method:
@@ -570,7 +609,6 @@ export const AdminLogin = () => {
                                     )}
                                 </div>
 
-                                {/* Send OTP Button - appears after method selection */}
                                 {selectedMethod && (
                                     <button
                                         type="button"
@@ -594,7 +632,6 @@ export const AdminLogin = () => {
                                 )}
                             </div>
 
-                            {/* Show OTP sent confirmation */}
                             {otpSent && selectedMethod && (
                                 <div style={{
                                     marginTop: '10px',
@@ -610,7 +647,6 @@ export const AdminLogin = () => {
                             )}
                         </div>
 
-                        {/* OTP Input */}
                         <div style={{ marginBottom: '20px' }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#555' }}>
                                 Enter Verification Code
@@ -661,7 +697,6 @@ export const AdminLogin = () => {
                             )}
                         </div>
 
-                        {/* Resend OTP Link - Only show if OTP already sent */}
                         {otpSent && (
                             <div style={{ marginBottom: '20px', textAlign: 'center' }}>
                                 <button
@@ -681,7 +716,6 @@ export const AdminLogin = () => {
                             </div>
                         )}
 
-                        {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: '10px' }}>
                             <button
                                 type="button"
@@ -717,6 +751,126 @@ export const AdminLogin = () => {
                                 }}
                             >
                                 {is2FALoading ? 'Verifying...' : 'Verify & Login'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ========================================== */}
+
+            {/* ========== PASSWORD EXPIRY POPUP ========== */}
+            {showExpiryPopup && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.55)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 2000,
+                    }}
+                >
+                    <div
+                        style={{
+                            backgroundColor: 'white',
+                            borderRadius: '12px',
+                            padding: '28px 30px',
+                            width: '90%',
+                            maxWidth: '420px',
+                            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)',
+                            textAlign: 'center',
+                            animation: 'modalFadeIn 0.25s ease',
+                        }}
+                    >
+                        <div
+                            style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                background: '#fff4e5',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 16px',
+                                fontSize: '28px',
+                            }}
+                        >
+                            ⚠️
+                        </div>
+
+                        <h2
+                            style={{
+                                margin: '0 0 8px',
+                                fontSize: '20px',
+                                color: '#032240',
+                            }}
+                        >
+                            Password Expired
+                        </h2>
+
+                        <p
+                            style={{
+                                color: '#666',
+                                fontSize: '14px',
+                                lineHeight: '1.5',
+                                margin: '0 0 22px',
+                            }}
+                        >
+                            {expiryMessage}
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            {/* ✅ NEW: Later button — closes popup, stays on login */}
+                            <button
+                                type="button"
+                                onClick={handleExpiryPopupLater}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '8px',
+                                    backgroundColor: 'white',
+                                    color: '#666',
+                                    fontSize: '15px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s, border-color 0.2s',
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                    e.currentTarget.style.borderColor = '#ccc';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'white';
+                                    e.currentTarget.style.borderColor = '#ddd';
+                                }}
+                            >
+                                Later
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleExpiryPopupOk}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#1E88E5',
+                                    color: 'white',
+                                    fontSize: '15px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s',
+                                }}
+                                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#1565C0')}
+                                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#1E88E5')}
+                            >
+                                OK
                             </button>
                         </div>
                     </div>
