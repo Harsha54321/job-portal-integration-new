@@ -171,6 +171,15 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
             alert("Please enter valid expiry date in MM/YY format");
             return;
         }
+ 
+        // --- Reject past expiry dates ---
+        const [expMonth, expYear] = cardData.expiry.split('/').map(Number);
+        const fullYear = 2000 + expYear;
+        const expiryEnd = new Date(fullYear, expMonth, 0, 23, 59, 59);
+        if (expiryEnd < new Date()) {
+            alert("Card has expired. Please enter a valid expiry date.");
+            return;
+        }
 
         const last4 = cardData.number.slice(-4) || 'XXXX';
 

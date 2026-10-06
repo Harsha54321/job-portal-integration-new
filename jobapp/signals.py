@@ -2,7 +2,11 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Notification, Message, Plan, PlanFeature, EmployerPlatformSettings, User
+from .models import (
+    Notification, Message, Plan, PlanFeature,
+    EmployerPlatformSettings, User, PasswordHistory,
+)
+
 # Signal for sending email when notification is created (commented out)
 # @receiver(post_save, sender=Notification)
 # def send_email_when_notification_created(sender, instance, created, **kwargs):
@@ -134,3 +138,36 @@ def create_default_features_and_settings(sender, instance, created, **kwargs):
                     }
                 )
         print(f"✅ Automated System features and onboarding context maps generated for {instance.name}")
+
+
+# ============================================================
+# PASSWORD HISTORY — AUTO TRIM
+# ============================================================
+
+MAX_PASSWORD_HISTORY = 2
+
+
+@receiver(post_save, sender=PasswordHistory)
+def trim_password_history_signal(sender, instance, created, **kwargs):
+    """
+    After every new PasswordHistory row is inserted, delete any rows
+    beyond the newest MAX_PASSWORD_HISTORY for that same user.
+    Only the affected user's rows are touched — other users are
+    never impacted.
+    """
+    if not created:
+        # Only handle inserts, not updates
+        return
+
+    user = instance.user
+
+    # Get IDs of everything AFTER the newest MAX_PASSWORD_HISTORY rows
+    old_ids = list(
+        PasswordHistory.objects
+        .filter(user=user)
+        .order_by('-created_at')
+        .values_list('id', flat=True)[MAX_PASSWORD_HISTORY:]
+    )
+
+    if old_ids:
+        PasswordHistory.objects.filter(id__in=old_ids).delete()

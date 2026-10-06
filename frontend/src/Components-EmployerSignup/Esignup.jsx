@@ -107,6 +107,16 @@ export const Esignup = () => {
 
   const handleForm = (e) => {
     const { name, value } = e.target
+
+    // Block all spaces exclusively for the password and confirmpassword fields
+    if (name === "password" || name === "confirmpassword") {
+      const noSpaces = value.replace(/\s+/g, '');
+      setFormValues({ ...formValues, [name]: noSpaces });
+      setErrors({ ...errors, [name]: "" });
+      setBackendError("");
+      return;
+    }
+
     setFormValues({ ...formValues, [name]: value })
     setErrors({ ...errors, [name]: "" })
     setBackendError("")
@@ -253,6 +263,7 @@ export const Esignup = () => {
         setShowMobileOtp(true);
         setOtpValues(prev => ({ ...prev, mobileOtp: "" }));
         setIsLoading(false);
+        setIsMobileOtpSending(false);
       }, 1000);
 
       console.log('Test OTP for mobile: 123456');
@@ -309,7 +320,7 @@ export const Esignup = () => {
     const regexOfMail = /^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const regexofUppercase = /^(?=.*[A-Z]).+$/
     const regexofNumber = /^(?=.*\d).+$/
-    const regexofSpecialChar = /^(?=.*[!@#$%^&*]).+$/
+    const regexofSpecialChar = /^(?=.*[!@#$\%^&*]).+$/
     const regexofLowercase = /^(?=.*[a-z]).+$/
     const regexofUserName = /^(?=[a-zA-Z])[a-zA-Z\s]+$/  // ← FIXED: Allows spaces
     const regexofMobile = /^[6-9]\d{9}$/
@@ -834,7 +845,7 @@ export const Esignup = () => {
             //   (regSettings.mobileVerification && !isMobileVerified) ||
             //   isLoading
             // }
-          disabled={isLoading}
+            disabled={isLoading}
           >
             {isLoading ? "Creating Account..." : "Create Account"}
           </button>

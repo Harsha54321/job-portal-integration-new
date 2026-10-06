@@ -798,7 +798,7 @@ export const FindTalent = ({ onUpgradeClick }) => {
         <div className="FindTalent-search-wrapper">
           <input
             type="text"
-            placeholder="Search by Skills, Education, or Job Title"
+            placeholder="Search by Skills, Education, Location, or Job Title"
             className="FindTalent-search-input"
             value={searchTerm}
             onChange={(e) => {

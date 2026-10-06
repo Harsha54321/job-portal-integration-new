@@ -22,7 +22,7 @@ export const Jcreatepassword = () => {
 
   const toggleConfirmPasswordView = () => {
     setconfirmPasswordShow((prev) => !prev)
-   }
+  }
 
   const initialValues = { newPassword: "", confirmPassword: "" }
 
@@ -60,23 +60,23 @@ export const Jcreatepassword = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  
+
   const location = useLocation();
 
-  useEffect(()=>{
+  useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const tokenFromURL = queryParams.get('token');
 
-    if(tokenFromURL){
+    if (tokenFromURL) {
       validateToken(tokenFromURL);
     }
-  },[])
+  }, [])
 
   //validate's the token
   const validateToken = async (tokenString) => {
     try {
-       await api.post('auth/validate-reset-token/',
-        {token : tokenString}
+      await api.post('auth/validate-reset-token/',
+        { token: tokenString }
       )
     } catch (error) {
       alert('Invalid token or expired token')
@@ -94,19 +94,24 @@ export const Jcreatepassword = () => {
     setLoading(true)
     try {
       const res = await api.post('auth/reset-password-confirm/',
-      { token : tokenFromURL,
-        new_password : formValues.newPassword,
-        confirm_password : formValues.confirmPassword
-      }
-    )
-     alert(res.data.message);
-     navigate("/Job-portal/jobseeker/login")
+        {
+          token: tokenFromURL,
+          new_password: formValues.newPassword,
+          confirm_password: formValues.confirmPassword
+        }
+      )
+      alert(res.data.message);
+      navigate("/Job-portal/jobseeker/login")
 
     } catch (error) {
       setLoading(false)
-      alert('Invalid token or expired token')
-      }
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.new_password?.[0] ||
+        'Invalid token or expired token'
+      alert(errorMessage)
     }
+  }
 
   return (
     <div className="j-create-password-page">

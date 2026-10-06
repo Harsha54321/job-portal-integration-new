@@ -9,6 +9,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import api_view
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import check_password 
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from django.db.models import Q, Count
@@ -95,7 +96,7 @@ from .models import (
     PasswordResetToken, EmailOTP, NewsletterSubscriber,
     CompanyVerification, CompanyProfile, Complaint, Plan, Subscription,
     Invoice, PaymentMethod, CompanyEmailOTP, NotificationConfig,
-    NotificationChannelSettings, UserDevice, AccountManager, EmployerAccountManagerAssignment,
+    NotificationChannelSettings, UserDevice, AccountManager, EmployerAccountManagerAssignment,PasswordHistory, 
 )
 from .permissions import IsAdminOrEmployer, IsEmployerOrAdmin, IsJobSeeker, IsAdminUserType
 from .utils import generate_otp, generate_4digit_otp, send_email_otp, generate_token, send_password_reset_email,generate_company_otp, send_company_email_otp,run_application_flag_checks
@@ -3270,6 +3271,30 @@ class ResetPasswordConfirmView(APIView):
                     },
                     status=status.HTTP_400_BAD_REQUEST
                 )
+                
+                # ── Password reuse check (runs for ACTIVE users) ──
+            if check_password(new_password, user.password):
+                 return Response(
+                         {"error": "You cannot reuse your current or last 2 passwords."},
+                         status=status.HTTP_400_BAD_REQUEST
+             )
+
+            recent_passwords = (
+                  PasswordHistory.objects
+                 .filter(user=user)
+                 .order_by('-created_at')[:2]
+                 )
+            for past in recent_passwords:
+                if check_password(new_password, past.password_hash):
+                     return Response(
+                          {"error": "You cannot reuse your current or last 2 passwords."},
+                          status=status.HTTP_400_BAD_REQUEST
+                        )
+
+             # Archive current password before overwriting
+            old_hash = user.password
+
+            
  
             # Update password
 
@@ -3288,6 +3313,9 @@ class ResetPasswordConfirmView(APIView):
                 ]
 
             )
+            # Store the OLD hash in history
+            if old_hash:
+                PasswordHistory.objects.create(user=user, password_hash=old_hash)
  
             # Mark token used
 
@@ -3560,6 +3588,28 @@ class AdminResetPasswordConfirmView(APIView):
                     },
                     status=status.HTTP_400_BAD_REQUEST
                 )
+                
+            # ── Password reuse check (current + last 2) ──
+            if check_password(new_password, user.password):
+                return Response(
+                    {"error": "You cannot reuse your current or last 2 passwords."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+ 
+            recent_passwords = (
+                PasswordHistory.objects
+                .filter(user=user)
+                .order_by('-created_at')[:2]
+            )
+            for past in recent_passwords:
+                if check_password(new_password, past.password_hash):
+                    return Response(
+                        {"error": "You cannot reuse your current or last 2 passwords."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+ 
+            # Archive OLD hash BEFORE overwriting
+            old_hash = user.password
  
             # Update password
             user.set_password(new_password)
@@ -3570,6 +3620,10 @@ class AdminResetPasswordConfirmView(APIView):
                     "password_changed_at",
                 ]
             )
+            
+            # Store the OLD hash in history
+            if old_hash:
+                PasswordHistory.objects.create(user=user, password_hash=old_hash)
 
             # ✅ NEW: revoke old tasks and schedule new ones
             from .scheduling import reset_and_reschedule_admin_password_tasks
@@ -5689,21 +5743,34 @@ class PaymentMethodView(APIView):
  
 class DeletePaymentMethodView(APIView):
     permission_classes = [IsAuthenticated]
-
+ 
+    def patch(self, request, pk):
+        try:
+            payment_method = PaymentMethod.objects.get(id=pk, user=request.user)
+        except PaymentMethod.DoesNotExist:
+            return Response({"error": "Payment method not found"}, status=404)
+        serializer = PaymentMethodSerializer(payment_method, data=request.data, partial=True)
+        if serializer.is_valid():
+            if request.data.get('is_default') == True:
+                PaymentMethod.objects.filter(user=request.user).exclude(id=pk).update(is_default=False)
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+ 
     def delete(self, request, pk):
         PaymentMethod.objects.filter(id=pk, user=request.user).delete()
 #-----------------------------------------------------------------------------------------------------
         NotificationService.create_notification(
-        recipient=request.user,
-        title="Payment Method Removed",
-        message=(
-            "A payment method "
-            "was removed from your account."
-        ),
-        category="billing",
-        event_type="payment_method_removed",
-        notification_type="system"
-    )
+            recipient=request.user,
+            title="Payment Method Removed",
+            message=(
+                "A payment method "
+                "was removed from your account."
+            ),
+            category="billing",
+            event_type="payment_method_removed",
+            notification_type="system"
+        )
 #--------------------------------------------------------------------------------------------------------------------
         return Response({"message": "Deleted"}) 
 
@@ -9262,6 +9329,26 @@ class AdminChangePasswordView(APIView):  # new 11/05
                 validate_password(new_password, user=user)
             except Exception as e:
                 errors["new_password"] = list(e.messages)
+                
+        # ── Password reuse check (current + last 2) ──
+        if new_password and not errors:
+
+            if check_password(new_password, user.password):
+                errors["new_password"] = [
+                    "You cannot reuse your current or last 2 passwords."
+                ]
+            else:
+                recent_passwords = (
+                    PasswordHistory.objects
+                    .filter(user=user)
+                    .order_by('-created_at')[:2]
+                )
+                for past in recent_passwords:
+                    if check_password(new_password, past.password_hash):
+                        errors["new_password"] = [
+                            "You cannot reuse your current or last 2 passwords."
+                        ]
+                        break
  
         if errors:
             return Response(
@@ -9271,6 +9358,8 @@ class AdminChangePasswordView(APIView):  # new 11/05
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        old_hash = user.password
  
         # Save password
         user.set_password(new_password)
@@ -9284,6 +9373,9 @@ class AdminChangePasswordView(APIView):  # new 11/05
             status="SUCCESS",
         )
         user.save()
+        
+        if old_hash:
+            PasswordHistory.objects.create(user=user, password_hash=old_hash)
 
         # NEW: revoke old tasks and schedule new ones at the exact times
         from .scheduling import reset_and_reschedule_admin_password_tasks
@@ -10485,16 +10577,54 @@ from .utils import generate_otp, send_email_otp
  
 class JobseekerChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
- 
+
     def patch(self, request):
         serializer = JobseekerChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = request.user
+
+        #  Verify current password
         if not user.check_password(serializer.validated_data['current_password']):
-            return Response({"current_password": "Wrong password"}, status=status.HTTP_400_BAD_REQUEST)
-        user.set_password(serializer.validated_data['new_password'])
+            return Response(
+                {"current_password": "Wrong password"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        new_password = serializer.validated_data['new_password']
+
+        #  ── Password reuse check (current + last 2) ──
+        if check_password(new_password, user.password):
+            return Response(
+                {"new_password": "You cannot reuse your current or last 2 passwords."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        recent_passwords = (
+            PasswordHistory.objects
+            .filter(user=user)
+            .order_by('-created_at')[:2]
+        )
+        for past in recent_passwords:
+            if check_password(new_password, past.password_hash):
+                return Response(
+                    {"new_password": "You cannot reuse your current or last 2 passwords."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        #  Archive OLD hash BEFORE overwriting
+        old_hash = user.password
+
+        #  Set and save new password
+        user.set_password(new_password)
         user.save()
-        return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
+
+        if old_hash:
+            PasswordHistory.objects.create(user=user, password_hash=old_hash)
+
+        return Response(
+            {"message": "Password updated successfully."},
+            status=status.HTTP_200_OK
+        )
  
 class Jobseeker2FAStatusView(APIView):
     permission_classes = [IsAuthenticated]

@@ -62,6 +62,15 @@ export const Elogin = () => {
 
   const handleForm = (e) => {
     const { name, value } = e.target;
+
+    // Block all spaces exclusively for the password field
+    if (name === "password") {
+      const noSpaces = value.replace(/\s+/g, '');
+      setFormValues({ ...formValues, [name]: noSpaces });
+      setErrors({ ...errors, [name]: "", general: "" });
+      return;
+    }
+
     setFormValues({ ...formValues, [name]: value });
     setErrors({ ...errors, [name]: "", general: "" });
   };

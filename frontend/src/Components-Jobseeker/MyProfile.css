@@ -618,10 +618,6 @@ input[type="file"]::file-selector-button {
     cursor: pointer;
 }
 
-.cursor-as-pointer::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-}
-
 select,
 select:hover,
 select option {
@@ -634,6 +630,112 @@ select option {
     font-size: 1.4rem;
     margin-right: 0.75rem;
     line-height: 0;
+}
+
+/* ================================================================
+   CUSTOM DATE INPUT — PNG calendar icon for Windows + macOS (Safari)
+   ================================================================ */
+
+/* Wrapper positions the custom icon on top of the input */
+.date-input-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.date-input-wrapper input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.75rem 2.75rem 0.75rem 0.75rem; /* right padding for icon */
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    color: #032240;
+    font-family: inherit;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.date-input-wrapper input[type="date"]:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.date-input-wrapper input[type="date"].input-error {
+    border-color: #FF6F61 !important;
+    background-color: #fff8f8;
+}
+
+.date-input-wrapper input[type="date"].input-error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25) !important;
+}
+
+/* Custom clickable calendar icon button — sits on the right edge */
+.date-picker-icon-btn {
+    position: absolute;
+    right: 8px;
+    top: 0;
+    bottom: 0;
+    margin: auto 0;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 30px;
+    height: 30px;
+    transition: background-color 0.15s, opacity 0.15s;
+    /* NO transform — this is what caused the shift */
+}
+
+.date-picker-icon-btn:hover {
+    background-color: #f0f4f9;
+}
+
+.date-picker-icon-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.date-picker-icon-btn img {
+    display: block;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* Hide the native WebKit calendar icon (Chrome/Edge) so users see only ours */
+.date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 44px;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    /* Keeps Chrome's native click-area alive while our icon is visible */
+}
+
+/* Safari-only tweak: keeps the date text vertically centered */
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit {
+    display: inline-block;
+    padding: 0;
+}
+
+/* Empty-state placeholder color (Safari + Chrome) */
+.date-input-wrapper input[type="date"]:invalid::-webkit-datetime-edit {
+    color: #999;
 }
 
 /* Education Degree Dropdown Styles */
@@ -896,4 +998,114 @@ select option {
     object-fit: cover;
     margin-bottom: 10px;
     border: 2px solid #dbe0e6;
+}
+
+/* --- SIMPLE DROPDOWN REUSABLE COMPONENT --- */
+
+.simple-dropdown {
+    position: relative;
+    width: 100%;
+    display: block; /* Ensures it takes full width of the form group */
+}
+
+.simple-dropdown-trigger {
+    width: 100%;               /* Ensure trigger fills the wrapper */
+    box-sizing: border-box;    /* Includes padding and border in the width calculation */
+    height: 44px;
+    padding: 0 16px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.simple-dropdown-trigger:hover,
+.simple-dropdown-trigger.open,
+.simple-dropdown-trigger:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.simple-dropdown-trigger:focus,
+.simple-dropdown-trigger.open {
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
+}
+
+.simple-dropdown-trigger.input-error {
+    border-color: #FF6F61 !important;
+    background-color: #fff8f8;
+}
+
+.simple-dropdown-trigger .selected { 
+    color: #032240; 
+    font-weight: 500; 
+}
+
+.simple-dropdown-trigger .placeholder { 
+    color: #999; 
+}
+
+/* Same chevron style as the sidebar arrow, rotates when open */
+.simple-dropdown-arrow {
+    border: solid #6c757d;
+    border-width: 0 2px 2px 0;
+    padding: 3px;
+    transform: rotate(45deg);
+    margin-top: -3px;
+    transition: transform 0.2s ease;
+}
+
+.simple-dropdown-trigger.open .simple-dropdown-arrow {
+    transform: rotate(-135deg);
+    margin-top: 3px;
+}
+
+/* --- FIXED PANEL ALIGNMENT --- */
+.simple-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;                  /* Forces the right edge to match the left edge perfectly */
+    width: 100%;               /* Fallback for older browsers */
+    box-sizing: border-box;    /* Ensures padding doesn't push it wider than the trigger */
+    z-index: 1000;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.simple-dropdown-option {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #032240;
+    transition: background 0.15s;
+}
+
+.simple-dropdown-option.highlighted { 
+    background-color: #e7f3ff; 
+    color: #007bff; 
+}
+
+.simple-dropdown-option.selected { 
+    font-weight: 600; 
+}
+
+.simple-dropdown-trigger.disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.simple-dropdown-trigger.disabled:hover {
+    border-color: #E5E7EB;
 }

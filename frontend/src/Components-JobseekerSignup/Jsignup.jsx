@@ -242,6 +242,15 @@ export const Jsignup = () => {
       }
       return;
     }
+    
+    // Block all spaces exclusively for the password and confirmpassword fields
+    if (name === "password" || name === "confirmpassword") {
+      const noSpaces = value.replace(/\s+/g, '');
+      setFormValues({ ...formValues, [name]: noSpaces });
+      setErrors({ ...errors, [name]: "" });
+      return;
+    }
+
     setFormValues({ ...formValues, [name]: value });
     setErrors({ ...errors, [name]: "" });
   };

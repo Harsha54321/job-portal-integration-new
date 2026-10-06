@@ -1204,6 +1204,18 @@ class RaiseTicket(models.Model):
 
 # Password
 
+class PasswordHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_history')
+    password_hash = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'PasswordHistory'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Password history for {self.user.email} at {self.created_at}"
+
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_tokens')
     token = models.CharField(max_length=100, unique=True)

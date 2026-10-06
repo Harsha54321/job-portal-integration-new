@@ -6,17 +6,84 @@ import editIcon from "../assets/EditIcon.png";
 import uploadIcon from "../assets/UploadIcon.png";
 import deleteIcon from "../assets/DeleteIcon.png";
 import resumeIcon from "../assets/resume_icon.png";
+import calenderCard from "../assets/calender_card.png";
 import { Header } from "../Components-LandingPage/Header";
 import welcomeImg from "../assets/welcome.png";
 import api from "../api/axios";
 import EducationDegreeDropdown, { degreeOptions } from "./EducationDegreeDropdown";
+
+const DateInput = ({
+    name,
+    value,
+    onChange,
+    onBlur,
+    min,
+    max,
+    className = "",
+    error = false,
+    disabled = false,
+}) => {
+    const inputRef = useRef(null);
+
+    // Force-opens the native date picker on Safari 16+, Chrome 99+, Edge 99+, Firefox 101+
+    const openPicker = () => {
+        if (disabled) return;
+        const el = inputRef.current;
+        if (!el) return;
+        if (typeof el.showPicker === "function") {
+            try {
+                el.showPicker();
+            } catch {
+                // Safari can throw if not triggered by a trusted gesture — ignore.
+            }
+        } else {
+            el.focus();
+        }
+    };
+
+    return (
+        <div className="date-input-wrapper">
+            <input
+                ref={inputRef}
+                type="date"
+                name={name}
+                value={value || ""}
+                min={min}
+                max={max}
+                disabled={disabled}
+                onChange={onChange}
+                onBlur={onBlur}
+                className={`${error ? "input-error" : ""} cursor-as-pointer ${className}`}
+            />
+
+            {/* Custom calendar icon — visible on ALL browsers including Safari */}
+            <button
+                type="button"
+                className="date-picker-icon-btn"
+                onClick={openPicker}
+                aria-label="Open calendar"
+                tabIndex={-1}
+                disabled={disabled}
+                title="Open calendar"
+            >
+                <img
+                    src={calenderCard}
+                    alt="calendar"
+                    loading="eager"
+                    draggable={false}
+                />
+            </button>
+        </div>
+    );
+};
 
 const preloadImages = [
     addPhoto,
     editIcon,
     uploadIcon,
     deleteIcon,
-    resumeIcon
+    resumeIcon,
+    calenderCard
 ];
 
 preloadImages.forEach(src => {
@@ -442,6 +509,175 @@ const FilterableDropdown = ({ options, selectedValue, onSelect, placeholder, cla
         //     )}
         // </div>
     );
+};
+
+const SimpleDropdown = ({ options, selectedValue, onSelect, placeholder = "Select", className = "", disabled = false }) => {
+
+    const [isOpen, setIsOpen] = useState(false);
+
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+    const wrapperRef = useRef(null);
+
+    // options can be strings or { value, label }
+
+    const normalized = options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
+
+    const selectedOption = normalized.find((o) => o.value === selectedValue);
+
+    const close = () => {
+
+        setIsOpen(false);
+
+        setHighlightedIndex(-1);
+
+    };
+
+    const handleSelect = (opt) => {
+
+        onSelect(opt.value);
+
+        close();
+
+    };
+
+    useEffect(() => {
+
+        const handleClickOutside = (e) => {
+
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target)) close();
+
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    }, []);
+
+    const handleKeyDown = (e) => {
+
+        if (disabled) return;
+
+        if (!isOpen) {
+
+            if (["Enter", " ", "ArrowDown"].includes(e.key)) {
+
+                e.preventDefault();
+
+                setIsOpen(true);
+
+            }
+
+            return;
+
+        }
+
+        switch (e.key) {
+
+            case "Escape":
+
+                e.preventDefault();
+
+                close();
+
+                break;
+
+            case "ArrowDown":
+
+                e.preventDefault();
+
+                setHighlightedIndex((p) => (p < normalized.length - 1 ? p + 1 : p));
+
+                break;
+
+            case "ArrowUp":
+
+                e.preventDefault();
+
+                setHighlightedIndex((p) => (p > 0 ? p - 1 : 0));
+
+                break;
+
+            case "Enter":
+
+                e.preventDefault();
+
+                if (highlightedIndex >= 0) handleSelect(normalized[highlightedIndex]);
+
+                break;
+
+            case "Tab":
+
+                close();
+
+                break;
+
+            default:
+
+                break;
+
+        }
+
+    };
+
+    return (
+        <div ref={wrapperRef} className="simple-dropdown">
+            <div
+
+                className={`simple-dropdown-trigger ${isOpen ? "open" : ""} ${disabled ? "disabled" : ""} ${className}`}
+
+                role="combobox"
+
+                tabIndex={disabled ? -1 : 0}
+
+                aria-haspopup="listbox"
+
+                aria-expanded={isOpen}
+
+                aria-disabled={disabled}
+
+                onClick={() => !disabled && setIsOpen((o) => !o)}
+
+                onKeyDown={handleKeyDown}
+            >
+                <span className={selectedOption ? "selected" : "placeholder"}>
+
+                    {selectedOption ? selectedOption.label : placeholder}
+                </span>
+                <span className="simple-dropdown-arrow" />
+            </div>
+
+            {isOpen && (
+                <div className="simple-dropdown-panel" role="listbox">
+
+                    {normalized.map((opt, index) => (
+                        <div
+
+                            key={opt.value}
+
+                            role="option"
+
+                            aria-selected={opt.value === selectedValue}
+
+                            className={`simple-dropdown-option ${opt.value === selectedValue ? "selected" : ""} ${highlightedIndex === index ? "highlighted" : ""}`}
+
+                            onClick={() => handleSelect(opt)}
+
+                            onMouseEnter={() => setHighlightedIndex(index)}
+                        >
+
+                            {opt.label}
+                        </div>
+
+                    ))}
+                </div>
+
+            )}
+        </div>
+
+    );
+
 };
 
 const nationalityOptions = [
@@ -1030,50 +1266,39 @@ const Profile = ({
                     </div>
                     <div className="form-group">
                         <label>Gender*</label>
-                        <select
-                            name="gender"
-                            value={data.gender || "Select"}
-                            onChange={handleChange}
+                        <SimpleDropdown
+                            options={["Male", "Female", "Not Specified"]}
+                            selectedValue={data.gender && data.gender !== "Select" ? data.gender : ""}
+                            onSelect={(val) => handleChange({ target: { name: "gender", value: val } })}
+                            placeholder="Select"
                             className={errors.gender ? "input-error" : ""}
-                        >
-                            <option value="Select">Select</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Not Specified">Not Specified</option>
-                        </select>
-                        {errors.gender && (
-                            <span className="error-message">{errors.gender}</span>
-                        )}
+                        />
+                        {errors.gender && <span className="error-message">{errors.gender}</span>}
                     </div>
                     <div className="form-group">
                         <label>Date of Birth*</label>
-                        <input
-                            type="date"
+                        <DateInput
                             name="dob"
-                            value={data.dob || ""}
+                            value={data.dob}
                             min={minString}
                             max={maxString}
                             onChange={handleChange}
-                            className={`${errors.dob ? "input-error" : ""} cursor-as-pointer`}
+                            error={!!errors.dob}
                         />
                         {errors.dob && <span className="error-message">{errors.dob}</span>}
                     </div>
                     <div className="form-group">
                         <label>Marital Status*</label>
-                        <select
-                            name="maritalStatus"
-                            value={data.maritalStatus || "Select"}
-                            onChange={handleChange}
+                        <SimpleDropdown
+                            options={["Single", "Married"]}
+                            selectedValue={data.maritalStatus && data.maritalStatus !== "Select" ? data.maritalStatus : ""}
+                            onSelect={(val) => handleChange({ target: { name: "maritalStatus", value: val } })}
+                            placeholder="Select"
                             className={errors.maritalStatus ? "input-error" : ""}
-                        >
-                            <option value="Select">Select</option>
-                            <option value="Single">Single</option>
-                            <option value="Married">Married</option>
-                        </select>
-                        {errors.maritalStatus && (
-                            <span className="error-message">{errors.maritalStatus}</span>
-                        )}
+                        />
+                        {errors.maritalStatus && <span className="error-message">{errors.maritalStatus}</span>}
                     </div>
+
                     <div className="form-group">
                         <label>Nationality*</label>
                         <FilterableDropdown
@@ -1391,16 +1616,16 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
                 {/* Experience Status */}
                 <div className="form-group">
                     <label>Experience Status*</label>
-                    <select
-                        name="experienceType"
-                        value={data.experienceType || ""}
-                        onChange={handleChange}
+                    <SimpleDropdown
+                        options={[
+                            { value: "experienced", label: "Experienced" },
+                            { value: "fresher", label: "Fresher" },
+                        ]}
+                        selectedValue={data.experienceType || ""}
+                        onSelect={(val) => handleChange({ target: { name: "experienceType", value: val } })}
+                        placeholder="Select"
                         className={errors.experienceType ? "input-error" : ""}
-                    >
-                        <option value="">Select</option>
-                        <option value="experienced">Experienced</option>
-                        <option value="fresher">Fresher</option>
-                    </select>
+                    />
                     {errors.experienceType && <span className="error-message">{errors.experienceType}</span>}
                 </div>
 
@@ -1455,18 +1680,13 @@ const CurrentDetails = ({ data, onChange, onReset, onNext }) => {
 
                         <div className="form-group">
                             <label>Notice Period*</label>
-                            <select
-                                name="noticePeriod"
-                                value={data.noticePeriod || "Select"}
-                                onChange={handleChange}
+                            <SimpleDropdown
+                                options={["Immediate", "1 Month", "2 Months", "3 Months"]}
+                                selectedValue={data.noticePeriod && data.noticePeriod !== "Select" ? data.noticePeriod : ""}
+                                onSelect={(val) => handleChange({ target: { name: "noticePeriod", value: val } })}
+                                placeholder="Select"
                                 className={errors.noticePeriod ? "input-error" : ""}
-                            >
-                                <option value="Select">Select</option>
-                                <option value="Immediate">Immediate</option>
-                                <option value="1 Month">1 Month</option>
-                                <option value="2 Months">2 Months</option>
-                                <option value="3 Months">3 Months</option>
-                            </select>
+                            />
                             {errors.noticePeriod && <span className="error-message">{errors.noticePeriod}</span>}
                         </div>
                     </>
@@ -2400,8 +2620,7 @@ const EducationDetails = ({
     };
 
     const getGradLabel = (index, total, highestQual) => {
-        if (total === 1) return "Graduation";
-        if (index === 0) return "Under-Graduation";
+        if (index === 0) return "Graduation";
         if (index === total - 1) return highestQual === "Doctorate" ? "Doctorate" : "Post-Graduation";
         return "Post-Graduation";
     };
@@ -2483,6 +2702,10 @@ const EducationDetails = ({
         const errorKey = id !== null ? `grad${name}${id}` : `${type}${name}`;
         if (errors[errorKey]) {
             setErrors(prev => ({ ...prev, [errorKey]: "" }));
+        }
+        // Status change affects whether Ending Year is required
+        if (type === 'grad' && name === 'status' && id !== null) {
+            setErrors(prev => ({ ...prev, [`gradendYear${id}`]: "" }));
         }
 
         // ============================================================
@@ -2869,10 +3092,14 @@ const EducationDetails = ({
                 newErrors[`gradstartYear${grad.id}`] = `*Starting year must be after your ${priorLabel} completion date`;
             }
 
+            const isCompleted = grad.status === "Completed";
+
             if (!grad.endYear) {
-                newErrors[`gradendYear${grad.id}`] = "*Ending year is required";
+                if (isCompleted) {
+                    newErrors[`gradendYear${grad.id}`] = "*Ending year is required";
+                }
             }
-            else if (endDate > today) {
+            else if (isCompleted && endDate > today) {
                 newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be in future";
             }
             // else if (startDate && endDate < startDate) {
@@ -2900,7 +3127,7 @@ const EducationDetails = ({
             //             `*${grad.degree || "This degree"} typically requires at least ${minYears} year(s). Please check your dates.`;
             //     }
             // }
-            else if (startDate && endDate < startDate) {
+            else if (startDate && endDate && endDate < startDate) {
                 newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be before starting year";
             }
             if (!grad.city) {
@@ -3015,19 +3242,16 @@ const EducationDetails = ({
 
             <div className="form-group full-width" style={{ marginBottom: "1.5rem" }}>
                 <label>Highest Qualification?</label>
-                <select
-                    name="highestQual"
-                    value={data.highestQual}
-                    onChange={(e) => { onHighestQualChange(e); setErrors(p => ({ ...p, highestQual: "" })) }}
+                <SimpleDropdown
+                    options={["Diploma", "Under-Graduation", "Post-Graduation", "Doctorate"]}
+                    selectedValue={data.highestQual && data.highestQual !== "Select" ? data.highestQual : ""}
+                    onSelect={(val) => {
+                        onHighestQualChange({ target: { name: "highestQual", value: val } });
+                        setErrors((p) => ({ ...p, highestQual: "" }));
+                    }}
+                    placeholder="Select"
                     className={errors.highestQual ? "input-error" : ""}
-
-                >
-                    <option value="">Select</option>
-                    <option value="Diploma">Diploma</option>
-                    <option value="Under-Graduation">Under-Graduation</option>
-                    <option value="Post-Graduation">Post-Graduation</option>
-                    <option value="Doctorate">Doctorate</option>
-                </select>
+                />
                 {errors.highestQual && (
                     <span className="error-msg">{errors.highestQual}</span>
                 )}
@@ -3107,13 +3331,12 @@ const EducationDetails = ({
 
                                 <div className="form-group">
                                     <label>Year of Completion*</label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         name="year"
-                                        max="9999-12-31"
-                                        value={data.sslc.year || ""}
+                                        value={data.sslc.year}
+                                        max={new Date().toISOString().split("T")[0]}
                                         onChange={(e) => handleInputChange(e, 'sslc')}
-                                        className={`${errors.sslcyear ? "input-error" : ""} cursor-as-pointer`}
+                                        error={!!errors.sslcyear}
                                     />
                                     {errors.sslcyear && (
                                         <span className="error-msg">{errors.sslcyear}</span>
@@ -3140,16 +3363,19 @@ const EducationDetails = ({
                             <div className="form-grid">
                                 <div className="form-group">
                                     <label>What did you studied after 10th?</label>
-                                    <select
-                                        name="stream"
-                                        value={data.hsc.stream || ""}
-                                        onChange={onUpdateHSC}
+                                    <SimpleDropdown
+                                        options={[
+                                            { value: "Intermediate", label: "Intermediate/12" },
+                                            { value: "Diploma", label: "Diploma" },
+                                        ]}
+                                        selectedValue={data.hsc.stream && data.hsc.stream !== "Select" ? data.hsc.stream : ""}
+                                        onSelect={(val) => {
+                                            onUpdateHSC({ target: { name: "stream", value: val } });
+                                            if (errors.hscstream) setErrors((prev) => ({ ...prev, hscstream: "" }));
+                                        }}
+                                        placeholder="Select"
                                         className={errors.hscstream ? "input-error" : ""}
-                                    >
-                                        <option value="">Select</option>
-                                        <option value="Intermediate">Intermediate/12</option>
-                                        <option value="Diploma">Diploma</option>
-                                    </select>
+                                    />
                                     {errors.hscstream && (
                                         <span className="error-msg">{errors.hscstream}</span>
                                     )}
@@ -3198,14 +3424,12 @@ const EducationDetails = ({
                                 </div>
                                 <div className="form-group">
                                     <label>Year of Completion*</label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         name="year"
-                                        max="9999-12-31"
-                                        value={data.hsc.year || ""}
+                                        value={data.hsc.year}
+                                        max={new Date().toISOString().split("T")[0]}
                                         onChange={(e) => handleInputChange(e, 'hsc')}
-                                        className={`${errors.hscyear ? "input-error" : ""} cursor-as-pointer`}
-
+                                        error={!!errors.hscyear}
                                     />
                                     {errors.hscyear && (
                                         <span className="error-msg">{errors.hscyear}</span>
@@ -3299,16 +3523,13 @@ const EducationDetails = ({
                                     </div>
                                     <div className="form-group">
                                         <label>Degree Status*</label>
-                                        <select
-                                            name="status"
-                                            value={grad.status}
-                                            onChange={(e) => handleInputChange(e, 'grad', grad.id)}
+                                        <SimpleDropdown
+                                            options={["Completed", "Pursuing"]}
+                                            selectedValue={grad.status && grad.status !== "Select" ? grad.status : ""}
+                                            onSelect={(val) => handleInputChange({ target: { name: "status", value: val } }, "grad", grad.id)}
+                                            placeholder="Select"
                                             className={errors[`gradstatus${grad.id}`] ? "input-error" : ""}
-                                        >
-                                            <option value="Select">Select</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Pursuing">Pursuing</option>
-                                        </select>
+                                        />
                                         {errors[`gradstatus${grad.id}`] && (
                                             <span className="error-message">{errors[`gradstatus${grad.id}`]}</span>
                                         )}
@@ -3343,25 +3564,23 @@ const EducationDetails = ({
                                     </div>
                                     <div className="form-group">
                                         <label>Starting Year*</label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             name="startYear"
-                                            max="9999-12-31"
                                             value={grad.startYear}
+                                            max={new Date().toISOString().split("T")[0]}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
-                                            className={`${errors[`gradstartYear${grad.id}`] ? "input-error" : ""} cursor-as-pointer`}
+                                            error={!!errors[`gradstartYear${grad.id}`]}
                                         />
                                         {errors[`gradstartYear${grad.id}`] && <span className="error-message">{errors[`gradstartYear${grad.id}`]}</span>}
                                     </div>
                                     <div className="form-group">
-                                        <label>Ending Year*</label>
-                                        <input
-                                            type="date"
+                                        <label>Ending Year{grad.status === "Completed" ? "*" : "(optional)"}</label>
+                                        <DateInput
                                             name="endYear"
-                                            max="9999-12-31"
                                             value={grad.endYear}
+                                            max={new Date().toISOString().split("T")[0]}
                                             onChange={(e) => handleInputChange(e, 'grad', grad.id)}
-                                            className={`${errors[`gradendYear${grad.id}`] ? "input-error" : ""} cursor-as-pointer`}
+                                            error={!!errors[`gradendYear${grad.id}`]}
                                         />
                                         {errors[`gradendYear${grad.id}`] && <span className="error-message">{errors[`gradendYear${grad.id}`]}</span>}
                                     </div>
@@ -3594,26 +3813,20 @@ const WorkExperience = ({
                 <div className="form-group">
                     <label>Current Status (Synced with Basic Details)</label>
 
-                    <select
-                        name="status"
-                        value={data.status || "Fresher"}
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                    >
-                        <option value="Fresher">Fresher</option>
-                        <option value="Experienced">Experienced</option>
-                    </select>
+                    <SimpleDropdown
+                        options={["Fresher", "Experienced"]}
+                        selectedValue={data.status || "Fresher"}
+                        onSelect={(val) => handleStatusChange(val)}
+                    />
                 </div>
                 <div className="form-group">
                     <label>Do you have any internship or work experience?</label>
-                    <select
-                        name="hasExperience"
-                        value={data.hasExperience || "No"}
-                        onChange={onChange}
+                    <SimpleDropdown
+                        options={["No", "Yes"]}
+                        selectedValue={data.hasExperience || "No"}
+                        onSelect={(val) => onChange({ target: { name: "hasExperience", value: val } })}
                         disabled={data.status === "Experienced"}
-                    >
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                    </select>
+                    />
                 </div>
             </div>
 
@@ -3654,24 +3867,24 @@ const WorkExperience = ({
                                 </div>
                                 <div className="form-group">
                                     <label>Start Date*</label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         name="startDate"
-                                        max="9999-12-31"
-                                        value={entry.startDate || ""}
+                                        value={entry.startDate}
+                                        max={new Date().toISOString().split("T")[0]}
                                         onChange={(e) => handleDateChangeWithValidation(entry.id, 'startDate', e.target.value, entry)}
-                                        className={`${errors[`startDate_${entry.id}`] ? "input-error" : ""} cursor-as-pointer`} />
+                                        error={!!errors[`startDate_${entry.id}`]}
+                                    />
                                     {errors[`startDate_${entry.id}`] && <span className="error-message">{errors[`startDate_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
                                     <label>End Date*</label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         name="endDate"
-                                        max="9999-12-31"
-                                        value={entry.endDate || ""}
+                                        value={entry.endDate}
+                                        max={new Date().toISOString().split("T")[0]}
                                         onChange={(e) => handleDateChangeWithValidation(entry.id, 'endDate', e.target.value, entry)}
-                                        className={`${errors[`endDate_${entry.id}`] ? "input-error" : ""} cursor-as-pointer`} />
+                                        error={!!errors[`endDate_${entry.id}`]}
+                                    />
                                     {errors[`endDate_${entry.id}`] && (
                                         <span className="error-message">
                                             {errors[`endDate_${entry.id}`]}
@@ -3680,35 +3893,30 @@ const WorkExperience = ({
                                 </div>
                                 <div className="form-group">
                                     <label>Industry / Domain*</label>
-                                    <select
-                                        name="industry"
-                                        value={entry.industry}
-                                        onChange={(e) => handleEntryChange(entry.id, e)}
+                                    <SimpleDropdown
+                                        options={[
+                                            { value: "IT-Software", label: "IT - Software" },
+                                            { value: "Finance", label: "Finance" },
+                                            { value: "Education", label: "Education" },
+                                            { value: "Marketing", label: "Marketing" },
+                                            { value: "Other", label: "Other" },
+                                        ]}
+                                        selectedValue={entry.industry && entry.industry !== "Select" ? entry.industry : ""}
+                                        onSelect={(val) => handleEntryChange(entry.id, { target: { name: "industry", value: val } })}
+                                        placeholder="Select"
                                         className={errors[`industry_${entry.id}`] ? "input-error" : ""}
-                                    >
-                                        <option value="Select">Select</option>
-                                        <option value="IT-Software">IT - Software</option>
-                                        <option value="Finance">Finance</option>
-                                        <option value="Education">Education</option>
-                                        <option value="Marketing">Marketing</option>
-                                        <option value="Other">Other</option>
-                                    </select>
+                                    />
                                     {errors[`industry_${entry.id}`] && <span className="error-message">{errors[`industry_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
                                     <label>Job Type*</label>
-                                    <select
-                                        name="jobType"
-                                        value={entry.jobType}
-                                        onChange={(e) => handleEntryChange(entry.id, e)}
+                                    <SimpleDropdown
+                                        options={["Full-time", "Part-time", "Internship", "Contract"]}
+                                        selectedValue={entry.jobType && entry.jobType !== "Select" ? entry.jobType : ""}
+                                        onSelect={(val) => handleEntryChange(entry.id, { target: { name: "jobType", value: val } })}
+                                        placeholder="Select"
                                         className={errors[`jobType_${entry.id}`] ? "input-error" : ""}
-                                    >
-                                        <option value="Select">Select</option>
-                                        <option value="Full-time">Full-time</option>
-                                        <option value="Part-time">Part-time</option>
-                                        <option value="Internship">Internship</option>
-                                        <option value="Contract">Contract</option>
-                                    </select>
+                                    />
                                     {errors[`jobType_${entry.id}`] && <span className="error-message">{errors[`jobType_${entry.id}`]}</span>}
                                 </div>
                                 <div className="form-group">
@@ -4115,13 +4323,12 @@ const LanguagesKnown = ({
                 </div>
                 <div className="form-group">
                     <label>Proficiency*</label>
-                    <select value={currentLang.proficiency} onChange={(e) => setCurrentLang({ ...currentLang, proficiency: e.target.value })}>
-                        <option value="Select">Select</option>
-                        <option value="Beginner">Beginner</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Fluent">Fluent</option>
-                        <option value="Native">Native</option>
-                    </select>
+                    <SimpleDropdown
+                        options={["Beginner", "Intermediate", "Fluent", "Native"]}
+                        selectedValue={currentLang.proficiency && currentLang.proficiency !== "Select" ? currentLang.proficiency : ""}
+                        onSelect={(val) => setCurrentLang({ ...currentLang, proficiency: val })}
+                        placeholder="Select"
+                    />
                 </div>
             </PopupModal>
         </form>
@@ -4505,18 +4712,13 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
 
                 <div className="form-group">
                     <label>Preferred Job Type*</label>
-                    <select
-                        name="jobType"
-                        value={data.jobType || "Select"}
-                        onChange={handleLocalChange}
+                    <SimpleDropdown
+                        options={["Full-time", "Part-time", "Internship", "Contract"]}
+                        selectedValue={data.jobType && data.jobType !== "Select" ? data.jobType : ""}
+                        onSelect={(val) => handleLocalChange({ target: { name: "jobType", value: val } })}
+                        placeholder="Select"
                         className={errors.jobType ? "input-error" : ""}
-                    >
-                        <option value="Select">Select</option>
-                        <option value="Full-time">Full-time</option>
-                        <option value="Part-time">Part-time</option>
-                        <option value="Internship">Internship</option>
-                        <option value="Contract">Contract</option>
-                    </select>
+                    />
                     {errors.jobType && (
                         <span className="error-msg">{errors.jobType}</span>
                     )}
@@ -4825,8 +5027,8 @@ export const MyProfile = () => {
                                 status: e.status,
                                 dept: e.department,
                                 percentage: e.percentage_or_cgpa,
-                                startYear: e.start_year,
-                                endYear: e.end_year,
+                                startYear: e.start_year || "",
+                                endYear: e.end_year || "",
                                 college: e.institution,
                                 city: e.city,
                                 state: e.state,
@@ -5356,6 +5558,9 @@ export const MyProfile = () => {
             dob: allData.profile.dob,
             marital_status: allData.profile.maritalStatus,
             nationality: allData.profile.nationality,
+            ...(allData.currentDetails.experienceType
+                ? { employment_status: allData.currentDetails.experienceType }
+                : {}),
             employment_status: allData.currentDetails.experienceType,
             // ... rest of your payload fields ...
 
@@ -5435,8 +5640,8 @@ export const MyProfile = () => {
                             degree: g.degree,
                             department: g.dept,
                             status: g.status,
-                            start_year: g.startYear,
-                            end_year: g.endYear,
+                            start_year: g.startYear || null,
+                            end_year: g.endYear || null,
                             percentage_or_cgpa: g.percentage,
                             city: g.city,
                             state: g.state,
@@ -5499,6 +5704,13 @@ export const MyProfile = () => {
         if (!resumeFile && !allData.resume.resume_file) {
             alert("Please upload your resume before finishing.");
             setActiveItem("Resume");
+            return;
+        }
+
+        if (!allData.currentDetails.experienceType) {
+            alert("Please select your experience status.");
+            setActiveItem("Current Details");
+            setOpenDropdown("Basic Details");
             return;
         }
 

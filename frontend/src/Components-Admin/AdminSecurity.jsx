@@ -491,7 +491,7 @@ export const AdminSecurity = () => {
                   disabled={isLoading}
                 />
                 <span className="admin-eye-icon" onClick={() => setShowCurrent(!showCurrent)}>
-                  {showCurrent ? <img src={hidePassword} width={20} alt="hide-password" /> : <img src={showPassword} width={20} alt="show-password" />}
+                  {showCurrent ? <img src={showPassword} width={20} alt="hide-password" /> : <img src={hidePassword} width={20} alt="show-password" />}
                 </span>
               </div>
               {errors.currentPassword && <span className="error-msg">{errors.currentPassword}</span>}
@@ -509,7 +509,7 @@ export const AdminSecurity = () => {
                   disabled={isLoading}
                 />
                 <span className="admin-eye-icon" onClick={() => setShowNew(!showNew)}>
-                  {showNew ? <img src={hidePassword} width={20} alt="hide-password" /> : <img src={showPassword} width={20} alt="show-password" />}
+                  {showNew ? <img src={showPassword} width={20} alt="hide-password" /> : <img src={hidePassword} width={20} alt="show-password" />}
                 </span>
               </div>
               {errors.newPassword && <span className="error-msg">{errors.newPassword}</span>}
@@ -543,7 +543,7 @@ export const AdminSecurity = () => {
                   disabled={isLoading}
                 />
                 <span className="admin-eye-icon" onClick={() => setShowConfirm(!showConfirm)}>
-                  {showConfirm ? <img src={hidePassword} width={20} alt="hide-password" /> : <img src={showPassword} width={20} alt="show-password" />}
+                  {showConfirm ? <img src={showPassword} width={20} alt="hide-password" /> : <img src={hidePassword} width={20} alt="show-password" />}
                 </span>
               </div>
               {errors.confirmPassword && <span className="error-msg">{errors.confirmPassword}</span>}

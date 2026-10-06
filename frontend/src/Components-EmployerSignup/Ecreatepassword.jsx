@@ -43,7 +43,7 @@ export const Ecreatepassword = () => {
       newErrors.newPassword = "New Password is required";
     } else if (formValues.newPassword.length < 8) {
       newErrors.newPassword = "Password must be at least 8 characters long";
-    } 
+    }
     // ✅ FIX: First check lowercase (must have at least one)
     else if (!regexofLowercase.test(formValues.newPassword)) {
       newErrors.newPassword = "Password must contain at least one lowercase letter";
@@ -94,7 +94,11 @@ export const Ecreatepassword = () => {
       navigate('/Job-portal/employer/login')
     } catch (error) {
       setLoading(false)
-      alert('Invalid token or expired token')
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.new_password?.[0] ||
+        'Invalid token or expired token'
+      alert(errorMessage)
     }
   }
 

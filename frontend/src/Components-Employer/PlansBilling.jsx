@@ -768,6 +768,7 @@ export const PlansBilling = () => {
         try {
             await api.patch(`/payment-methods/${id}/`, { is_default: true });
             await fetchRealData();
+            alert('Card successfully set as default!');
         } catch (error) {
             console.error('Failed to set default:', error);
             alert('Failed to set default card. Please try again.');

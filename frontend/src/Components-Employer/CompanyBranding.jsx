@@ -1,9 +1,75 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import api from "../api/axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./CompanyBranding.css";
+import calenderCard from "../assets/calender_card.png";
 
 const PRESET_COLORS = ["#2563EB", "#7C3AED", "#059669", "#DC2626", "#EA580C", "#0F172A"];
+
+const DateInput = ({
+  name,
+  value,
+  onChange,
+  onBlur,
+  min,
+  max,
+  className = "",
+  error = false,
+  disabled = false,
+}) => {
+  const inputRef = useRef(null);
+
+  // Force-opens the native date picker on Safari 16+, Chrome 99+, Edge 99+, Firefox 101+
+  const openPicker = () => {
+    if (disabled) return;
+    const el = inputRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") {
+      try {
+        el.showPicker();
+      } catch {
+        // Safari can throw if not triggered by a trusted gesture — ignore.
+      }
+    } else {
+      el.focus();
+    }
+  };
+
+  return (
+    <div className="date-input-wrapper">
+      <input
+        ref={inputRef}
+        type="date"
+        name={name}
+        value={value || ""}
+        min={min}
+        max={max}
+        disabled={disabled}
+        onChange={onChange}
+        onBlur={onBlur}
+        className={`${error ? "error-msg-border" : ""} ${className}`}
+      />
+
+      {/* Custom calendar icon — visible on ALL browsers including Safari */}
+      <button
+        type="button"
+        className="date-picker-icon-btn"
+        onClick={openPicker}
+        aria-label="Open calendar"
+        tabIndex={-1}
+        disabled={disabled}
+        title="Open calendar"
+      >
+        <img
+          src={calenderCard}
+          alt="calendar"
+          loading="eager"
+          draggable={false}
+        />
+      </button>
+    </div>
+  );
+};
 
 export default function CompanyBranding() {
   const location = useLocation();
@@ -479,8 +545,8 @@ export default function CompanyBranding() {
                   </div>
                   <div className="cb-field">
                     <label className="cb-label">End Date</label>
-                    <input
-                      type="date"
+                    <DateInput
+                      name="end_date"
                       value={newAnnouncement.end_date}
                       min={newAnnouncement.start_date || new Date().toISOString().split("T")[0]}
                       onChange={handleEndDateChange}

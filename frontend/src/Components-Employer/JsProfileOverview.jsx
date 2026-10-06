@@ -108,6 +108,10 @@ export const JsProfileOverview = () => {
     );
   }
 
+  const highestEdu = (currentUser.educations || []).find(
+    (edu) => edu.qualification_level === currentUser.highest_qualification
+  );
+
   return (
     <>
       <EHeader />
@@ -192,9 +196,9 @@ export const JsProfileOverview = () => {
               <div className="dropdown-content">
                 <div className="info-block">
                   <div className="block-header"><h4>Education</h4></div>
-                  <p>
+                                   <p>
                     {currentUser.highest_qualification
-                      ? currentUser.highest_qualification
+                      ? `${currentUser.highest_qualification}${highestEdu?.status ? ` (${highestEdu.status})` : ""}`
                       : "No education details provided"}
                   </p>
                 </div>

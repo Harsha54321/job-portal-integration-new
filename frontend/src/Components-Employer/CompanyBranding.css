@@ -460,3 +460,103 @@
 .cb-highlighted-row td:first-child {
   border-left: 4px solid #FFD700;
 }
+
+/* ================================================================
+   CUSTOM DATE INPUT with calendar icon — works on Windows + macOS Safari
+   ================================================================ */
+
+.date-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Matches the .cb-input style so the picker looks consistent */
+.date-input-wrapper input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  padding: 10px 2.4rem 10px 12px;   /* right padding for the icon */
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  background-color: #fff;
+  color: #1e293b;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.date-input-wrapper input[type="date"]:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.date-input-wrapper input[type="date"]:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+/* Custom clickable calendar icon — sits on the right edge */
+.date-picker-icon-btn {
+  position: absolute;
+  right: 8px;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.date-picker-icon-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.date-picker-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.date-picker-icon-btn img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Hide the native WebKit calendar icon (Chrome/Edge) so only ours shows */
+.date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 40px;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Safari: keep the date text vertically centered */
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit {
+  display: inline-block;
+  padding: 0;
+}
+
+/* Empty-state placeholder color */
+.date-input-wrapper input[type="date"]:invalid::-webkit-datetime-edit {
+  color: #94a3b8;
+}

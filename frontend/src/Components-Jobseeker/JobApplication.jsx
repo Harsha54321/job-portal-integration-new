@@ -13,6 +13,73 @@ import api from "../api/axios";
 import { useJobs } from "../JobContext";
 import application_success from "../assets/application_success.png";
 import { LocationDisplay } from './LocationDisplay';
+import calenderCard from "../assets/calender_card.png";
+
+
+const DateInput = ({
+  name,
+  value,
+  onChange,
+  onBlur,
+  min,
+  max,
+  className = "",
+  error = false,
+  disabled = false,
+}) => {
+  const inputRef = useRef(null);
+
+  // Force-opens the native date picker on Safari 16+, Chrome 99+, Edge 99+, Firefox 101+
+  const openPicker = () => {
+    if (disabled) return;
+    const el = inputRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") {
+      try {
+        el.showPicker();
+      } catch {
+        // Safari can throw if not triggered by a trusted gesture — ignore.
+      }
+    } else {
+      el.focus();
+    }
+  };
+
+  return (
+    <div className="date-input-wrapper">
+      <input
+        ref={inputRef}
+        type="date"
+        name={name}
+        value={value || ""}
+        min={min}
+        max={max}
+        disabled={disabled}
+        onChange={onChange}
+        onBlur={onBlur}
+        className={`${error ? "error-border" : ""} ${className}`}
+      />
+
+      {/* Custom calendar icon — visible on ALL browsers including Safari */}
+      <button
+        type="button"
+        className="date-picker-icon-btn"
+        onClick={openPicker}
+        aria-label="Open calendar"
+        tabIndex={-1}
+        disabled={disabled}
+        title="Open calendar"
+      >
+        <img
+          src={calenderCard}
+          alt="calendar"
+          loading="eager"
+          draggable={false}
+        />
+      </button>
+    </div>
+  );
+};
 
 export const JobApplication = () => {
 
@@ -513,14 +580,14 @@ export const JobApplication = () => {
             <div className="apply-form-row">
               <div className="apply-form-label">Date of Birth</div>
               <div className="apply-form-input">
-                <input
-                  type="date"
-                  className={`apply-form-text-input ${errors.dob ? "error-border" : ""}`}
+                <DateInput
                   name="dob"
-                  disabled={editableField !== "dob" || isSubmitting}
                   value={formData.dob}
                   max={new Date().toISOString().split("T")[0]}
                   onChange={handleInputChange}
+                  disabled={editableField !== "dob" || isSubmitting}
+                  error={!!errors.dob}
+                  className="apply-form-text-input"
                 />
                 {errors.dob && <small className="error-text">{errors.dob}</small>}
               </div>
