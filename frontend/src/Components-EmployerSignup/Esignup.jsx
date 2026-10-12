@@ -46,6 +46,20 @@ export const Esignup = () => {
     return () => clearInterval(interval);
   }, [timer, showEmailOtp, showMobileOtp]);
 
+  // --- CLEAR EMAIL ERROR WHEN EMAIL GETS VERIFIED ---
+  useEffect(() => {
+    if (isEmailVerified) {
+      setErrors((prev) => ({ ...prev, email: "" }));
+    }
+  }, [isEmailVerified]);
+
+  // --- CLEAR PHONE ERROR WHEN MOBILE GETS VERIFIED ---
+  useEffect(() => {
+    if (isMobileVerified) {
+      setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+  }, [isMobileVerified]);
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -121,6 +135,32 @@ export const Esignup = () => {
     setErrors({ ...errors, [name]: "" })
     setBackendError("")
   }
+
+  // --- ENTER KEY NAVIGATION ---
+  // Email field: Enter triggers Verify (if unverified) OR moves to Password (if verified)
+  // Phone field: Enter triggers Verify (if unverified) OR submits form (if verified)
+  const handleEnterKey = (e, fieldName) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+
+    if (fieldName === "email") {
+      if (regSettings.emailVerification && !isEmailVerified && formValues.email.length > 0) {
+        // Trigger Email Verify button
+        sendEmailOtp(e);
+      } else {
+        // Already verified → focus next field (Password)
+        document.querySelector('input[name="password"]')?.focus();
+      }
+    } else if (fieldName === "phone") {
+      if (regSettings.mobileVerification && !isMobileVerified && formValues.phone.length === 10) {
+        // Trigger Mobile Verify button
+        sendMobileOtp(e);
+      } else if ((!regSettings.mobileVerification || isMobileVerified)) {
+        // Already verified (or verification not required) → submit form
+        handleSubmit(e);
+      }
+    }
+  };
 
   // SEND EMAIL OTP 05/06/26
   // const sendEmailOtp = async () => {
@@ -209,6 +249,7 @@ export const Esignup = () => {
 
       if (response.status === 200 || response.status === 201) {
         setIsEmailVerified(true);
+        setErrors((prev) => ({ ...prev, email: "" }));
 
         setTimeout(() => {
           setShowEmailOtp(false);
@@ -295,6 +336,7 @@ export const Esignup = () => {
       // For demo purposes, accept 123456 as valid OTP
       if (code === "123456") {
         setIsMobileVerified(true);
+        setErrors((prev) => ({ ...prev, phone: "" }));
 
         setTimeout(() => {
           setShowMobileOtp(false);
@@ -322,7 +364,7 @@ export const Esignup = () => {
     const regexofNumber = /^(?=.*\d).+$/
     const regexofSpecialChar = /^(?=.*[!@#$\%^&*]).+$/
     const regexofLowercase = /^(?=.*[a-z]).+$/
-    const regexofUserName = /^(?=[a-zA-Z])[a-zA-Z\s]+$/  // ← FIXED: Allows spaces
+    const regexofUserName = /^(?=[a-zA-Z])[a-zA-Z0-9._@+-]*$/
     const regexofMobile = /^[6-9]\d{9}$/
 
     if (!formValues.companyname.trim()) {
@@ -340,7 +382,7 @@ export const Esignup = () => {
     } else if (formValues.username.length > 20) {
       newErrors.username = "Username should not exceed 20 characters"
     } else if (!regexofUserName.test(formValues.username)) {
-      newErrors.username = "Invalid username Format"
+      newErrors.username = "Invalid username Format. Only letters, numbers, and @/./+/-/_ are allowed."
     }
 
     if (!formValues.email.trim()) {
@@ -525,8 +567,17 @@ export const Esignup = () => {
       }
     } catch (err) {
       console.error("Registration error:", err);
-      const errorMessage = err.response?.data?.error || "something went wrong"
-      alert(errorMessage);
+      
+      const apiErrors = err.response?.data;
+      const errorMessage = apiErrors?.error || "something went wrong";
+      
+      // If it's a field-specific error, show it under the field
+      if (apiErrors?.field) {
+        setErrors((prev) => ({ ...prev, [apiErrors.field]: errorMessage }));
+      } else {
+        setBackendError(errorMessage);
+        alert(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -733,27 +784,19 @@ export const Esignup = () => {
               name="email"
               value={formValues.email}
               onChange={handleForm}
+              onKeyDown={(e) => handleEnterKey(e, "email")}
               placeholder="Enter Company Email"
               className={errors.email ? "input-error" : ""}
               disabled={(regSettings.emailVerification && isEmailVerified) || isLoading}
             />
             {regSettings.emailVerification && !isEmailVerified && formValues.email.length > 0 && (
-              // <button 05/06/26
-              //   type="button"
-              //   className="jsignup-small-verify-btn"
-              //   onClick={sendEmailOtp}
-              //   disabled={isLoading}
-              // >
-
               <button
                 type="button"
                 className="jsignup-small-verify-btn"
                 onClick={(e) => sendEmailOtp(e)}
-                disabled={isEmailOtpSending || isEmailVerified}  // ← CHANGE THIS
+                disabled={isEmailOtpSending || isEmailVerified}
               >
-
                 {isEmailOtpSending ? "Sending..." : "Verify"}
-
               </button>
             )}
             {regSettings.emailVerification && isEmailVerified && (<span className="verified-badge">✓ Verified</span>)}
@@ -807,26 +850,19 @@ export const Esignup = () => {
                 setFormValues({ ...formValues, phone: validatedValue.slice(0, 10) });
                 setErrors({ ...errors, phone: "" });
               }}
+              onKeyDown={(e) => handleEnterKey(e, "phone")}
               placeholder="Enter mobile number"
               className={errors.phone ? "input-error" : ""}
               disabled={(regSettings.mobileVerification && isMobileVerified) || isLoading}
             />
 
             {regSettings.mobileVerification && !isMobileVerified && formValues.phone.length === 10 && (
-              // <button 05/06/26
-              //   type="button"
-              //   className="jsignup-small-verify-btn"
-              //   onClick={sendMobileOtp}
-              //   disabled={isLoading}
-              // >
-
               <button
                 type="button"
                 className="jsignup-small-verify-btn"
                 onClick={(e) => sendMobileOtp(e)}
-                disabled={isMobileOtpSending || isMobileVerified}  // ← CHANGE THIS
+                disabled={isMobileOtpSending || isMobileVerified}
               >
-
                 {isMobileOtpSending ? "Sending..." : "Verify"}
               </button>
             )}
@@ -840,11 +876,6 @@ export const Esignup = () => {
           <button
             type="submit"
             className="j-sign-up-submit"
-            // disabled={
-            //   (regSettings.emailVerification && !isEmailVerified) ||
-            //   (regSettings.mobileVerification && !isMobileVerified) ||
-            //   isLoading
-            // }
             disabled={isLoading}
           >
             {isLoading ? "Creating Account..." : "Create Account"}

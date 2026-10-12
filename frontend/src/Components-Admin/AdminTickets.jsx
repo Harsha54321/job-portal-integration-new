@@ -198,7 +198,7 @@ export const AdminTickets = () => {
                             <span className="search-icon"><img src={Searchicon} alt="Search" /></span>
                             <input
                                 type="text"
-                                placeholder="Search by subject, user, priority, status or category"
+                                placeholder="Search by Id, subject, user, priority, status or category"
                                 value={search}
                                 onChange={(e) => {
                                     setSearch(e.target.value);

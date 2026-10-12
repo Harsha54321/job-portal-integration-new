@@ -280,39 +280,6 @@ const FilterableDropdown = ({ options, selectedValue, onSelect, placeholder, cla
             style={{ position: 'relative', width: '100%' }}
             onKeyDown={handleKeyDown}>
 
-
-            {/* <div
-                // className="jobpost-dropdown-trigger"
-                // onClick={() => setIsOpen(!isOpen)}
-                ref={triggerRef}
-
-                className="jobpost-dropdown-trigger"
-                role="button"
-                tabIndex={0}
-                aria-haspopup="listbox"
-                aria-expanded={isOpen}
-                onClick={() => setIsOpen(!isOpen)}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setIsOpen(!isOpen);
-                    } else if (e.key === "Escape") {
-                        closeDropdown();
-                    } else if (e.key === "ArrowDown") {
-                        e.preventDefault();
-                        setIsOpen(true);
-                    }
-                }}
-                onBlur={(e) => {
-                    if (!e.currentTarget.parentElement.contains(e.relatedTarget)) {
-                        closeDropdown();
-                    }
-                }}
-                style={{ height: '44px', border: '1px solid #E5E7EB', borderRadius: '6px', padding: '0 16px', display: 'flex', alignItems: 'center', cursor: 'pointer', background: '#fff' }}
-            >
-                {selectedValue || placeholder}
-                <i className={`fas fa-angle-down jobpost-arrow ${isOpen ? 'open' : ''}`} style={{ marginLeft: 'auto' }}></i>
-            </div> */}
             <div
                 ref={triggerRef}
                 className={`jobpost-dropdown-trigger ${className}`}
@@ -389,7 +356,6 @@ const FilterableDropdown = ({ options, selectedValue, onSelect, placeholder, cla
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                         maxHeight: '250px',
                         overflow: 'hidden',
-                        // display: 'flex',
                         flexDirection: 'column'
                     }}
                 >
@@ -465,49 +431,6 @@ const FilterableDropdown = ({ options, selectedValue, onSelect, placeholder, cla
                 </div>
             )}
         </div>
-        //         <div className="jobpost-dropdown-panel" onWheel={(e) => e.stopPropagation()} style={{ display: 'block', position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 1000, background: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        //             <input
-        //                 type="text"
-        //                 className="jobpost-input"
-        //                 onWheel={(e) => e.stopPropagation()}
-        //                 placeholder="Search..."
-        //                 autoFocus
-        //                 value={searchTerm}
-        //                 onChange={(e) => setSearchTerm(e.target.value)}
-        //                 style={{ marginBottom: '10px', height: '36px' }}
-        //             />
-        //             <div className="jobpost-options-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '150px', overflowY: 'auto' }}>
-        //                 {filteredOptions.length > 0 ? (
-        //                     filteredOptions.map(opt => (
-        //                         // <div
-        //                         //     key={opt}
-        //                         //     className="jobpost-option-item"
-        //                         //     onClick={() => { onSelect(opt); setIsOpen(false); setSearchTerm(""); }}
-        //                         //     style={{ padding: '8px', cursor: 'pointer' }}
-        //                         // >
-        //                         <div
-        //                             className="jobpost-option-item"
-        //                             role="option"
-        //                             aria-selected={opt === selectedValue}
-        //                             tabIndex={0}
-        //                             onClick={() => handleOptionSelect(opt)}
-        //                             onKeyDown={(e) => {
-        //                                 if (e.key === "Enter" || e.key === " ") {
-        //                                     e.preventDefault();
-        //                                     handleOptionSelect(opt);
-        //                                 }
-        //                             }}
-        //                         >
-        //                             {opt}
-        //                         </div>
-        //                     ))
-        //                 ) : (
-        //                     <div style={{ padding: '8px', color: '#999' }}>No results found</div>
-        //                 )}
-        //             </div>
-        //         </div>
-        //     )}
-        // </div>
     );
 };
 
@@ -758,7 +681,6 @@ const Profile = ({
     const [imageError, setImageError] = useState("");
     const [imageLoading, setImageLoading] = useState(false);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-    // const [videoFile, setVideoFile] = useState(null);
     const [videoError, setVideoError] = useState("");
     // --- NEW: Video & Recording States ---
     const [isRecordingMode, setIsRecordingMode] = useState(false);
@@ -899,28 +821,6 @@ const Profile = ({
         });
     };
 
-    // const handlePhotoChange = (e) => {
-    //     const file = e.target.files[0];
-    //     if (!file) return;
-
-    //     setPhoto(file);
-    //     setProfilePhoto(file);
-    //     setPhotoPreview(URL.createObjectURL(file));
-
-    //     // Clear remove flag if it was set
-    //     if (setRemovePhotoFlag) {
-    //         setRemovePhotoFlag(false);
-    //     }
-
-    //     // Update parent to clear existing photo reference
-    //     onChange({
-    //         target: {
-    //             name: "profile_photo",
-    //             value: file
-    //         }
-    //     });
-    // };
-
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -1048,11 +948,6 @@ const Profile = ({
             newErrors.nationality = "*Nationality is required";
         else if (!AlphaOnlyreg.test(data.nationality))
             newErrors.nationality = "*Please use letters only";
-
-        // // --- NEW: Mandatory Video Validation ---
-        // if (!videoFile && !data.intro_video) {
-        //     newErrors.videoFile = "*Introduction video is required to continue";
-        // }
 
         setErrors(newErrors);
 
@@ -2080,8 +1975,6 @@ const ResumeSection = ({
             return;
         }
 
-        // if (name==="portfolio_link"&& value.length>50) return;
-
         setResumeFile(file);
         setExistingResume(null); // Clear existing resume when new file is uploaded
         setErrors((prev) => ({ ...prev, resumeFile: "" }));
@@ -2589,19 +2482,6 @@ const EducationDetails = ({
         "POST-GRADUATE": "P.G",
     };
 
-
-
-    // const getMinYearsForDegree = (degreeName) => {
-    //     if (!degreeName) return 1;
-    //     const normalized = degreeName.trim().toUpperCase().replace(/\s+/g, "");
-    //     return degreeMinYears[normalized] || 1;
-    // };
-
-    // const isDegreeRecognized = (degreeName) => {
-    //     if (!degreeName) return false;
-    //     const normalized = degreeName.trim().toUpperCase().replace(/\s+/g, "");
-    //     return Object.prototype.hasOwnProperty.call(degreeMinYears, normalized);
-    // };
     const resolveDegreeKey = (degreeName) => {
         if (!degreeName) return null;
         const normalized = degreeName.trim().toUpperCase().replace(/\s+/g, "");
@@ -2628,8 +2508,6 @@ const EducationDetails = ({
     const toggleSection = (id) => setOpenSection(openSection === id ? null : id);
 
     const [errors, setErrors] = useState({});
-
-    // In EducationDetails component, update the handleInputChange function:
 
     const handleInputChange = (e, type, id = null) => {
         const { name, value } = e.target;
@@ -2864,21 +2742,6 @@ const EducationDetails = ({
         return trimmed;
     };
 
-    // const handleBlur = (e, type, id = null) => {
-    //     const { name, value } = e.target;
-
-    //     if (name === "percentage" && value !== "" && !isNaN(value)) {
-    //         // Convert to float and fix to 2 decimal places
-    //         const formatted = parseFloat(value).toFixed(2);
-
-    //         // Create a synthetic event to update the parent
-    //         const syntheticEvent = { target: { name, value: formatted } };
-
-    //         if (type === 'sslc') onUpdateSSLC(syntheticEvent);
-    //         else if (type === 'hsc') onUpdateHSC(syntheticEvent);
-    //         else if (type === 'grad') onUpdateGrad(id, syntheticEvent);
-    //     }
-    // };
     const handleBlur = (e, type, id = null) => {
         const { name, value } = e.target;
 
@@ -2954,20 +2817,7 @@ const EducationDetails = ({
         }
 
         if (!data.hsc.location?.trim()) newErrors.hsclocation = "*Location is required";
-        // if (!data.hsc.year) newErrors.hscyear = "*Year of completion is required";
-        // else if (parseInt(data.hsc.year) > currentYear) newErrors.hscyear = "*Cannot be in future";
-        // else if (data.sslc.year && parseInt(data.hsc.year) <= parseInt(data.sslc.year))
-        //     newErrors.hscyear = "*Must be after SSLC";
 
-        // data.graduations.forEach((grad) => {
-
-        // else if (data.hsc.year && parseInt(data.hsc.year) <= parseInt(data.sslc.year))
-        //     newErrors.hscyear = "*Must be after SSLC";
-
-        // const requiresGraduation = ["Under-Graduation", "Post-Graduation", "Doctorate"].includes(data.highestQual);
-        // if (requiresGraduation && data.graduations.length === 0) {
-        //     newErrors.graduationRequired = "*Please add your graduation details";
-        // }
         if (!data.hsc.year) {
             newErrors.hscyear = "*Year of completion is required";
         } else {
@@ -2992,19 +2842,10 @@ const EducationDetails = ({
         }
 
         const requiredGradCount = {
-            "Under-Graduation": 1,
+            "Graduation": 1,
             "Post-Graduation": 2,
             "Doctorate": 3,
         }[data.highestQual] || 0;
-
-        // if (requiredGradCount > 0 && data.graduations.length < requiredGradCount) {
-        //     newErrors.graduationRequired =
-        //         data.highestQual === "Post-Graduation"
-        //             ? "*Please add both your Under-Graduation and Post-Graduation details"
-        //             : data.highestQual === "Doctorate"
-        //             ? "*Please add your Under-Graduation, Post-Graduation, and Doctorate details"
-        //             : "*Please add your graduation details";
-        // }
 
         if (requiredGradCount > 0 && data.graduations.length < requiredGradCount) {
             newErrors.graduationRequired =
@@ -3014,8 +2855,6 @@ const EducationDetails = ({
                         ? "*Under-Graduation, Post-Graduation, and Doctorate details are required"
                         : "*Graduation details are required";
         }
-
-
 
         data.graduations.forEach((grad, index) => {
             if (!grad.degree || grad.degree.trim() === "") {
@@ -3035,14 +2874,6 @@ const EducationDetails = ({
             } else if (!isValidInstitution(grad.college)) {
                 newErrors[`gradcollege${grad.id}`] = "Invalid institution name";
             }
-            // if (!grad.percentage || grad.percentage.trim() === "") {
-            //     newErrors[`gradpercentage${grad.id}`] = "Percentage is required";
-            // } else if (!percentageReg.test(grad.percentage)) {
-            //     newErrors[`gradpercentage${grad.id}`] = "Invalid (e.g. 85.50)";
-            // }
-            // else if (Number(grad.percentage) > 100) {
-            //     newErrors[`gradpercentage${grad.id}`] = "Percentage cannot exceed 100";
-            // }
             if (!grad.percentage || parseFloat(grad.percentage) <= 0) {
                 newErrors[`gradpercentage${grad.id}`] = "Percentage must be greater than 0";
             } else if (!percentageReg.test(grad.percentage)) {
@@ -3054,12 +2885,6 @@ const EducationDetails = ({
             const startDate = grad.startYear ? new Date(grad.startYear) : null;
             const endDate = grad.endYear ? new Date(grad.endYear) : null;
 
-            // if (!grad.startYear) {
-            //     newErrors[`gradstartYear${grad.id}`] = "*Starting year is required";
-            // }
-            // else if (startDate > today) {
-            //     newErrors[`gradstartYear${grad.id}`] = "*Starting year cannot be in future";
-            // }
             // Determine what date this entry must come after
             let priorDate = null;
             let priorLabel = "";
@@ -3102,31 +2927,6 @@ const EducationDetails = ({
             else if (isCompleted && endDate > today) {
                 newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be in future";
             }
-            // else if (startDate && endDate < startDate) {
-            //     newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be before starting year";
-            // }
-            // else if (
-            //     startDate &&
-            //     endDate &&
-            //     endDate.getFullYear() - startDate.getFullYear() < 1
-            // ) {
-            //     newErrors[`gradendYear${grad.id}`] = "*Course duration must be at least 1 year";
-            // }
-            // else if (startDate && endDate < startDate) {
-            //     newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be before starting year";
-            // }
-            // else if (startDate && endDate) {
-            //     const totalMonths =
-            //         (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-            //         (endDate.getMonth() - startDate.getMonth());
-
-            //     const minYears = getMinYearsForDegree(grad.degree);
-
-            //     if (totalMonths < minYears * 12) {
-            //         newErrors[`gradendYear${grad.id}`] =
-            //             `*${grad.degree || "This degree"} typically requires at least ${minYears} year(s). Please check your dates.`;
-            //     }
-            // }
             else if (startDate && endDate && endDate < startDate) {
                 newErrors[`gradendYear${grad.id}`] = "*Ending year cannot be before starting year";
             }
@@ -3142,18 +2942,6 @@ const EducationDetails = ({
             if (!grad.dept) {
                 newErrors[`graddepartment${grad.id}`] = "department is required";
             }
-
-            // else if (grad.startYear) {
-            //     const start = new Date(grad.startYear);
-            //     const end = new Date(grad.endYear);
-
-            //     if (end < start) {
-            //         newErrors[`gradendYear${grad.id}`] = "Ending year cannot be before starting year";
-            //     }
-            //     else if (end.getFullYear() - start.getFullYear() < 1) {
-            //         newErrors[`gradendYear${grad.id}`] = "Course duration must be at least 1 year";
-            //     }
-            // } #delete this block
         });
 
         setErrors(newErrors);
@@ -3182,40 +2970,12 @@ const EducationDetails = ({
                 newErrors.hscyear
             ) {
                 setOpenSection("hsc");
-                // } else {
-                //     const firstGradErrorKey = Object.keys(newErrors).find((key) =>
-                //         key.startsWith("grad")
-                //     );
-
-                //     if (firstGradErrorKey && data.graduations.length > 0) {
-                //         setOpenSection(`grad-${data.graduations[0].id}`);
-                //     }
-                // }
-                //             } else {
-                //     const gradWithError = data.graduations.find((g) =>
-                //         Object.keys(newErrors).some(
-                //             (key) => key.startsWith("grad") && key.endsWith(String(g.id))
-                //         )
-                //     );
-
-                //     if (gradWithError) {
-                //         setOpenSection(`grad-${gradWithError.id}`);
-                //     }
-                // }
-
             } else {
                 const gradWithError = data.graduations.find((g) =>
                     Object.keys(newErrors).some(
                         (key) => key.startsWith("grad") && key.endsWith(String(g.id))
                     )
                 );
-
-                //     if (gradWithError) {
-                //         setOpenSection(`grad-${gradWithError.id}`);
-                //     } else if (newErrors.graduationRequired && data.graduations.length > 0) {
-                //         setOpenSection(`grad-${data.graduations[0].id}`);
-                //     }
-                // }
 
                 if (gradWithError) {
                     setOpenSection(`grad-${gradWithError.id}`);
@@ -3243,7 +3003,7 @@ const EducationDetails = ({
             <div className="form-group full-width" style={{ marginBottom: "1.5rem" }}>
                 <label>Highest Qualification?</label>
                 <SimpleDropdown
-                    options={["Diploma", "Under-Graduation", "Post-Graduation", "Doctorate"]}
+                    options={["Diploma", "Graduation", "Post-Graduation", "Doctorate"]}
                     selectedValue={data.highestQual && data.highestQual !== "Select" ? data.highestQual : ""}
                     onSelect={(val) => {
                         onHighestQualChange({ target: { name: "highestQual", value: val } });
@@ -3465,8 +3225,6 @@ const EducationDetails = ({
                             <div
                                 style={{ display: "flex", alignItems: "center", gap: "10px" }}
                             >
-                                {/* <span>Graduation {index > 0 ? index + 1 : ""}</span> */}
-
                                 <span>{getGradLabel(index, data.graduations.length, data.highestQual)}</span>
                             </div>
                             <span className="accordion-icon">
@@ -3516,10 +3274,6 @@ const EducationDetails = ({
                                             error={errors[`graddegree${grad.id}`]}
                                             placeholder="Select or type degree"
                                         />
-                                        {/* REMOVE this duplicate error message */}
-                                        {/* {errors[`graddegree${grad.id}`] && (
-        <span className="error-message">{errors[`graddegree${grad.id}`]}</span>
-    )} */}
                                     </div>
                                     <div className="form-group">
                                         <label>Degree Status*</label>
@@ -3674,7 +3428,7 @@ const WorkExperience = ({
     onNext,
 }) => {
     const [errors, setErrors] = useState({});
-    // ✅ Get experienceType from parent via data prop
+    // Get experienceType from parent via data prop
     // data.status is coming from allData.experience.status which is synced with currentDetails.experienceType
     const isFresher = data.status === "Fresher";
     const AlphaOnlyreg = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
@@ -3683,15 +3437,27 @@ const WorkExperience = ({
         if (!dateValue) {
             const syntheticEvent = { target: { name: fieldName, value: '' } };
             onUpdateEntry(entryId, syntheticEvent);
+
+            const errorKey = `${fieldName}_${entryId}`;
+            if (errors[errorKey]) {
+                setErrors(prev => ({ ...prev, [errorKey]: "" }));
+            }
             return;
         }
+
         const [year, month, day] = dateValue.split('-');
         if (year && year.length !== 4) {
             alert("Please enter a valid year with 4 digits (e.g., 2024)");
             return;
         }
+
         const syntheticEvent = { target: { name: fieldName, value: dateValue } };
         onUpdateEntry(entryId, syntheticEvent);
+
+        const errorKey = `${fieldName}_${entryId}`;
+        if (errors[errorKey]) {
+            setErrors(prev => ({ ...prev, [errorKey]: "" }));
+        }
     };
 
     const handleEntryChange = (id, e) => {
@@ -3841,7 +3607,6 @@ const WorkExperience = ({
                                 </button>
                             </div>
                             <div className="form-grid">
-                                {/* ... all entry fields remain same ... */}
                                 <div className="form-group">
                                     <label>Job Title*</label>
                                     <input
@@ -4029,12 +3794,6 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
             return;
         }
 
-
-        // if (!isValidValue(value)) {
-        //     setError("Enter a valid skill (avoid special character misuse)");
-        //     return;
-        // }
-
         if (editIndex !== null) onUpdate(editIndex, value);
         else onAdd(value);
 
@@ -4058,12 +3817,6 @@ const KeySkills = ({ skills, onAdd, onUpdate, onDelete, onReset, onNext }) => {
             onNext();
         }
     };
-
-    // const handleReset = () => {
-    //     if (onReset) {
-    //         onReset("skills");
-    //     }
-    // };
 
     return (
         <form className="content-card" onSubmit={handleContinue}>
@@ -4317,7 +4070,10 @@ const LanguagesKnown = ({
                     <FilterableDropdown
                         options={languageOptions.filter(opt => !languages.some(l => l.name === opt))}
                         selectedValue={currentLang.name}
-                        onSelect={(val) => setCurrentLang({ ...currentLang, name: val })}
+                        onSelect={(val) => {
+                            setCurrentLang({ ...currentLang, name: val });
+                            setError("");
+                        }}
                         placeholder="Select Language"
                     />
                 </div>
@@ -4326,7 +4082,10 @@ const LanguagesKnown = ({
                     <SimpleDropdown
                         options={["Beginner", "Intermediate", "Fluent", "Native"]}
                         selectedValue={currentLang.proficiency && currentLang.proficiency !== "Select" ? currentLang.proficiency : ""}
-                        onSelect={(val) => setCurrentLang({ ...currentLang, proficiency: val })}
+                        onSelect={(val) => {
+                            setCurrentLang({ ...currentLang, proficiency: val });
+                            setError("");
+                        }}
                         placeholder="Select"
                     />
                 </div>
@@ -4346,7 +4105,7 @@ const Certifications = ({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editIndex, setEditIndex] = useState(null);
     const [currentCert, setCurrentCert] = useState({
-        id: null,  // Add id field
+        id: null,
         name: "",
         file: null,
         existingFile: null
@@ -4390,7 +4149,7 @@ const Certifications = ({
         setEditIndex(index);
         setErrors({});
         setCurrentCert({
-            id: certToEdit.id || null,  // Make sure this is set
+            id: certToEdit.id || null,
             name: certToEdit.name,
             file: null,
             existingFile: certToEdit.existingFile || certToEdit.file || null
@@ -4405,11 +4164,9 @@ const Certifications = ({
     };
 
     const handlePreview = () => {
-        // 1. Identify which file data to use
         const fileToPreview = currentCert.file || currentCert.existingFile;
         if (!fileToPreview) return;
 
-        // 2. Handle newly uploaded File objects
         if (fileToPreview instanceof File) {
             const url = URL.createObjectURL(fileToPreview);
             if (fileToPreview.type === "application/pdf") {
@@ -4419,13 +4176,10 @@ const Certifications = ({
                 setPreviewType("image");
             }
         }
-        // 3. Handle existing file URLs (Strings)
         else if (typeof fileToPreview === 'string') {
-            // If it's a PDF URL
             if (fileToPreview.toLowerCase().endsWith('.pdf')) {
                 window.open(fileToPreview, "_blank");
             }
-            // If it's an image URL
             else {
                 setPreviewUrl(fileToPreview);
                 setPreviewType("image");
@@ -4441,7 +4195,6 @@ const Certifications = ({
                 existingFile: currentCert.existingFile
             };
 
-            // IMPORTANT: Preserve ID when editing
             if (currentCert.id) {
                 certData.id = currentCert.id;
                 console.log(`Saving certification with ID: ${currentCert.id}`);
@@ -4776,7 +4529,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                                 name="ready"
                                 value="Yes"
                                 checked={data.ready === "Yes"}
-                                onChange={onChange}
+                                onChange={handleLocalChange}
                             />
                             Yes
                         </label>
@@ -4787,7 +4540,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                                 name="ready"
                                 value="No"
                                 checked={data.ready === "No"}
-                                onChange={onChange}
+                                onChange={handleLocalChange}
                             />
                             No
                         </label>
@@ -4821,7 +4574,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                                 name="relocate"
                                 value="Yes"
                                 checked={data.relocate === "Yes"}
-                                onChange={onChange}
+                                onChange={handleLocalChange}
                             />
                             Yes
                         </label>
@@ -4832,7 +4585,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                                 name="relocate"
                                 value="No"
                                 checked={data.relocate === "No"}
-                                onChange={onChange}
+                                onChange={handleLocalChange}
                             />
                             No
                         </label>
@@ -4954,7 +4707,7 @@ export const MyProfile = () => {
 
                         if (hasDoctorate) return "Doctorate";
                         if (hasPostGraduation) return "Post-Graduation";
-                        if (hasGraduation) return "Under-Graduation";
+                        if (hasGraduation) return "Graduation";
 
                         const hscEntry = res.data.educations?.find(e => e.qualification_level === "HSC");
                         if (hscEntry && (hscEntry.post_10th_study === "Diploma" || hscEntry.post_10th_study === "Intermediate")) {
@@ -5066,7 +4819,6 @@ export const MyProfile = () => {
                     name: cert.name,
                     file: null,
                     existingFile: cert.certificate_file || cert.certificate_url,
-                    // url: cert.certificate_url || cert.certificate_file,
                 })),
 
                 preferences: {
@@ -5212,21 +4964,10 @@ export const MyProfile = () => {
         }
     }, [allData.currentDetails.experienceType, allData.experience.entries.length]);
 
-    // const handleHighestQualChange = (e) => {
-    //     const { value } = e.target;
-    //     setAllData((prev) => ({
-    //         ...prev,
-    //         education: {
-    //             ...prev.education,
-    //             highestQual: value,
-    //         },
-    //     }));
-    // };
-
     const handleHighestQualChange = (e) => {
         const { value } = e.target;
         setAllData((prev) => {
-            const needsGrad = ["Under-Graduation", "Post-Graduation", "Doctorate"].includes(value);
+            const needsGrad = ["Graduation", "Post-Graduation", "Doctorate"].includes(value);
             const shouldAddEntry = needsGrad && prev.education.graduations.length === 0;
 
             return {
@@ -5387,12 +5128,12 @@ export const MyProfile = () => {
 
             value = value.trim();
 
-            // ❌ skip invalid
+            // skip invalid
             if (!isValid(value)) return;
 
             const key = normalize(value);
 
-            // ✅ remove duplicates
+            // remove duplicates
             if (!map.has(key)) {
                 map.set(key, isObject ? { ...item, name: format(value) } : format(value));
             }
@@ -5426,7 +5167,7 @@ export const MyProfile = () => {
                 return prev;
             }
 
-            // 🔥 replace normalized value
+            // replace normalized value
             const newItem =
                 typeof item === "string"
                     ? value
@@ -5545,11 +5286,7 @@ export const MyProfile = () => {
 
         let backendHighestQual = null;
         if (allData.education.highestQual !== "Select") {
-            if (allData.education.highestQual === "Under-Graduation") {
-                backendHighestQual = "Graduation";
-            } else {
-                backendHighestQual = allData.education.highestQual;
-            }
+            backendHighestQual = allData.education.highestQual;
         }
 
         const payload = {
@@ -5562,7 +5299,6 @@ export const MyProfile = () => {
                 ? { employment_status: allData.currentDetails.experienceType }
                 : {}),
             employment_status: allData.currentDetails.experienceType,
-            // ... rest of your payload fields ...
 
             current_job_title: allData.currentDetails.jobTitle,
             current_company: allData.currentDetails.company,
@@ -5626,7 +5362,7 @@ export const MyProfile = () => {
 
                         if (highestQual === "Diploma") {
                             qualificationLevel = "Diploma";
-                        } else if (highestQual === "Under-Graduation") {
+                        } else if (highestQual === "Graduation") {
                             qualificationLevel = "Graduation";
                         } else if (highestQual === "Post-Graduation") {
                             qualificationLevel = "Post-Graduation";
@@ -5689,7 +5425,7 @@ export const MyProfile = () => {
         console.log(cleanSkills());
         console.log(cleanLanguages());
 
-        // ✅ Add photo deletion flag if needed
+        // Add photo deletion flag if needed
         if (allData.profile.photoDeleted) {
             payload.delete_profile_photo = true;
         }
@@ -5733,7 +5469,7 @@ export const MyProfile = () => {
             const formData = new FormData();
             const payload = mapFrontendToBackendPayload();
 
-            // ✅ DEBUG: Check what we're sending
+            // DEBUG: Check what we're sending
             console.log("=== PHOTO DELETION DEBUG ===");
             console.log("removePhotoFlag:", removePhotoFlag);
             console.log("allData.profile.photoDeleted:", allData.profile.photoDeleted);

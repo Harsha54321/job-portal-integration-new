@@ -289,6 +289,18 @@ export const AdminSecurity = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Block all spaces exclusively for the password fields
+    if (name === "currentPassword" || name === "newPassword" || name === "confirmPassword") {
+      const noSpaces = value.replace(/\s+/g, '');
+      setFormData((prev) => ({ ...prev, [name]: noSpaces }));
+      if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: undefined }));
+      }
+      if (apiError) setApiError('');
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));

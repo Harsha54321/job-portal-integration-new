@@ -160,7 +160,7 @@ CELERY_BEAT_SCHEDULE = {
     # Admin password expiry checker — runs hourly
     "check-admin-password-expiry-hourly": {
         "task": "jobapp.tasks.check_admin_password_expiry",
-        "schedule": crontab(minute=0),   # top of every hour
+        "schedule": crontab(minute=0),
     },
 }
 

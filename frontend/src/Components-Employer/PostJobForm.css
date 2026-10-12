@@ -707,3 +707,10 @@
     padding-top: 20px !important;
     margin-top: 0 !important;
 }
+
+/* Selected value in all custom dropdowns */
+.jobpost-dropdown-trigger,
+.jobpost-dropdown-trigger span,
+.jobpost-dropdown-trigger-text {
+    color: #333333 !important;
+}

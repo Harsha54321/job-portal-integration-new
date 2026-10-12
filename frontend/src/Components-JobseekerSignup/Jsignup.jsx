@@ -85,6 +85,20 @@ export const Jsignup = () => {
     return () => clearInterval(interval);
   }, [timer, showEmailOtp, showMobileOtp]);
 
+  // --- CLEAR EMAIL ERROR WHEN EMAIL GETS VERIFIED ---
+  useEffect(() => {
+    if (isEmailVerified) {
+      setErrors((prev) => ({ ...prev, email: "" }));
+    }
+  }, [isEmailVerified]);
+
+  // --- CLEAR PHONE ERROR WHEN MOBILE GETS VERIFIED ---
+  useEffect(() => {
+    if (isMobileVerified) {
+      setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+  }, [isMobileVerified]);
+
   useEffect(() => {
     if (showEmailOtp) {
       const t = setTimeout(() => {
@@ -209,7 +223,7 @@ export const Jsignup = () => {
   };
 
 
-  // // Helper function to validate email (format + domain)
+  // Helper function to validate email (format + domain)
   const validateEmail = (email) => {
     if (!email.trim()) {
       return { valid: false, error: "Email is required" };
@@ -253,6 +267,38 @@ export const Jsignup = () => {
 
     setFormValues({ ...formValues, [name]: value });
     setErrors({ ...errors, [name]: "" });
+  };
+
+  // --- ENTER KEY NAVIGATION ---
+  // Email field: Enter triggers Verify (if unverified) OR moves to Password (if verified)
+  // Phone field: Enter triggers Verify (if unverified) OR submits form (if verified)
+  const handleEnterKey = (e, fieldName) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+
+    if (fieldName === "email") {
+      if (jobseekerSettings.emailVer && !isEmailVerified && formValues.email.length > 0) {
+        // Validate email first
+        const validation = validateEmail(formValues.email);
+        if (!validation.valid) {
+          setErrors({ ...errors, email: validation.error });
+          return;
+        }
+        setErrors({ ...errors, email: "" });
+        sendEmailOtp();  // → Trigger Email Verify
+      } else {
+        // Already verified → focus Password field
+        document.querySelector('input[name="password"]')?.focus();
+      }
+    } else if (fieldName === "phone") {
+      if (jobseekerSettings.phoneVer && !isMobileVerified && /^[6-9]\d{9}$/.test(formValues.phone)) {
+        // Trigger Mobile Verify
+        sendMobileOtp();
+      } else if (!jobseekerSettings.phoneVer || isMobileVerified) {
+        // Already verified (or not required) → submit form
+        handleSubmit(e);
+      }
+    }
   };
 
   // ─── EMAIL OTP ──────────────────────────────────────────────────────────────
@@ -323,6 +369,7 @@ export const Jsignup = () => {
 
       if (response.status === 200 || response.status === 201) {
         setIsEmailVerified(true);
+        setErrors((prev) => ({ ...prev, email: "" }));
 
         setTimeout(() => {
           setShowEmailOtp(false);
@@ -392,6 +439,7 @@ export const Jsignup = () => {
     try {
       if (code === "123456") {
         setIsMobileVerified(true);
+        setErrors((prev) => ({ ...prev, phone: "" }));
 
         setTimeout(() => {
           setShowMobileOtp(false);
@@ -773,6 +821,7 @@ export const Jsignup = () => {
                 name="email"
                 value={formValues.email}
                 onChange={handleForm}
+                onKeyDown={(e) => handleEnterKey(e, "email")}
                 placeholder="Enter Email"
                 className={errors.email ? "input-error" : ""}
                 disabled={isEmailVerified || isEmailLoading}
@@ -837,7 +886,6 @@ export const Jsignup = () => {
               >
                 <img src={passwordShow ? eyeHide : eye} className='show-icon' alt='' />
               </button>
-
             </div>
             {errors.password && <span className="error-msg">{errors.password}</span>}
 
@@ -880,6 +928,7 @@ export const Jsignup = () => {
                   setFormValues({ ...formValues, phone: value.slice(0, 10) });
                   setErrors({ ...errors, phone: "" });
                 }}
+                onKeyDown={(e) => handleEnterKey(e, "phone")}
                 placeholder="Enter mobile number"
                 className={errors.phone ? "input-error" : ""}
                 disabled={isMobileVerified || isMobileLoading}

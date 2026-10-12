@@ -87,6 +87,7 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
     const [bankSearch, setBankSearch] = useState('');
     const [selectedBank, setSelectedBank] = useState(null);
     const [cardData, setCardData] = useState({ name: '', number: '', expiry: '', cvc: '' });
+    const [errors, setErrors] = useState({});
     const filteredBanks = bankList.filter(bank =>
         bank.name.toLowerCase().includes(bankSearch.toLowerCase())
     );
@@ -124,18 +125,30 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
         const { name, value } = e.target;
         let formattedValue = value;
 
+        // Clear error when user starts typing again
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }));
+        }
+
         if (name === 'number') {
             // Remove any non-digit characters
             const cleaned = value.replace(/\D/g, '');
-            // Limit to 16 digits
-            const truncated = cleaned.slice(0, 16);
+            // Limit to 19 digits (Changed from 16 to 19)
+            const truncated = cleaned.slice(0, 19);
             // Add space every 4 digits
             formattedValue = truncated.replace(/(.{4})/g, '$1 ').trim();
         }
         else if (name === 'expiry') {
-            // Remove any non-digit characters
             let cleaned = value.replace(/\D/g, '');
-            // Limit to 4 digits (MMYY)
+
+            // Block months greater than 12 or 00
+            if (cleaned.length >= 2) {
+                const month = parseInt(cleaned.slice(0, 2), 10);
+                if (month > 12 || month === 0) {
+                    cleaned = cleaned.slice(0, 1); // Reject the invalid second digit
+                }
+            }
+
             cleaned = cleaned.slice(0, 4);
             if (cleaned.length >= 2) {
                 formattedValue = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
@@ -153,6 +166,41 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
 
         setCardData(prev => ({ ...prev, [name]: formattedValue }));
     };
+
+    // --- ADDED: Show error instantly when clicking/shifting away from a field ---
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        let fieldError = null;
+
+        if (name === 'number' && value) {
+            const rawNumber = value.replace(/\s/g, '');
+            if (!/^\d{12,19}$/.test(rawNumber)) {
+                fieldError = "Card number must be between 12 and 19 digits.";
+            }
+        }
+        else if (name === 'expiry' && value) {
+            const expiryPattern = /^(0[1-9]|1[0-2])\/(\d{2})$/;
+            if (!expiryPattern.test(value)) {
+                fieldError = "Enter a valid month (01-12) and format (MM/YY).";
+            } else {
+                const [expMonth, expYear] = value.split('/').map(Number);
+                const fullYear = 2000 + expYear;
+                if (new Date(fullYear, expMonth, 0, 23, 59, 59) < new Date()) {
+                    fieldError = "Card has expired.";
+                }
+            }
+        }
+        else if (name === 'cvc' && value) {
+            if (!/^\d{3}$/.test(value)) {
+                fieldError = "CVV must be exactly 3 digits.";
+            }
+        }
+
+        if (fieldError) {
+            setErrors(prev => ({ ...prev, [name]: fieldError }));
+        }
+    };
+
     const handleSavedCardClick = (card) => {
         setSelectedCardForOtp(card);
         setShowOtp(true);
@@ -161,27 +209,45 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
     const handleCardSubmit = (e) => {
         e.preventDefault();
 
-        if (!cardData.number || !cardData.cvc || !cardData.expiry) {
+        const newErrors = {};
+
+        if (!cardData.number || !cardData.cvc || !cardData.expiry || !cardData.name) {
             alert("Please fill all card details");
             return;
         }
 
+        // 1. Card Number Validation (12 to 19 digits strictly)
+        const rawNumber = cardData.number.replace(/\s/g, '');
+        if (!/^\d{12,19}$/.test(rawNumber)) {
+            newErrors.number = "Card number must be between 12 and 19 digits.";
+        }
+
+        // 2. Expiry Validation (Format, Valid Month, Future Date)
         const expiryPattern = /^(0[1-9]|1[0-2])\/(\d{2})$/;
         if (!expiryPattern.test(cardData.expiry)) {
-            alert("Please enter valid expiry date in MM/YY format");
-            return;
+            newErrors.expiry = "Enter a valid month (01-12) and format (MM/YY).";
+        } else {
+            const [expMonth, expYear] = cardData.expiry.split('/').map(Number);
+            const fullYear = 2000 + expYear;
+            const expiryEnd = new Date(fullYear, expMonth, 0, 23, 59, 59);
+
+            if (expiryEnd < new Date()) {
+                newErrors.expiry = "Card has expired. Enter a future date.";
+            }
         }
- 
-        // --- Reject past expiry dates ---
-        const [expMonth, expYear] = cardData.expiry.split('/').map(Number);
-        const fullYear = 2000 + expYear;
-        const expiryEnd = new Date(fullYear, expMonth, 0, 23, 59, 59);
-        if (expiryEnd < new Date()) {
-            alert("Card has expired. Please enter a valid expiry date.");
+
+        // 3. CVV Validation (Exactly 3 digits)
+        if (!/^\d{3}$/.test(cardData.cvc)) {
+            newErrors.cvc = "CVV must be exactly 3 digits.";
+        }
+
+        // Stop submission and display red errors if validation failed
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
-        const last4 = cardData.number.slice(-4) || 'XXXX';
+        const last4 = rawNumber.slice(-4) || 'XXXX';
 
         const paymentData = {
             method_type: "card",
@@ -368,17 +434,20 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
 
                             <div className="PaymentMethods-form-group">
                                 <label>Card number</label>
-                                <input name="number" placeholder="xxxx xxxx xxxx xxxx" maxLength="19" value={cardData.number} onChange={handleCardChange} required />
+                                <input name="number" placeholder="xxxx xxxx xxxx xxxx" maxLength="24" value={cardData.number} onChange={handleCardChange} onBlur={handleBlur} autoComplete="off" required />
+                                {errors.number && <span style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.number}</span>}
                             </div>
 
                             <div className="PaymentMethods-form-row">
                                 <div className="PaymentMethods-form-group">
                                     <label>Expiry</label>
-                                    <input name="expiry" placeholder="MM/YY" maxLength="5" value={cardData.expiry} onChange={handleCardChange} required />
+                                    <input name="expiry" placeholder="MM/YY" maxLength="5" value={cardData.expiry} onChange={handleCardChange} onBlur={handleBlur} autoComplete="off" required />
+                                    {errors.expiry && <span style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.expiry}</span>}
                                 </div>
                                 <div className="PaymentMethods-form-group">
                                     <label>CVV</label>
-                                    <input inputMode='number' name="cvc" type="password" placeholder="654" maxLength="3" value={cardData.cvc} onChange={handleCardChange} required />
+                                    <input inputMode='number' name="cvc" type="password" placeholder="654" maxLength="3" value={cardData.cvc} onChange={handleCardChange} onBlur={handleBlur} autoComplete="off" required />
+                                    {errors.cvc && <span style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.cvc}</span>}
                                 </div>
                             </div>
 

@@ -27,6 +27,16 @@ export const Acreatepassword = () => {
 
   const handleForm = (e) => {
     const { name, value } = e.target
+
+    // Block all spaces exclusively for the new password and confirm password fields
+    if (name === "newPassword" || name === "confirmPassword") {
+      const noSpaces = value.replace(/\s+/g, '');
+      setFormValues({ ...formValues, [name]: noSpaces });
+      setErrors({ ...errors, [name]: "" });
+      setApiError("");
+      return;
+    }
+
     setFormValues({ ...formValues, [name]: value })
     setErrors({ ...errors, [name]: "" })
     setApiError("")

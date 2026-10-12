@@ -118,7 +118,10 @@ const ChangePassword = () => {
             <input
               type={showCurrent ? 'text' : 'password'}
               value={form.currentPassword}
-              onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
+              onChange={(e) => {
+                const noSpaces = e.target.value.replace(/\s+/g, '');
+                setForm({ ...form, currentPassword: noSpaces });
+              }}
               placeholder="Enter current password"
               disabled={loading}
             />
@@ -135,7 +138,10 @@ const ChangePassword = () => {
             <input
               type={showNew ? 'text' : 'password'}
               value={form.newPassword}
-              onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+              onChange={(e) => {
+                const noSpaces = e.target.value.replace(/\s+/g, '');
+                setForm({ ...form, newPassword: noSpaces });
+              }}
               placeholder="Enter new password"
               disabled={loading}
             />
@@ -165,7 +171,10 @@ const ChangePassword = () => {
             <input
               type={showConfirm ? 'text' : 'password'}
               value={form.confirmPassword}
-              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+              onChange={(e) => {
+                const noSpaces = e.target.value.replace(/\s+/g, '');
+                setForm({ ...form, confirmPassword: noSpaces });
+              }}
               placeholder="Confirm new password"
               disabled={loading}
             />
