@@ -104,6 +104,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  table-layout: fixed;
 }
 
 .aam-table th {
@@ -120,6 +121,38 @@
 .aam-table td {
   padding: 14px 16px;
   border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.aam-table th:nth-child(1),
+.aam-table td:nth-child(1) {
+  width: 20%;
+}
+
+.aam-table th:nth-child(2),
+.aam-table td:nth-child(2) {
+  width: 34%;
+}
+
+.aam-table th:nth-child(3),
+.aam-table td:nth-child(3) {
+  width: 9%;
+}
+
+.aam-table th:nth-child(4),
+.aam-table td:nth-child(4) {
+  width: 13%;
+}
+
+.aam-table th:nth-child(5),
+.aam-table td:nth-child(5) {
+  width: 11%;
+}
+
+.aam-table th:nth-child(6),
+.aam-table td:nth-child(6) {
+  width: 12%;
+  text-align: right;
 }
 
 .aam-empty {
@@ -144,6 +177,7 @@
   justify-content: center;
   overflow: hidden;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .aam-logo-box img {
@@ -152,17 +186,39 @@
   object-fit: cover;
 }
 
+.aam-title-cell {
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .aam-item-title {
   font-weight: 600;
   color: #0f172a;
+  font-size: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  margin-bottom: 4px;
+  cursor: help;
 }
 
 .aam-item-desc {
   font-size: 11px;
   color: #64748b;
-  white-space: nowrap;
+  line-height: 1.4;
+  /* Clamp to 1 line with ellipsis */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .aam-type-badge {
@@ -173,11 +229,14 @@
 }
 
 .aam-status-badge {
+  display: inline-block;
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 10px;
   font-weight: 700;
   text-transform: capitalize;
+  text-align: center;
+  min-width: 70px;
 }
 
 .aam-status-badge.published {
@@ -214,7 +273,6 @@
   color: #991b1b;
 }
 
-/* --- Detail view (reuses AdminTickets classes) --- */
 .detail-section-card {
   margin-bottom: 30px;
 }
@@ -306,4 +364,111 @@
   border: 1px solid #cbd5e1;
   background: #f8fafc;
   font-size: 13px;
+}
+
+.aam-pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background-color: #fff;
+  border-top: 1px solid #f1f4f8;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.aam-pagination-footer p {
+  font-size: 13px;
+  color: #676f79;
+  margin: 0;
+}
+
+.aam-pagination-btns {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.aam-page-arrow {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  color: #475569;
+  transition: all 0.2s ease;
+  padding: 0;
+  font-family: inherit;
+}
+
+.aam-page-arrow:hover:not(:disabled) {
+  background-color: #f7fafc;
+  border-color: #407bff;
+  color: #1e88e5;
+}
+
+.aam-page-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.aam-page-num {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.aam-page-num:hover:not(.active) {
+  background-color: #f7fafc;
+  border-color: #407bff;
+  color: #1e88e5;
+}
+
+.aam-page-num.active {
+  background-color: #1e88e5;
+  border-color: #1e88e5;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(30, 136, 229, 0.3);
+}
+
+.aam-page-ellipsis {
+  min-width: 28px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-weight: 700;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .aam-pagination-footer {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .aam-pagination-btns {
+    justify-content: center;
+  }
 }

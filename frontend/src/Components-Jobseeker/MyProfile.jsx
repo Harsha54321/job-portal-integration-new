@@ -11,6 +11,7 @@ import { Header } from "../Components-LandingPage/Header";
 import welcomeImg from "../assets/welcome.png";
 import api from "../api/axios";
 import EducationDegreeDropdown, { degreeOptions } from "./EducationDegreeDropdown";
+import { renderAsync } from "docx-preview";
 
 const DateInput = ({
     name,
@@ -1941,6 +1942,9 @@ const ResumeSection = ({
     const [errors, setErrors] = useState({});
     const [existingResume, setExistingResume] = useState(null);
     const fileInputRef = useRef(null); // Add ref for file input
+    const [docxSource, setDocxSource] = useState(null);
+    const [previewError, setPreviewError] = useState("");
+    const previewRef = useRef(null);
 
     useEffect(() => {
         if (data.resume_file) {
@@ -1951,6 +1955,49 @@ const ResumeSection = ({
             setExistingResume(null);
         }
     }, [data.resume_file, resumeFile]);
+
+    useEffect(() => {
+        if (!docxSource || !previewRef.current) return;
+
+        const controller = new AbortController();
+        let active = true;
+
+        const loadPreview = async () => {
+            try {
+                setPreviewError("");
+
+                let documentData = docxSource;
+
+                if (typeof docxSource === "string") {
+                    const response = await fetch(docxSource, {
+                        signal: controller.signal
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    documentData = await response.blob();
+                }
+
+                if (!active || !previewRef.current) return;
+
+                previewRef.current.innerHTML = "";
+                await renderAsync(documentData, previewRef.current);
+            } catch (error) {
+                if (active) {
+                    setPreviewError(error.message);
+                }
+            }
+        };
+
+        loadPreview();
+
+        return () => {
+            active = false;
+            controller.abort();
+        };
+    }, [docxSource]);
 
     const handleResumeChange = (e) => {
         const file = e.target.files[0];
@@ -2011,18 +2058,64 @@ const ResumeSection = ({
     };
 
     const handleViewResume = (e) => {
+        e.preventDefault();
         e.stopPropagation();
 
-        const fileToView = resumeFile || data.resume_file || existingResume;
+        const fileToView =
+            resumeFile || data.resume_file || existingResume;
 
         if (!fileToView) return;
 
+        const fileName = fileToView instanceof File
+            ? fileToView.name
+            : (fileToView.split("?")[0].split("/").pop() || fileToView);
+
+        const extension = fileName
+            .split(".")
+            .pop()
+            .toLowerCase();
+
         if (fileToView instanceof File) {
-            const fileURL = URL.createObjectURL(fileToView);
-            window.open(fileURL, "_blank");
-            setTimeout(() => URL.revokeObjectURL(fileURL), 100);
-        } else if (typeof fileToView === "string" && fileToView) {
-            window.open(fileToView, "_blank");
+            // Local file — create object URL (no CORS issues)
+            const fileUrl = URL.createObjectURL(fileToView);
+
+            if (extension === "docx") {
+                // Use docx-preview for local files
+                setDocxSource(fileToView);
+                URL.revokeObjectURL(fileUrl);
+            } else if (extension === "pdf") {
+                window.open(fileUrl, "_blank");
+                setTimeout(() => URL.revokeObjectURL(fileUrl), 60000);
+            } else {
+                // .doc or others: force download
+                const a = document.createElement("a");
+                a.href = fileUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(fileUrl), 5000);
+            }
+        } else {
+            // Server-saved URL — Chrome blocks cross-origin fetch/open for .docx
+            // Use anchor download to force browser download (bypasses CORS for download)
+            const fileUrl = fileToView.startsWith("http")
+                ? fileToView
+                : new URL(fileToView, "https://jobportal.stacklycloud.com").href;
+
+            if (extension === "pdf") {
+                window.open(fileUrl, "_blank");
+            } else {
+                // For .docx, .doc and any other format: force download via <a download>
+                const a = document.createElement("a");
+                a.href = fileUrl;
+                a.download = fileName || "resume";
+                a.target = "_blank";  // fallback if download attr is ignored
+                a.rel = "noopener noreferrer";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
         }
     };
 
@@ -2077,6 +2170,8 @@ const ResumeSection = ({
                         setErrors({});
                         setResumeFile(null);
                         setExistingResume(null);
+                        setDocxSource(null);
+                        setPreviewError("");
                         if (fileInputRef.current) {
                             fileInputRef.current.value = "";
                         }
@@ -2085,6 +2180,39 @@ const ResumeSection = ({
                     Reset
                 </button>
             </div>
+
+            {/* DOCX Preview Modal — must be INSIDE the component return */}
+            {docxSource && (
+                <div className="modal-overlay">
+                    <div
+                        className="modal-content"
+                        style={{
+                            width: "90%",
+                            maxWidth: "1000px",
+                            maxHeight: "90vh",
+                            overflowY: "auto"
+                        }}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDocxSource(null);
+                                setPreviewError("");
+                            }}
+                        >
+                            Close Preview
+                        </button>
+
+                        {previewError && (
+                            <p style={{ color: "red" }}>
+                                {previewError}
+                            </p>
+                        )}
+
+                        <div ref={previewRef} />
+                    </div>
+                </div>
+            )}
 
             <div className={`upload-box ${errors.resumeFile ? "input-error" : ""}`}>
                 <input
@@ -4326,6 +4454,28 @@ const Certifications = ({
 };
 
 // --- FINAL SUBMIT BUTTON SECTION ---
+// Reusable Yes/No radio group (Safari-safe: explicit id/htmlFor, sized native radio)
+const YesNoRadio = ({ name, value, onChange }) => (
+    <div className="yn-radio-group" role="radiogroup">
+        {["Yes", "No"].map((opt) => {
+            const id = `${name}-${opt}`;
+            return (
+                <div key={opt} className="yn-radio-option">
+                    <input
+                        type="radio"
+                        id={id}
+                        name={name}
+                        value={opt}
+                        checked={value === opt}
+                        onChange={onChange}
+                    />
+                    <label htmlFor={id}>{opt}</label>
+                </div>
+            );
+        })}
+    </div>
+);
+
 const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, saving }) => {
     const onlyNums = /^[0-9]*$/;
     const AlphaOnlyreg = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
@@ -4502,7 +4652,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                     marginTop: "2rem",
                 }}
             >
-                <div style={{ display: "flex", gap: "12rem" }}>
+                <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                         <label
                             style={{
@@ -4522,32 +4672,10 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                         )}
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                        <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
-                            <input
-                                type="radio"
-                                name="ready"
-                                value="Yes"
-                                checked={data.ready === "Yes"}
-                                onChange={handleLocalChange}
-                            />
-                            Yes
-                        </label>
-
-                        <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
-                            <input
-                                type="radio"
-                                name="ready"
-                                value="No"
-                                checked={data.ready === "No"}
-                                onChange={handleLocalChange}
-                            />
-                            No
-                        </label>
-                    </div>
+                    <YesNoRadio name="ready" value={data.ready} onChange={handleLocalChange} />
                 </div>
 
-                <div style={{ display: "flex", gap: "12rem" }}>
+                <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                         <label
                             style={{
@@ -4567,29 +4695,7 @@ const Preferences = ({ data, experienceType, onChange, onReset, onSubmitFinal, s
                         )}
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                        <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
-                            <input
-                                type="radio"
-                                name="relocate"
-                                value="Yes"
-                                checked={data.relocate === "Yes"}
-                                onChange={handleLocalChange}
-                            />
-                            Yes
-                        </label>
-
-                        <label style={{ display: "flex", gap: "5px", cursor: "pointer" }}>
-                            <input
-                                type="radio"
-                                name="relocate"
-                                value="No"
-                                checked={data.relocate === "No"}
-                                onChange={handleLocalChange}
-                            />
-                            No
-                        </label>
-                    </div>
+                    <YesNoRadio name="relocate" value={data.relocate} onChange={handleLocalChange} />
                 </div>
             </div>
 

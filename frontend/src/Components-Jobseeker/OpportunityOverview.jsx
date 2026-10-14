@@ -61,8 +61,8 @@ export const OpportunityOverview = () => {
 
   // Authentication helper function
   const isAuthenticated = () => {
-    return !!sessionStorage.getItem("access") && 
-           sessionStorage.getItem("userRole") === "jobseeker";
+    return !!sessionStorage.getItem("access") &&
+      sessionStorage.getItem("userRole") === "jobseeker";
   };
 
   // Apply scroll lock for all popups
@@ -144,7 +144,7 @@ export const OpportunityOverview = () => {
       setShowLoginPopup(true);
       return;
     }
-    
+
     try {
       await saveJob(job.id);
       alert("Job saved successfully");
@@ -164,7 +164,7 @@ export const OpportunityOverview = () => {
       setShowLoginPopup(true);
       return;
     }
-    
+
     if (isApplied) return;
     navigate(`/Job-portal/jobseeker/jobapplication/${job.id}`);
   };
@@ -174,7 +174,7 @@ export const OpportunityOverview = () => {
       setShowLoginPopup(true);
       return;
     }
-    
+
     navigate(`/Job-portal/jobseeker/ReportAJob/${job.id}`);
   };
 
@@ -206,20 +206,21 @@ export const OpportunityOverview = () => {
     const fetchJobDetails = async () => {
       try {
         setLoading(true);
-        
+
         // First check if user is authenticated
         const isAuth = isAuthenticated();
-        
+
         if (!isAuth) {
           // If not authenticated, redirect to login
           navigate("/Job-portal/jobseeker/login", {
-            state: { 
-              redirectTo: `/Job-portal/jobseeker/OpportunityOverview/${id}` 
+            replace: true,
+            state: {
+              redirectTo: `/Job-portal/jobseeker/OpportunityOverview/${id}`
             }
           });
           return;
         }
-        
+
         // Fetch job details with auth header
         const jobRes = await api.get(`/jobs/${id}/`);
         setJob(jobRes.data);
@@ -249,14 +250,15 @@ export const OpportunityOverview = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching job details:', err);
-        
+
         // Handle specific error cases
         if (err.response?.status === 401) {
           // Unauthorized - token expired or invalid
           sessionStorage.clear();
           navigate("/Job-portal/jobseeker/login", {
-            state: { 
-              redirectTo: `/Job-portal/jobseeker/OpportunityOverview/${id}` 
+            replace: true,
+            state: {
+              redirectTo: `/Job-portal/jobseeker/OpportunityOverview/${id}`
             }
           });
         } else if (err.response?.status === 404) {
@@ -740,7 +742,7 @@ export const OpportunityOverview = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3>Login or sign up to continue</h3>
-            
+
             <div className="login-popup-actions">
               <button
                 className="login-popup-login-btn"
@@ -748,7 +750,7 @@ export const OpportunityOverview = () => {
               >
                 Login
               </button>
-              
+
               <button
                 className="login-popup-signup-btn"
                 onClick={handleSignupClick}

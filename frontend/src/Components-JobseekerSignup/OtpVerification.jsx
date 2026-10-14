@@ -18,7 +18,8 @@ export const OtpVerification = () => {
 
   // Get data from navigation state
   const state = location.state || {};
-  const { email, phone, purpose, isMock, otpId, otpToken } = state;
+  const { email, phone, purpose, isMock, otpId, otpToken, redirectTo } = state;
+  const afterLoginPath = redirectTo || "/Job-portal/jobseeker/";
 
   // Determine if it's email OTP or mobile OTP
   useEffect(() => {
@@ -144,10 +145,14 @@ export const OtpVerification = () => {
 
           // Navigate based on user type
           if (response.data.user?.user_type === 'employer') {
-            navigate("/Job-portal/Employer/Dashboard");
+            navigate("/Job-portal/Employer/Dashboard", { replace: true });
           } else {
             await fetchAllJobs();
-            navigate("/Job-portal/jobseeker/");
+            const homePath = "/Job-portal/jobseeker/";
+            navigate(homePath, { replace: true });
+            if (afterLoginPath !== homePath) {
+              navigate(afterLoginPath);
+            }
           }
         } else {
           setError(response.data.error || "Invalid OTP. Please try again.");
@@ -157,12 +162,12 @@ export const OtpVerification = () => {
         // Mock mobile OTP verification
         if (enteredOtp === DEFAULT_MOCK_OTP.slice(0, 4)) {
           alert("OTP verified successfully! Logging in...");
-          navigate("/Job-portal/jobseeker/");
+          navigate(afterLoginPath, { replace: true });
         } else {
           setError("Invalid OTP. Please try again.");
         }
       }
-      
+
     } catch (error) {
       console.error('OTP Verification Error:', error);
 
@@ -216,7 +221,12 @@ export const OtpVerification = () => {
         </div>
 
         <div className="otp-container">
-          <button className="back-to-login" onClick={() => navigate(-1)}>
+          <button
+            className="back-to-login"
+            onClick={() =>
+              navigate("/Job-portal/jobseeker/login", { replace: true, state: location.state })
+            }
+          >
             Back
           </button>
           <h2 className="otp-title">OTP Verification</h2>

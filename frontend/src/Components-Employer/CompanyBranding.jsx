@@ -19,7 +19,6 @@ const DateInput = ({
 }) => {
   const inputRef = useRef(null);
 
-  // Force-opens the native date picker on Safari 16+, Chrome 99+, Edge 99+, Firefox 101+
   const openPicker = () => {
     if (disabled) return;
     const el = inputRef.current;
@@ -50,7 +49,6 @@ const DateInput = ({
         className={`${error ? "error-msg-border" : ""} ${className}`}
       />
 
-      {/* Custom calendar icon — visible on ALL browsers including Safari */}
       <button
         type="button"
         className="date-picker-icon-btn"
@@ -70,6 +68,22 @@ const DateInput = ({
     </div>
   );
 };
+
+// ================================================================
+// TEXT SANITIZER
+// - No leading whitespace
+// - Collapse 2+ consecutive whitespace → single space
+// - Trailing whitespace NOT trimmed here (user can type "Hello World")
+// ================================================================
+const sanitizeText = (value) => {
+  if (!value) return "";
+  let cleaned = value.replace(/^\s+/, "");     // remove leading spaces
+  cleaned = cleaned.replace(/\s{2,}/g, " ");   // collapse multiple → single
+  return cleaned;
+};
+
+// Final trim — used on blur & submit
+const finalTrim = (value) => (value || "").trim();
 
 export default function CompanyBranding() {
   const location = useLocation();
@@ -106,6 +120,10 @@ export default function CompanyBranding() {
   });
 
   const [formErrors, setFormErrors] = useState({});
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchCompanyData();
@@ -168,11 +186,11 @@ export default function CompanyBranding() {
     setFeedback(null);
 
     const formData = new FormData();
-    formData.append("company_name", branding.company_name);
-    formData.append("company_moto", branding.tagline);
-    formData.append("about", branding.about);
-    formData.append("website", branding.website);
-    formData.append("linkedin_url", branding.linkedin_url);
+    formData.append("company_name", finalTrim(branding.company_name));
+    formData.append("company_moto", finalTrim(branding.tagline));
+    formData.append("about", finalTrim(branding.about));
+    formData.append("website", finalTrim(branding.website));
+    formData.append("linkedin_url", finalTrim(branding.linkedin_url));
     formData.append("brand_color", branding.brand_color);
 
     if (branding.company_logo) formData.append("company_logo", branding.company_logo);
@@ -193,11 +211,16 @@ export default function CompanyBranding() {
 
   const handleCreateAnnouncement = async (e) => {
     e.preventDefault();
+
+    // Final trim before validation & submit
+    const trimmedTitle = finalTrim(newAnnouncement.title);
+    const trimmedDescription = finalTrim(newAnnouncement.description);
+
     const errors = {};
-    if (hasOnlySpecialChars(newAnnouncement.title)) {
+    if (hasOnlySpecialChars(trimmedTitle)) {
       errors.title = "Title must include some text, not only special characters.";
     }
-    if (hasOnlySpecialChars(newAnnouncement.description)) {
+    if (hasOnlySpecialChars(trimmedDescription)) {
       errors.description = "Description must include some text, not only special characters.";
     }
     if (Object.keys(errors).length > 0) {
@@ -208,7 +231,12 @@ export default function CompanyBranding() {
 
     setLoading(true);
     try {
-      await api.post("announcements/", newAnnouncement);
+      const payload = {
+        ...newAnnouncement,
+        title: trimmedTitle,
+        description: trimmedDescription,
+      };
+      await api.post("announcements/", payload);
       setShowModal(false);
       setFormErrors({});
 
@@ -238,24 +266,59 @@ export default function CompanyBranding() {
     }
   };
 
-  // Highlight announcement if coming from notification
   const getAnnouncementHighlight = (id) => {
     return location.state?.targetAnnouncementId === id ? "cb-highlighted-row" : "";
   };
 
   const handleEndDateChange = (e) => {
-    const value = e.target.value; // "" or "yyyy-mm-dd"
+    const value = e.target.value;
     if (value) {
       const [year] = value.split("-");
-      if (year.length > 4) return; // ignore the overflow keystroke, don't update state
+      if (year.length > 4) return;
     }
     setNewAnnouncement({ ...newAnnouncement, end_date: value });
   };
 
   const hasOnlySpecialChars = (value) => {
-    // true if the string has no letters or digits at all (i.e. is empty after stripping symbols)
     return !/[a-zA-Z0-9]/.test(value || "");
   };
+
+  // ===== Pagination calculations =====
+  const totalPages = Math.ceil(announcements.length / ITEMS_PER_PAGE) || 1;
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentAnnouncements = announcements.slice(indexOfFirstItem, indexOfLastItem);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [announcements.length, currentPage, totalPages]);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const total = totalPages;
+    const current = currentPage;
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+      return pages;
+    }
+
+    pages.push(1);
+    if (current > 3) pages.push("...");
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    if (current < total - 2) pages.push("...");
+    pages.push(total);
+
+    return pages;
+  };
+
   return (
     <div className="cb-container">
       <div className="cb-wrapper">
@@ -292,7 +355,6 @@ export default function CompanyBranding() {
         {/* TAB 1: BRANDING BUILDER */}
         {activeTab === "branding" && (
           <div className="cb-grid">
-            {/* Editor Form */}
             <form onSubmit={handleSaveBranding} className="cb-card cb-form">
               <h2 className="cb-card-heading">Visual Identity & Links</h2>
 
@@ -397,7 +459,6 @@ export default function CompanyBranding() {
               </button>
             </form>
 
-            {/* Live Preview Card */}
             <div className="cb-preview-container">
               <div className="cb-preview-tag">Candidate Profile View Preview</div>
               <div className="cb-card cb-preview-card">
@@ -459,27 +520,41 @@ export default function CompanyBranding() {
                   </tr>
                 </thead>
                 <tbody>
-                  {announcements.length === 0 ? (
+                  {currentAnnouncements.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="cb-empty-cell">
                         No announcements posted yet.
                       </td>
                     </tr>
                   ) : (
-                    announcements.map((item) => (
+                    currentAnnouncements.map((item) => (
                       <tr
                         key={item.id}
                         className={getAnnouncementHighlight(item.id)}
                         style={{
-                          backgroundColor: location.state?.targetAnnouncementId === item.id ? '#FFF8E1' : 'transparent',
-                          borderLeft: location.state?.targetAnnouncementId === item.id ? '4px solid #FFD700' : 'none'
+                          backgroundColor:
+                            location.state?.targetAnnouncementId === item.id
+                              ? "#FFF8E1"
+                              : "transparent",
+                          borderLeft:
+                            location.state?.targetAnnouncementId === item.id
+                              ? "4px solid #FFD700"
+                              : "none",
                         }}
                       >
-                        <td><strong>{item.title}</strong></td>
-                        <td><span className="cb-type-badge">{item.announcement_type}</span></td>
+                        <td>
+                          <strong style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                            {item.title}
+                          </strong>
+                        </td>
+                        <td>
+                          <span className="cb-type-badge">{item.announcement_type}</span>
+                        </td>
                         <td>
                           {new Date(item.start_date).toLocaleDateString()}{" "}
-                          {item.end_date ? `→ ${new Date(item.end_date).toLocaleDateString()}` : "• Open"}
+                          {item.end_date
+                            ? `→ ${new Date(item.end_date).toLocaleDateString()}`
+                            : "• Open"}
                         </td>
                         <td>
                           <span className={`cb-status-badge ${item.status}`}>
@@ -499,6 +574,56 @@ export default function CompanyBranding() {
                   )}
                 </tbody>
               </table>
+
+              {announcements.length > 0 && (
+                <div className="cb-pagination-footer">
+                  <p>
+                    Showing {indexOfFirstItem + 1}–
+                    {Math.min(indexOfLastItem, announcements.length)} of{" "}
+                    {announcements.length} announcements
+                  </p>
+
+                  <div className="cb-pagination-btns">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="cb-page-arrow"
+                      aria-label="Previous page"
+                      title="Prev"
+                    >
+                      ‹
+                    </button>
+
+                    {getPageNumbers().map((page, idx) =>
+                      page === "..." ? (
+                        <span key={`ellipsis-${idx}`} className="cb-page-ellipsis">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`cb-page-num ${currentPage === page ? "active" : ""}`}
+                          aria-label={`Page ${page}`}
+                          aria-current={currentPage === page ? "page" : undefined}
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="cb-page-arrow"
+                      aria-label="Next page"
+                      title="Next"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -520,8 +645,15 @@ export default function CompanyBranding() {
                     type="text"
                     value={newAnnouncement.title}
                     onChange={(e) => {
-                      setNewAnnouncement({ ...newAnnouncement, title: e.target.value });
+                      const cleaned = sanitizeText(e.target.value);
+                      setNewAnnouncement({ ...newAnnouncement, title: cleaned });
                       setFormErrors((prev) => ({ ...prev, title: "" }));
+                    }}
+                    onBlur={(e) => {
+                      setNewAnnouncement((prev) => ({
+                        ...prev,
+                        title: finalTrim(prev.title),
+                      }));
                     }}
                     placeholder="e.g. Mega Off-Campus Hiring Drive"
                     className="cb-input"
@@ -562,8 +694,15 @@ export default function CompanyBranding() {
                     rows={3}
                     value={newAnnouncement.description}
                     onChange={(e) => {
-                      setNewAnnouncement({ ...newAnnouncement, description: e.target.value });
+                      const cleaned = sanitizeText(e.target.value);
+                      setNewAnnouncement({ ...newAnnouncement, description: cleaned });
                       setFormErrors((prev) => ({ ...prev, description: "" }));
+                    }}
+                    onBlur={(e) => {
+                      setNewAnnouncement((prev) => ({
+                        ...prev,
+                        description: finalTrim(prev.description),
+                      }));
                     }}
                     placeholder="Provide details about dates, eligibility, criteria, etc."
                     className="cb-textarea"

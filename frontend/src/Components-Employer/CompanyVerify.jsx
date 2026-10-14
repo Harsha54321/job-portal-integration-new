@@ -11,6 +11,11 @@ import Verified from '../assets/verified-otpimage.png';
 import { useLocation } from "react-router-dom";
 import uploadIcon from "../assets/UploadIcon.png";
 
+const sanitizeSpaces = (str) => {
+  if (typeof str !== 'string') return str;
+  return str.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+};
+
 export const CompanyVerify = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -135,6 +140,14 @@ export const CompanyVerify = () => {
       }
 
       setFormData({ ...formData, [name]: val });
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/^\s+/, '').replace(/\s{2,}$/, ' ');
+      setFormData((prev) => ({ ...prev, [name]: cleaned }));
     }
   };
 
@@ -681,6 +694,7 @@ export const CompanyVerify = () => {
                 placeholder="e.g., Wipro Technologies"
                 value={formData.legalName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 disabled={isSubmitting || blockedByAdmin}
               />
               {errors.legalName && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.legalName}</span>}
@@ -780,6 +794,7 @@ export const CompanyVerify = () => {
                 placeholder="e.g., https://example.com"
                 value={formData.websiteUrl}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 disabled={isSubmitting || blockedByAdmin}
               />
               {errors.websiteUrl && <span className="error-msg" style={{ color: 'red', fontSize: '12px' }}>{errors.websiteUrl}</span>}
@@ -790,12 +805,13 @@ export const CompanyVerify = () => {
               <label>Official Company Mail Id <span style={{ color: 'red' }}>*</span></label>
               <div className="company-verify-input-with-btn">
                 <input
-                  type="email"
+                  type="text"
                   name="officialEmail"
                   className={errors.officialEmail ? "input-error" : ""}
                   placeholder="e.g., hr@example.com"
                   value={formData.officialEmail}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   disabled={isSubmitting || isEmailVerified || blockedByAdmin}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {

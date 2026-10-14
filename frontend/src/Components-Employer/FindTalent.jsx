@@ -5,8 +5,13 @@ import { ProfileCard } from './ProfileCard';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
+const sanitizeSpaces = (str) => {
+  if (typeof str !== 'string') return str;
+  return str.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+};
+
 // ============================================================
-// ✅ SHARED DEGREE OPTIONS - Same as MyProfile
+// SHARED DEGREE OPTIONS - Same as MyProfile
 // ============================================================
 const BASE_DEGREE_OPTIONS = [
   // ================= ENGINEERING / TECHNOLOGY =================
@@ -801,8 +806,9 @@ export const FindTalent = ({ onUpgradeClick }) => {
             placeholder="Search by Skills, Education, Location, or Job Title"
             className="FindTalent-search-input"
             value={searchTerm}
+            onBlur={() => setSearchTerm(prev => prev.replace(/^\s+/, '').replace(/\s{2,}$/, ' '))}
             onChange={(e) => {
-              const newValue = e.target.value;
+              const newValue = (sanitizeSpaces(e.target.value));
               setSearchTerm(newValue);
               if (newValue.trim() === '') {
                 setSelectedLanguages([]);
@@ -852,7 +858,8 @@ export const FindTalent = ({ onUpgradeClick }) => {
                 placeholder="Search languages..."
                 className="FindTalent-filter-search-input"
                 value={filterSearch.lang}
-                onChange={(e) => setFilterSearch({ ...filterSearch, lang: e.target.value })}
+                onChange={(e) => setFilterSearch({ ...filterSearch, lang: sanitizeSpaces(e.target.value) })}
+                onBlur={() => setFilterSearch(prev => ({ ...prev, lang: prev.lang.replace(/^\s+/, '').replace(/\s{2,}$/, ' ') }))}
                 style={{ width: '100%', padding: '5px', marginBottom: '10px', border: '1px solid #ddd', borderRadius: '3px' }}
               />
               {getVisibleItemsWithSearch(filterOptions.languages, showAllLangs, 'lang').map(lang => (
@@ -897,7 +904,7 @@ export const FindTalent = ({ onUpgradeClick }) => {
             </div>
           </div>
 
-          {/* ✅ Education Filter - Shows ALL degrees from MyProfile (no normalization) */}
+          {/* Education Filter - Shows ALL degrees from MyProfile (no normalization) */}
           {filterOptions.education.length > 0 && (
             <div className="FindTalent-filter-category">
               <h3>Education</h3>
@@ -906,7 +913,8 @@ export const FindTalent = ({ onUpgradeClick }) => {
                 placeholder="Search education..."
                 className="FindTalent-filter-search-input"
                 value={filterSearch.edu}
-                onChange={(e) => setFilterSearch({ ...filterSearch, edu: e.target.value })}
+                onChange={(e) => setFilterSearch({ ...filterSearch, edu: sanitizeSpaces(e.target.value) })}
+                onBlur={() => setFilterSearch(prev => ({ ...prev, edu: prev.edu.replace(/^\s+/, '').replace(/\s{2,}$/, ' ') }))}
                 style={{ width: '100%', padding: '5px', marginBottom: '10px', border: '1px solid #ddd', borderRadius: '3px' }}
               />
               {getVisibleItemsWithSearch(filterOptions.education, showAllEdu, 'edu', 5).map(edu => (
@@ -937,7 +945,8 @@ export const FindTalent = ({ onUpgradeClick }) => {
                 placeholder="Search skills..."
                 className="FindTalent-filter-search-input"
                 value={filterSearch.skill}
-                onChange={(e) => setFilterSearch({ ...filterSearch, skill: e.target.value })}
+                onChange={(e) => setFilterSearch({ ...filterSearch, skill: sanitizeSpaces(e.target.value) })}
+                onBlur={() => setFilterSearch(prev => ({ ...prev, skill: prev.skill.replace(/^\s+/, '').replace(/\s{2,}$/, ' ') }))}
                 style={{ width: '100%', padding: '5px', marginBottom: '10px', border: '1px solid #ddd', borderRadius: '3px' }}
               />
               {getVisibleItemsWithSearch(filterOptions.skills, showAllSkills, 'skill').map(skill => (

@@ -556,7 +556,7 @@ export const Jsignup = () => {
         setIsMobileVerified(false);
 
         setTimeout(() => {
-          navigate("/Job-portal/jobseeker/login", { state: { redirectTo } });
+          navigate("/Job-portal/jobseeker/login", { replace: true, state: { redirectTo } });
         }, 2000);
       } else {
         alert("Signup failed. Please try again.");

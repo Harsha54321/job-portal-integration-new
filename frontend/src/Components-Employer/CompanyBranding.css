@@ -316,12 +316,14 @@
 
 .cb-table-card {
   padding: 0;
+  overflow: hidden;
 }
 
 .cb-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  table-layout: fixed;
 }
 
 .cb-table th {
@@ -338,6 +340,42 @@
 .cb-table td {
   padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+/* ================================================================
+   COLUMN WIDTHS
+   Title gets more space; remaining 4 columns equal
+   ================================================================ */
+.cb-table th:nth-child(1),
+.cb-table td:nth-child(1) {
+  width: 70%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.cb-table th:nth-child(2),
+.cb-table td:nth-child(2) {
+  width: 15%;
+}
+
+.cb-table th:nth-child(3),
+.cb-table td:nth-child(3) {
+  width: 15%;
+}
+
+.cb-table th:nth-child(4),
+.cb-table td:nth-child(4) {
+  width: 15%;
+  padding-right: 20px;
+}
+
+.cb-table th:nth-child(5),
+.cb-table td:nth-child(5) {
+  width: 15%;
+  text-align: right;
 }
 
 .cb-empty-cell {
@@ -354,11 +392,14 @@
 }
 
 .cb-status-badge {
+  display: inline-block;
+  min-width: 65px;
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 10px;
   font-weight: 700;
   text-transform: capitalize;
+  text-align: center;
 }
 
 .cb-status-badge.published {
@@ -472,12 +513,11 @@
   align-items: center;
 }
 
-/* Matches the .cb-input style so the picker looks consistent */
 .date-input-wrapper input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  padding: 10px 2.4rem 10px 12px;   /* right padding for the icon */
+  padding: 10px 2.4rem 10px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 13px;
@@ -500,7 +540,6 @@
   cursor: not-allowed;
 }
 
-/* Custom clickable calendar icon — sits on the right edge */
 .date-picker-icon-btn {
   position: absolute;
   right: 8px;
@@ -539,7 +578,6 @@
   -webkit-user-drag: none;
 }
 
-/* Hide the native WebKit calendar icon (Chrome/Edge) so only ours shows */
 .date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
   position: absolute;
   right: 0;
@@ -550,13 +588,121 @@
   cursor: pointer;
 }
 
-/* Safari: keep the date text vertically centered */
 .date-input-wrapper input[type="date"]::-webkit-datetime-edit {
   display: inline-block;
   padding: 0;
 }
 
-/* Empty-state placeholder color */
 .date-input-wrapper input[type="date"]:invalid::-webkit-datetime-edit {
   color: #94a3b8;
+}
+
+/* ================================================================
+   PAGINATION — same style as Enquiries page
+   ================================================================ */
+.cb-pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background-color: #fff;
+  border-top: 1px solid #f1f4f8;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cb-pagination-footer p {
+  font-size: 13px;
+  color: #676f79;
+  margin: 0;
+}
+
+.cb-pagination-btns {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cb-page-arrow {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  color: #475569;
+  transition: all 0.2s ease;
+  padding: 0;
+  font-family: inherit;
+}
+
+.cb-page-arrow:hover:not(:disabled) {
+  background-color: #f7fafc;
+  border-color: #407bff;
+  color: #1e88e5;
+}
+
+.cb-page-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cb-page-num {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.cb-page-num:hover:not(.active) {
+  background-color: #f7fafc;
+  border-color: #407bff;
+  color: #1e88e5;
+}
+
+.cb-page-num.active {
+  background-color: #1e88e5;
+  border-color: #1e88e5;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(30, 136, 229, 0.3);
+}
+
+.cb-page-ellipsis {
+  min-width: 28px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-weight: 700;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .cb-pagination-footer {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .cb-pagination-btns {
+    justify-content: center;
+  }
 }

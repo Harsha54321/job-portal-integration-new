@@ -364,12 +364,25 @@ export const Jlogin = () => {
       sessionStorage.removeItem("redirectAfterLogin");
       sessionStorage.removeItem("redirectTab");
 
-      navigate(nextStep.path, {
-        replace: true,
-        state: {
-          activeTab: nextStep.targetTab
-        }
-      });
+      const homePath = "/Job-portal/jobseeker/";
+      const isJobPage = nextStep.path?.includes("/OpportunityOverview/");
+
+      if (isJobPage) {
+        // Keep jobseeker home in history so Back lands there
+        navigate(homePath, { replace: true });
+        setTimeout(() => {
+          navigate(nextStep.path, {
+            state: { fromLogin: true, activeTab: nextStep.targetTab }
+          });
+        }, 0);
+      } else {
+        navigate(nextStep.path, {
+          replace: true,
+          state: {
+            activeTab: nextStep.targetTab
+          }
+        });
+      }
     }
   };
 
@@ -414,6 +427,7 @@ export const Jlogin = () => {
       alert(`OTP sent to ${formValues.username}. Please check your email.`);
 
       navigate('/Job-portal/login/otpverification', {
+        replace: true,
         state: {
           email: formValues.username,
           purpose: 'login',
@@ -484,6 +498,7 @@ export const Jlogin = () => {
     setTimeout(() => {
       alert(`Mock OTP sent to ${formValues.phone}. For demo, use OTP: 123456`);
       navigate('/Job-portal/login/otpverification', {
+        replace: true,
         state: {
           phone: formValues.phone,
           purpose: 'login_mobile',

@@ -570,6 +570,7 @@ export const RaiseTicket = () => {
                                     value={formData.email}
                                     onFocus={() => handleClearError('email')}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    disabled={isAuthenticated}
                                 />
                                 {errors.email && <span className='form-group-err'>{errors.email}</span>}
                                 {formData.category === "Jobseeker" && jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (

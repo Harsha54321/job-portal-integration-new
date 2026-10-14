@@ -1109,3 +1109,49 @@ select option {
 .simple-dropdown-trigger.disabled:hover {
     border-color: #E5E7EB;
 }
+
+.preferences-radio-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+ 
+.preferences-radio-group input[type="radio"] {
+    vertical-align: middle;
+    margin: 0;
+}
+ 
+.preferences-radio-group label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Yes/No radio groups (Safari-safe) */
+.yn-radio-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.yn-radio-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.yn-radio-option input[type="radio"] {
+    -webkit-appearance: radio;
+    appearance: auto;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.yn-radio-option label {
+    cursor: pointer;
+}

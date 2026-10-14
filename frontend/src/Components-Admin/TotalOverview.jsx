@@ -3,12 +3,15 @@ import './TotalOverview.css';
 
 export const TotalOverview = ({ overviewData = {} }) => {
   const data = [
+    { label: 'Application Submitted', value: overviewData.applicants ?? 0, color: '#4cc3e0' },
+    { label: 'Resume Screening', value: overviewData.resume_screening ?? 0, color: '#ffcc00' },
     { label: 'Recruiter Review', value: overviewData.recommended ?? 0, color: '#5b83ff' },
     { label: 'Shortlisted', value: overviewData.shortlisted ?? 0, color: '#a67dff' },
-    { label: 'Application Submitted', value: overviewData.applicants ?? 0, color: '#4cc3e0' },
     { label: 'Interview', value: overviewData.interview ?? 0, color: '#ffb36b' },
+    { label: 'Offered', value: overviewData.offered ?? 0, color: '#00cc66' },
     { label: 'Rejected', value: overviewData.rejected ?? 0, color: '#ff7070' },
     { label: 'Hired', value: overviewData.hired ?? 0, color: '#cfd8dc' },
+    { label: 'Withdrawn', value: overviewData.withdrawn ?? 0, color: '#999999' },
   ];
 
   const total = overviewData.total_candidates
@@ -42,7 +45,7 @@ export const TotalOverview = ({ overviewData = {} }) => {
                 strokeDasharray={`${strokeDasharray} ${circumference}`}
                 strokeDashoffset={strokeDashoffset}
                 transform="rotate(-90 100 100)"
-                className="chart-segment"
+                className="Admin-chart-segment"
               />
             );
           })}
@@ -54,7 +57,7 @@ export const TotalOverview = ({ overviewData = {} }) => {
       <div className="Admin-legend-grid">
         {data.map((item, index) => (
           <div key={index} className="Admin-legend-item">
-            <span className="dot" style={{ backgroundColor: item.color }}></span>
+            <span className="Admin-dot" style={{ backgroundColor: item.color }}></span>
             <span className="Admin-label-text">{item.label}:</span>
             <span className="Admin-label-value">{item.value}</span>
           </div>

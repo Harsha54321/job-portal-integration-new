@@ -7,6 +7,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useJobs } from "../JobContext";
 import api from "../api/axios";
 
+const sanitizeSpaces = (str) => {
+  if (typeof str !== 'string') return str;
+  return str.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+};
+
 export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -226,6 +231,10 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Please enter your full name";
+    } else if (/^\s/.test(formData.fullName)) {
+      newErrors.fullName = "Starting spaces are not allowed";
+    } else if (/\s{2,}$/.test(formData.fullName)) {
+      newErrors.fullName = "Only one ending space allowed";
     } else if (formData.fullName.length < 3) {
       newErrors.fullName = "Full name must be at least 3 characters";
     } else if (!fullNameRegex.test(formData.fullName)) {
@@ -260,6 +269,10 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
     if (!formData.contactPerson?.trim()) {
       newErrors.contactPerson = "Contact person name is required";
+    } else if (/^\s/.test(formData.contactPerson)) {
+      newErrors.contactPerson = "Starting spaces are not allowed";
+    } else if (/\s{2,}$/.test(formData.contactPerson)) {
+      newErrors.contactPerson = "Only one ending space allowed";
     } else if (!/^[A-Za-z\s]+$/.test(formData.contactPerson)) {
       newErrors.contactPerson = "Contact person name must contain only alphabets and spaces";
     } else if (formData.contactPerson.length < 3) {
@@ -276,7 +289,9 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
     if (!formData.companyMail?.trim()) {
       newErrors.companyMail = "Company email is required";
-    } else if (!emailRegex.test(formData.companyMail)) {
+    } else if (/\s/.test(formData.companyMail)) {
+      newErrors.companyMail = "Spaces are not allowed in email address";
+    } else if (!emailRegex.test(formData.companyMail.trim())) {
       newErrors.companyMail = "Email must start with a letter and be valid";
     }
 
@@ -316,9 +331,18 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setBackendError("");
 
+    if (name === "companyMail") {
+      const noSpaceEmail = value.replace(/\s+/g, '');
+      setFormData((prev) => ({ ...prev, [name]: noSpaceEmail }));
+      return;
+    }
+
     if (name === "contactPerson") {
       // Allow only alphabets and spaces
-      const filteredValue = value.replace(/[^A-Za-z\s]/g, '');
+      const filteredValue = value
+        .replace(/[^A-Za-z\s]/g, '')
+        .replace(/^\s+/, '')
+        .replace(/\s{2,}/g, ' ');
       setFormData({ ...formData, [name]: filteredValue });
       return;
     }
@@ -340,7 +364,15 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
 
       setFormData({ ...formData, [name]: file });
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData({ ...formData, [name]: sanitizeSpaces(value) });
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/^\s+/, '').replace(/\s{2,}$/, ' ');
+      setFormData((prev) => ({ ...prev, [name]: cleaned }));
     }
   };
 
@@ -1162,6 +1194,7 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
                 placeholder="e.g., John Doe"
                 value={formData.fullName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 disabled={isLoading}
                 maxLength={50}
               />
@@ -1230,6 +1263,12 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
                 placeholder="e.g., John Doe"
                 value={formData.contactPerson}
                 onChange={handleChange}
+                onBlur={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    contactPerson: e.target.value.replace(/^\s+/, '').replace(/\s{2,}$/, ' ')
+                  }))
+                }
                 disabled={isLoading}
                 maxLength={40}
               />
@@ -1259,11 +1298,17 @@ export const AboutYourCompany = ({ hideNavigation = false, setActiveTab }) => {
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               <input
                 className={errors.companyMail ? "input-error" : ""}
-                type="email"
+                type="text"
                 name="companyMail"
                 placeholder="e.g., hr@company.com"
                 value={formData.companyMail}
                 onChange={handleChange}
+                onblur={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    companyMail: e.target.value.trim()
+                  }))
+                }
                 disabled={isLoading}
                 maxLength={100}
               />

@@ -207,10 +207,12 @@ export const UserManagement = () => {
       const fullName = (user.profile?.fullName || "").toLowerCase();
       const email = (user.contact?.email || "").toLowerCase();
       const role = (user.role || "").toLowerCase();
+      const activestatus = (user.status || "").toLowerCase();
 
       return fullName.includes(searchTerm) ||
         email.includes(searchTerm) ||
-        role.includes(searchTerm);
+        role.includes(searchTerm) ||
+        activestatus.includes(searchTerm);
     })
     .sort((a, b) => {
       return b.id - a.id; // Sorts newest entries to top globally
@@ -438,7 +440,7 @@ export const UserManagement = () => {
           <span className="search-icon"><img src={Searchicon} alt="Search" /></span>
           <input
             type="text"
-            placeholder="Search by username, email or role"
+            placeholder="Search by username, email, role, or status"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);

@@ -12,6 +12,7 @@ export const ReportAJob = () => {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const initialValues = {
         job_id: "",
@@ -61,6 +62,52 @@ export const ReportAJob = () => {
                 job_id: id
             }));
         }
+    }, [id]);
+
+    // Fetch logged in user data
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const token = sessionStorage.getItem('access');
+
+            if (!token) {
+                setIsAuthenticated(false);
+                setFormValues(initialValues);
+                return;
+            }
+
+            try {
+                const response = await api.get('/users/me/');
+                const user = response.data;
+
+                setIsAuthenticated(true);
+
+                // Split name into first and last if needed
+                const fullName = user.name || user.username || "";
+                const nameParts = fullName.trim().split(" ");
+                const firstName = user.first_name || nameParts[0] || "";
+                const lastName = user.last_name || nameParts.slice(1).join(" ") || "";
+
+                setFormValues({
+                    job_id: id || "",
+                    firstName: firstName,
+                    lastName: lastName,
+                    mobile: user.phone || "",
+                    email: user.email || "",
+                    reason: "",
+                    explanation: ""
+                });
+            } catch (error) {
+                console.error("Failed to fetch user data:", error);
+                if (error.response?.status === 401) {
+                    sessionStorage.removeItem('access');
+                    sessionStorage.removeItem('refresh');
+                }
+                setIsAuthenticated(false);
+                setFormValues(initialValues);
+            }
+        };
+
+        fetchUserData();
     }, [id]);
 
     // Validation for alphabets only (no spaces, no numbers, no special characters)
@@ -179,42 +226,66 @@ export const ReportAJob = () => {
         return Object.keys(newErrors).length === 0;
     };
 
+    // Sanitize input: block leading space, collapse multiple spaces, limit trailing spaces to one
+    const sanitizeInput = (name, value) => {
+        // Block leading space for text fields
+        if (value.startsWith(' ') && (name === 'firstName' || name === 'lastName' || name === 'reason' || name === 'explanation' || name === 'email')) {
+            return null; // ignore this change
+        }
+
+        // For email, remove all spaces
+        if (name === 'email') {
+            return value.replace(/\s/g, '');
+        }
+
+        // For names, reason, explanation: collapse multiple spaces and limit trailing spaces to one
+        if (name === 'firstName' || name === 'lastName' || name === 'reason' || name === 'explanation') {
+            return value
+                .replace(/\s{2,}/g, ' ')   // collapse multiple spaces to single
+                .replace(/\s+$/g, ' ');    // replace trailing spaces with single space
+        }
+
+        // Mobile: only digits, max 10
+        if (name === 'mobile') {
+            const onlyNums = value.replace(/[^0-9]/g, '');
+            return onlyNums.slice(0, 10);
+        }
+
+        return value;
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
 
+        const sanitized = sanitizeInput(name, value);
+        if (sanitized === null) return; // blocked leading space
+
+        // Now apply field-specific filtering using sanitized
         if (name === "firstName" || name === "lastName") {
-            const onlyAlpha = value.replace(/[^A-Za-z]/g, "");
+            const onlyAlpha = sanitized.replace(/[^A-Za-z]/g, "");
             // Limit to 15 characters
             const limitedValue = onlyAlpha.slice(0, 15);
             setFormValues({ ...formValues, [name]: limitedValue });
         } else if (name === "reason") {
-            const onlyAlphaAndSpace = value.replace(/[^A-Za-z\s]/g, "");
+            const onlyAlphaAndSpace = sanitized.replace(/[^A-Za-z\s]/g, "");
             // Limit to 100 characters
             const limitedValue = onlyAlphaAndSpace.slice(0, 100);
             setFormValues({ ...formValues, [name]: limitedValue });
-        }
-        //  Handle Explanation - Only alphabets and spaces
-        else if (name === "explanation") {
-            const onlyAlphaAndSpace = value.replace(/[^A-Za-z\s]/g, "");
+             //  Handle Explanation - Only alphabets and spaces
+        } else if (name === "explanation") {
+
+            const onlyAlphaAndSpace = sanitized.replace(/[^A-Za-z\s]/g, "");
             const limitedValue = onlyAlphaAndSpace.slice(0, EXPLANATION_MAX_LENGTH);
             setFormValues({ ...formValues, [name]: limitedValue });
-        }
-        // Handle mobile number
-        else if (name === "mobile") {
-            // Only allow numbers and restrict to 10 digits
-            const onlyNums = value.replace(/[^0-9]/g, "");
-            if (onlyNums.length <= 10) {
-                setFormValues({ ...formValues, [name]: onlyNums });
-            }
-        }
-        // Handle email with length restriction
-        else if (name === "email") {
-            const limitedValue = value.slice(0, 100);
+        } else if (name === "mobile") {
+            // sanitized already only digits and max 10
+            setFormValues({ ...formValues, [name]: sanitized });
+        } else if (name === "email") {
+            // sanitized already removed spaces, limit to 100
+            const limitedValue = sanitized.slice(0, 100);
             setFormValues({ ...formValues, [name]: limitedValue });
-        }
-        // Handle all other fields
-        else {
-            setFormValues({ ...formValues, [name]: value });
+        } else {
+            setFormValues({ ...formValues, [name]: sanitized });
         }
 
         if (errors[name]) setErrors({ ...errors, [name]: "" });
@@ -224,10 +295,10 @@ export const ReportAJob = () => {
         e.preventDefault();
         if (validate()) {
             setIsSubmitting(true);
-            
+
             try {
                 console.log("Submitting complaint for job:", formValues.job_id);
-                
+
                 const responseData = await api.post(`complaints/submit/${formValues.job_id}/`, {
                     firstName: formValues.firstName,
                     lastName: formValues.lastName,
@@ -238,17 +309,43 @@ export const ReportAJob = () => {
                 });
 
                 console.log("Response:", responseData);
-                
+
                 // Show success state
                 setShowSuccess(true);
                 setIsSubmitting(false);
 
+                // If authenticated, refill user data after reset
+                if (isAuthenticated) {
+                    try {
+                        const userRes = await api.get('/users/me/');
+                        const user = userRes.data;
+                        const fullName = user.name || user.username || "";
+                        const nameParts = fullName.trim().split(" ");
+                        const firstName = user.first_name || nameParts[0] || "";
+                        const lastName = user.last_name || nameParts.slice(1).join(" ") || "";
+
+                        setFormValues({
+                            job_id: id || "",
+                            firstName: firstName,
+                            lastName: lastName,
+                            mobile: user.phone || "",
+                            email: user.email || "",
+                            reason: "",
+                            explanation: ""
+                        });
+                    } catch (error) {
+                        console.error("Failed to refresh user data:", error);
+                        setFormValues(initialValues);
+                    }
+                } else {
+                    setFormValues(initialValues);
+                }
+
                 // Wait for 5 seconds before redirecting
                 setTimeout(() => {
                     navigate("/Job-portal/jobseeker");
-                    setFormValues(initialValues);
                 }, 5000);
-                
+
             } catch (error) {
                 const errData = error.response?.data;
                 console.log("Error:", errData);
@@ -369,15 +466,15 @@ export const ReportAJob = () => {
                                 value={formValues.email}
                                 onChange={handleChange}
                                 maxLength={100}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isAuthenticated}
                                 className={errors.email ? "error-field" : ""}
                             />
                             {errors.email && <span className="error-text">{errors.email}</span>}
-                            {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
+                            {/* {jobseekerSettings.domainRest && jobseekerSettings.allowedDomains.length > 0 && (
                                 <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
                                     Allowed domains: {jobseekerSettings.allowedDomains.join(', ')}
                                 </span>
-                            )}
+                            )} */}
                         </div>
                     </div>
 

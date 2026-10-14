@@ -65,6 +65,7 @@ export const ContactUs = () => {
 
       if (!token) {
         setIsAuthenticated(false);
+        setFormValues(initialValues); // ensure all empty when not logged in
         setLoadingAuth(false);
         return;
       }
@@ -74,12 +75,12 @@ export const ContactUs = () => {
         const user = response.data;
 
         setIsAuthenticated(true);
-        setFormValues(prev => ({
-          ...prev,
+        setFormValues({
           name: user.name || user.username || "",
           email: user.email || "",
           contact: user.phone || "",
-        }));
+          message: "", // always keep message empty
+        });
       } catch (error) {
         console.error("Failed to fetch user data:", error);
         if (error.response?.status === 401) {
@@ -87,6 +88,7 @@ export const ContactUs = () => {
           sessionStorage.removeItem('refresh');
         }
         setIsAuthenticated(false);
+        setFormValues(initialValues); // reset on error
       } finally {
         setLoadingAuth(false);
       }
@@ -95,14 +97,63 @@ export const ContactUs = () => {
     fetchUserData();
   }, []);
 
+  // Sanitize input: block leading space, collapse multiple spaces, limit trailing spaces
+  const sanitizeInput = (name, value) => {
+    // Block starting space
+    if (value.startsWith(" ")) return null;
+
+    // Email: remove all spaces
+    if (name === "email") {
+      return value.replace(/\s/g, "");
+    }
+
+    // Contact: only digits, max 10, start with 6-9
+    if (name === "contact") {
+      const digits = value.replace(/\D/g, "").slice(0, 10);
+      if (!/^[6-9]?\d{0,9}$/.test(digits)) return null;
+      return digits;
+    }
+
+    // Name: collapse multiple spaces into one, allow max one ending space
+    if (name === "name") {
+      return value
+        .replace(/\s{2,}/g, " ")   // "John   Doe" -> "John Doe"
+        .replace(/\s+$/g, " ");    // ending many spaces -> one space
+    }
+
+    // Message: block starting space, allow max one ending space
+    if (name === "message") {
+      return value
+        .replace(/^\s+/, "")
+        .replace(/\s{2,}$/g, " ");
+    }
+
+    return value;
+  };
+
   const handleForm = (e) => {
     const { name, value } = e.target;
-    setFormValues({ ...formValues, [name]: value });
 
-    if (name === "message" && value.length >= MAX_MESSAGE_LENGTH) {
-      setErrors({ ...errors, message: `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters` });
+    const sanitized = sanitizeInput(name, value);
+
+    // If starting space or invalid contact, block it
+    if (sanitized === null) return;
+
+    setFormValues((prev) => ({
+      ...prev,
+      [name]: sanitized,
+    }));
+
+    if (name === "message" && sanitized.length >= MAX_MESSAGE_LENGTH) {
+      setErrors((prev) => ({
+        ...prev,
+        message: `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
+      }));
     } else {
-      setErrors({ ...errors, [name]: "" });
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
     }
   };
 
@@ -175,6 +226,14 @@ export const ContactUs = () => {
       return;
     }
 
+    // Create payload with trimmed values
+    const payload = {
+      name: formValues.name.trim(),
+      email: formValues.email.trim(),
+      contact: formValues.contact.trim(),
+      message: formValues.message.trim(),
+    };
+
     // Check cooldown
     if (isInCooldown()) {
       const remainingSeconds = Math.ceil((SUBMISSION_COOLDOWN - (Date.now() - lastSubmissionTime)) / 1000);
@@ -239,6 +298,7 @@ export const ContactUs = () => {
           }));
         } catch (error) {
           console.error("Failed to refresh user data:", error);
+          setFormValues(initialValues);
         }
       }
 
@@ -348,7 +408,7 @@ export const ContactUs = () => {
                 onChange={handleForm}
                 onFocus={() => handleInputFocus('email')}
                 className={errors.email ? "input-error" : ""}
-                disabled={loading}
+                disabled={loading || isAuthenticated}
               />
               {errors.email && <span className="error-msg">{errors.email}</span>}
             </div>

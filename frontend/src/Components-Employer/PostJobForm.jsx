@@ -6,6 +6,11 @@ import './PostJobForm.css';
 import { locationsList } from "../Locations";
 import api from '../api/axios';
 
+const sanitizeSpaces = (str) => {
+  if (typeof str !== 'string') return str;
+  return str.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+};
+
 const availableSkills = ["UI & UX", "UI/UX Design", "UI Design", "UX Design", "Figma", "Adobe XD", "Sketch", "Photoshop", "Illustrator", "InDesign", "Wireframing", "Prototyping",
   "HTML", "HTML5", "CSS", "CSS3", "JavaScript", "TypeScript", "React", "React Native", "Angular", "Vue.js", "Next.js", "Nuxt.js", "Svelte", "SASS", "LESS", "Tailwind CSS", "Bootstrap", "Material UI", "Redux", "Webpack", "Babel", "DOM Manipulation", "AJAX", "JSON",
   "Node.js", "Express.js", "Python", "Django", "Flask", "FastAPI", "Java", "Spring Boot", "Hibernate", "C", "C++", "C#", ".NET", "ASP.NET", "PHP", "Laravel", "Symfony", "Ruby", "Ruby on Rails", "Go", "Rust", "Swift", "Kotlin", "Scala", "Elixir", "Erlang",
@@ -167,7 +172,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
   };
 
   const handleSkillChange = (e) => {
-    const value = e.target.value;
+    const value = sanitizeSpaces(e.target.value);
     setSkillInput(value);
 
     if (errors.key_skills) {
@@ -212,6 +217,8 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
     // Work Duration
     if (!formData.work_duration.trim()) {
       newErrors.work_duration = "Work duration is required";
+    } else if (/^\s/.test(formData.work_duration)) {
+      newErrors.work_duration = "Starting spaces are not allowed";
     } else if (!durationRegex.test(formData.work_duration.trim())) {
       newErrors.work_duration = "Enter e.g. '6 Months' or 'Permanent'";
     }
@@ -349,14 +356,43 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
         }));
       }
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      // Blocks leading space (^\s+) and blocks more than 1 space in a row (\s{2,})
+      const cleanedValue = typeof value === 'string'
+        ? value.replace(/^\s+/, '').replace(/\s{2,}/g, ' ')
+        : value;
+      // Inside handleChange:
+      setFormData((prev) => ({ ...prev, [name]: sanitizeSpaces(value) }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/^\s+/, '').replace(/\s{2,}$/, ' ');
+      setFormData((prev) => ({ ...prev, [name]: cleaned }));
+    }
+  };
+
+  const handleHighlightBlur = (index) => {
+    const newHighlights = [...formData.job_highlights];
+    if (typeof newHighlights[index] === 'string') {
+      newHighlights[index] = newHighlights[index].replace(/^\s+/, '').replace(/\s{2,}$/, ' ');
+      setFormData({ ...formData, job_highlights: newHighlights });
+    }
+  };
+
+  const handleResponsibilityBlur = (index) => {
+    const updatedRes = [...formData.responsibilities];
+    if (typeof updatedRes[index] === 'string') {
+      updatedRes[index] = updatedRes[index].replace(/^\s+/, '').replace(/\s{2,}$/, ' ');
+      setFormData({ ...formData, responsibilities: updatedRes });
     }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const newSkill = skillInput.trim();
+      const newSkill = sanitizeSpaces(skillInput);
 
       if (!newSkill) return;
 
@@ -389,7 +425,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
 
   const handleHighlightChange = (index, value) => {
     const newHighlights = [...formData.job_highlights];
-    newHighlights[index] = value;
+    newHighlights[index] = sanitizeSpaces(value);
     setFormData({ ...formData, job_highlights: newHighlights });
     setErrors({ ...errors, job_highlights: "" });
   };
@@ -403,7 +439,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
 
   const handleResponsibilityChange = (index, value) => {
     const updatedRes = [...formData.responsibilities];
-    updatedRes[index] = value;
+    updatedRes[index] = sanitizeSpaces(value);
     setFormData({ ...formData, responsibilities: updatedRes });
     setErrors({ ...errors, responsibilities: "" });
   };
@@ -684,7 +720,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Job title</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <input className={`jobpost-input ${errors.job_title ? "input-error" : ""}`} type="text" name="job_title" placeholder="e.g., Fullstack Developer" value={formData.job_title} onChange={handleChange} maxLength="50" />
+                  <input className={`jobpost-input ${errors.job_title ? "input-error" : ""}`} type="text" name="job_title" placeholder="e.g., Fullstack Developer" value={formData.job_title} onChange={handleChange} onBlur={handleBlur} maxLength="50" />
                   {errors.job_title && <span className="error-msg">{errors.job_title}</span>}
                 </div>
               </div>
@@ -795,7 +831,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Work duration</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <input className={`jobpost-input ${errors.work_duration ? "input-error" : ""}`} type="text" name="work_duration" placeholder='e.g., "3 Months", "6 Months", "permanent"' value={formData.work_duration} onChange={handleChange} />
+                  <input className={`jobpost-input ${errors.work_duration ? "input-error" : ""}`} type="text" name="work_duration" placeholder='e.g., "3 Months", "6 Months", "permanent"' value={formData.work_duration} onChange={handleChange} onBlur={handleBlur} />
                   {errors.work_duration && <span className="error-msg">{errors.work_duration}</span>}
                 </div>
               </div>
@@ -804,7 +840,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Salary</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <input className={`jobpost-input ${errors.salary ? "input-error" : ""}`} type="text" name="salary" placeholder="Max Annual CTC in LPA" value={formData.salary} onChange={handleChange} />
+                  <input className={`jobpost-input ${errors.salary ? "input-error" : ""}`} type="text" name="salary" placeholder="Max Annual CTC in LPA" value={formData.salary} onChange={handleChange} onBlur={handleBlur} />
                   {errors.salary && <span className="error-msg">{errors.salary}</span>}
                 </div>
               </div>
@@ -848,6 +884,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
                     placeholder="e.g., 0, 0-12, 6-24 (in years)"
                     value={formData.experience}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                   />
                   {errors.experience && <span className="error-msg">{errors.experience}</span>}
                   <small style={{ color: '#666', marginTop: '5px' }}>Enter single value or range (e.g., 0, 0-12, 3-6). Do not include "years" or "months".</small>
@@ -1002,6 +1039,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
                         placeholder="Add top 3-5 selling points of the role"
                         value={highlight}
                         onChange={(e) => handleHighlightChange(index, e.target.value)}
+                        onBlur={() => handleHighlightBlur(index)}
                       />
                       {index === 0 ? (
                         <span className="jobpost-plus-icon" onClick={addHighlightField}>+</span>
@@ -1018,7 +1056,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
               <div className="jobpost-form-row">
                 <label className="jobpost-label">Job description</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <textarea className={`jobpost-textarea ${errors.job_description ? "input-error" : ""}`} name="job_description" placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity unique.... " value={formData.job_description} onChange={handleChange} rows="6"></textarea>
+                  <textarea className={`jobpost-textarea ${errors.job_description ? "input-error" : ""}`} name="job_description" placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity unique.... " value={formData.job_description} onChange={handleChange} onBlur={handleBlur} rows="6"></textarea>
                   {errors.job_description && <span className="error-msg">{errors.job_description}</span>}
                 </div>
               </div>
@@ -1035,6 +1073,7 @@ export const PostJobForm = ({ onCancel, editJobData }) => {
                         placeholder="Specific day-to-day tasks"
                         value={res}
                         onChange={(e) => handleResponsibilityChange(index, e.target.value)}
+                        onBlur={() => handleResponsibilityBlur(index)}
                       />
                       {index === 0 ? (
                         <span className="jobpost-plus-icon" onClick={addResponsibilityField}>+</span>

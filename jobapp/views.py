@@ -11547,23 +11547,15 @@ class AdminDashboardOverviewNewView(APIView):
  
             "total_candidates": total_candidates,
  
-            "recommended":
-                application_counts["recommended"],
- 
-            "shortlisted":
-                application_counts["shortlisted"],
- 
-            "applicants":
-                application_counts["applicants"],
- 
-            "interview":
-                application_counts["interview"],
- 
-            "rejected":
-                application_counts["rejected"],
- 
-            "hired":
-                application_counts["hired"],
+            "applicants": application_counts["applicants"],
+            "resume_screening": application_counts["resume_screening"],
+            "recommended": application_counts["recommended"],
+            "shortlisted": application_counts["shortlisted"],
+            "interview": application_counts["interview"],
+            "offered": application_counts["offered"],
+            "rejected": application_counts["rejected"],
+            "hired": application_counts["hired"],
+            "withdrawn": application_counts["withdrawn"],
         }
  
  

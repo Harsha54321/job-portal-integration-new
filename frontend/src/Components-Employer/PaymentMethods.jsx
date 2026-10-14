@@ -161,7 +161,10 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
             formattedValue = formattedValue.slice(0, 3);
         }
         else {
-            formattedValue = value.replace(/[^a-zA-Z\s\-]/g, '');
+            formattedValue = value
+                .replace(/[^a-zA-Z\s\-]/g, '') // Keep letters, single hyphen, and space
+                .replace(/^\s+/, '')            // Block starting space
+                .replace(/\s{2,}/g, ' ');       // Block more than 1 space in a row
         }
 
         setCardData(prev => ({ ...prev, [name]: formattedValue }));
@@ -429,7 +432,10 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
 
                             <div className="PaymentMethods-form-group">
                                 <label>Cardholder's name</label>
-                                <input name="name" placeholder="Full Name on card" value={cardData.name} onChange={handleCardChange} required />
+                                <input name="name" placeholder="Full Name on card" value={cardData.name} onChange={handleCardChange} onBlur={(e) => setCardData(prev => ({
+                                    ...prev,
+                                    name: e.target.value.replace(/^\s+/, '').replace(/\s{2,}$/, ' ')
+                                }))} required />
                             </div>
 
                             <div className="PaymentMethods-form-group">
@@ -497,7 +503,7 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
                                             <input
                                                 placeholder="example@vpa"
                                                 value={upiId}
-                                                onChange={(e) => setUpiId(e.target.value)}
+                                                onChange={(e) => setUpiId(e.target.value.replace(/\s+/g, ''))}
                                                 required
                                             />
                                             <button
@@ -521,7 +527,7 @@ export const PaymentMethods = ({ onBack, onSave, onCancel, cardOnlyMode = false,
                 {!cardOnlyMode && activeTab === 'netbanking' && (
                     <div className="PaymentMethods-section">
                         <div className="netbanking-search-row">
-                            <input placeholder="Enter Bank Name" value={bankSearch} onChange={(e) => setBankSearch(e.target.value)} />
+                            <input placeholder="Enter Bank Name" value={bankSearch} onChange={(e) => setBankSearch(e.target.value.replace(/^\s+/, '').replace(/\s{2,}$/, ' '))} />
                             <button type="button" className="netbanking-search-btn">Search</button>
                         </div>
                         <div className="netbanking-grid">
